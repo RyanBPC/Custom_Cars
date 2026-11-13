@@ -459,7 +459,7 @@ function applyLights(p, b) {
 /* Gives a car two headlight beams (spot lights aimed a few metres ahead and slightly down) and a small red
    light low behind it, placed from where its lenses are. They sit on the body so they drop with it, and stay
    in the scene at zero strength when off, so switching them never makes the 3D rebuild its shaders. Cars
-   whose model has no separate lens parts (e.g. the Fiesta) just don't get them. */
+   whose model has no separate lens parts just don't get them. */
 function addBeams(rig) {
   const g = rig.group; g.updateMatrixWorld(true);
   const boxOf = mats => { const b = new THREE.Box3(); g.traverse(o => { if (o.isMesh && mats.includes(o.material)) b.expandByObject(o); }); return b; };

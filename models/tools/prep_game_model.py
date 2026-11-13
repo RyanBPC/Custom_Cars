@@ -104,7 +104,10 @@ if "lensUV" in cfg:
             name = "Lens_" + kind
             lens = bpy.data.materials.get(name) or me.materials[src_i].copy()
             lens.name = name
-            hit = [poly for poly in me.polygons if poly.material_index == src_i and any(
+            # Texture spots can be reused on the other end of the car (e.g. front indicators share the tail-light
+            # area): only faces at the right end count (the car faces +X by now), so tail lights don't glow at the front.
+            end = 1 if kind == "Front" else -1
+            hit = [poly for poly in me.polygons if poly.material_index == src_i and end * (o.matrix_world @ poly.center).x > 0.3 and any(
                 b[0] <= sum(uv[li].uv.x for li in poly.loop_indices) / poly.loop_total <= b[2] and
                 b[1] <= 1 - sum(uv[li].uv.y for li in poly.loop_indices) / poly.loop_total <= b[3] for b in boxes)]
             if hit:
