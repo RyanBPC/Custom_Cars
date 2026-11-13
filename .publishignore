@@ -4,3 +4,6 @@ experiments/ai-360/out
 experiments/ai-360/screenshot.jpg
 # AI pictures of the local-only Golf model.
 photos/golf-*.jpg
+# Tool settings and the improvement rounds' working notes (not part of the project itself).
+.claude
+advisor-notes
