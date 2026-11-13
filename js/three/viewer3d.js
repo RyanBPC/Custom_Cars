@@ -384,7 +384,7 @@ function setCars(stock, build) {
   ptCarChanged();
   disposeRig(stockCar); disposeRig(buildCar);
   stockCar = stock; buildCar = build;
-  for (const r of [stockCar, buildCar]) { r.group.traverse(o => { if (o.isMesh) o.castShadow = true; }); measureWheels(r); r.group.rotation.y = carYaw; }
+  for (const r of [stockCar, buildCar]) { r.group.traverse(o => { if (o.isMesh) o.castShadow = true; }); measureWheels(r); r.group.rotation.y = 0; addBeams(r); r.group.rotation.y = carYaw; }
   scene.add(stockCar.group, buildCar.group);
 }
 
@@ -451,6 +451,40 @@ function applyLights(p, b) {
   });
   set(p.lensFront, led ? 0xdde8ff : 0xfff0d8, 2);
   set(p.lensRear, 0xff1414, 1.5);
+  // The beams: light on the road ahead and a red wash behind (off by day; dimmer through smoked lenses).
+  if (!p.beams) return;
+  p.beams.front.forEach(s => { s.color.set(led ? 0xe6eeff : 0xfff0d8); s.intensity = lightsOn ? 22 * (smoked ? 0.4 : 1) : 0; });
+  p.beams.rear.forEach(l => { l.intensity = lightsOn ? 1.6 * (smoked ? 0.5 : 1) : 0; });
+}
+/* Gives a car two headlight beams (spot lights aimed a few metres ahead and slightly down) and a small red
+   light low behind it, placed from where its lenses are. They sit on the body so they drop with it, and stay
+   in the scene at zero strength when off, so switching them never makes the 3D rebuild its shaders. Cars
+   whose model has no separate lens parts (e.g. the Fiesta) just don't get them. */
+function addBeams(rig) {
+  const g = rig.group; g.updateMatrixWorld(true);
+  const boxOf = mats => { const b = new THREE.Box3(); g.traverse(o => { if (o.isMesh && mats.includes(o.material)) b.expandByObject(o); }); return b; };
+  const car = new THREE.Box3().setFromObject(g), size = car.getSize(new THREE.Vector3());
+  const along = size.x >= size.z ? "x" : "z", across = along === "x" ? "z" : "x";
+  const front = boxOf(rig.lensFront), rear = boxOf(rig.lensRear);
+  rig.beams = { front: [], rear: [] };
+  const local = v => rig.body.worldToLocal(v.clone());
+  if (!front.isEmpty()) {
+    const c = front.getCenter(new THREE.Vector3()), dir = Math.sign(c[along] - car.getCenter(new THREE.Vector3())[along]) || 1;
+    const w = front.max[across] - front.min[across];
+    for (const side of [front.min[across] + 0.2 * w, front.max[across] - 0.2 * w]) {
+      const at = c.clone(); at[across] = side;
+      const aim = at.clone(); aim[along] += dir * 9; aim.y = 0;
+      const s = new THREE.SpotLight(0xfff0d8, 0, 25, 0.5, 0.6, 2); s.name = "Headlight_Beam"; s.castShadow = false;
+      s.position.copy(local(at)); s.target.position.copy(local(aim));
+      rig.body.add(s, s.target); rig.beams.front.push(s);
+    }
+  }
+  if (!rear.isEmpty()) {
+    const c = rear.getCenter(new THREE.Vector3()), dir = Math.sign(c[along] - car.getCenter(new THREE.Vector3())[along]) || -1;
+    const at = c.clone(); at[along] += dir * 0.4; at.y = Math.max(0.3, c.y - 0.2);
+    const l = new THREE.PointLight(0xff1a14, 0, 4, 2); l.name = "Tail_Glow"; l.castShadow = false;
+    l.position.copy(local(at)); rig.body.add(l); rig.beams.rear.push(l);
+  }
 }
 function setLightsOn(on) {
   if (on === lightsOn) return;
@@ -729,6 +763,8 @@ async function ptPrepare() {
   // camera, sky and sun around it instead, so a turn never needs the slow rebuild.
   ptScene = new THREE.Scene();
   const copy = buildCar.group.clone(); copy.visible = true; copy.rotation.y = 0; ptScene.add(copy);
+  // Photo quality leaves the headlight beams out (their aim points don't copy across); the lenses still glow.
+  const beams = []; copy.traverse(o => { if (o.isLight) beams.push(o); }); beams.forEach(o => o.removeFromParent());
   ptSun = new THREE.DirectionalLight(0xffffff, 0); ptScene.add(ptSun, ptSun.target); // matches the shadow-casting sun
   ptScene.environment = await ptEnvironment();
   ptScene.background = null;
