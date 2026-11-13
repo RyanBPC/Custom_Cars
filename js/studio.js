@@ -81,6 +81,58 @@ $("shareBtn").addEventListener("click",async()=>{
   catch(e){window.prompt("Copy this link to keep or share your build:",link);}
 });
 
+/* ---------- My builds: named builds kept in this browser (visits still start stock) ---------- */
+const MY_KEY="customizacions.mybuilds", MY_MAX=12;
+function loadMyBuilds(){try{const a=JSON.parse(localStorage.getItem(MY_KEY)||"[]");return Array.isArray(a)?a.filter(b=>b&&CARS.some(c=>c.id===b.car)&&b.mods&&typeof b.mods==="object"):[];}catch(e){return [];}}
+function storeMyBuilds(a){try{localStorage.setItem(MY_KEY,JSON.stringify(a.slice(0,MY_MAX)));return true;}catch(e){return false;}}
+function defaultBuildName(){
+  const c=car(), ids=Object.keys(state.mods).sort((a,b)=>MODS[a].order-MODS[b].order);
+  const bits=ids.slice(0,2).map(id=>modLabel(id,state.mods[id]).toLowerCase());
+  return `${c.make} ${c.model}${bits.length?" - "+bits.join(", "):" - stock"}`.slice(0,60);
+}
+function renderMyBuilds(){
+  const list=loadMyBuilds(), box=$("myBuilds"), ul=$("myBuildsList");
+  box.hidden=!list.length; ul.innerHTML="";
+  list.forEach((b,i)=>{
+    const c=CARS.find(x=>x.id===b.car), mods=sanitizeAll(b.mods,c), n=Object.keys(mods).length;
+    const li=document.createElement("li"), d=document.createElement("div"), sm=document.createElement("small");
+    d.textContent=b.name; sm.textContent=`${c.make} ${c.model} · ${n} part${n===1?"":"s"} · ${fmt(c.price+buildCost(c,mods))}`; d.appendChild(sm);
+    const open=document.createElement("button"); open.type="button"; open.className="btn"; open.textContent="Open"; open.dataset.open=i; open.setAttribute("aria-label",`Open saved build ${b.name}`);
+    const del=document.createElement("button"); del.type="button"; del.className="btn ghost"; del.textContent="Delete"; del.dataset.del=i; del.setAttribute("aria-label",`Delete saved build ${b.name}`);
+    li.append(d,open,del); ul.appendChild(li);
+  });
+}
+$("saveBuildBtn").addEventListener("click",()=>{
+  const name=window.prompt("Name this build so you can open it again later:",defaultBuildName());
+  if(name===null) return;
+  const nm=(name.trim()||defaultBuildName()).slice(0,60);
+  const list=loadMyBuilds().filter(b=>b.name!==nm); // same name replaces the old one
+  list.unshift({name:nm,car:state.car,mods:JSON.parse(JSON.stringify(state.mods)),date:new Date().toISOString()});
+  const dropped=list.length>MY_MAX;
+  if(!storeMyBuilds(list)){addAI("Sorry, this browser won't let me save builds. Use \"Copy build link\" instead.");return;}
+  renderMyBuilds();
+  const b=$("saveBuildBtn"); b.textContent="Saved ✓"; setTimeout(()=>{b.textContent="Save build";},2500);
+  addAI(`Saved "${nm}" under My builds, below the build sheet.${dropped?" Your oldest saved build was removed to make room (12 is the most).":""}`);
+});
+$("myBuildsList").addEventListener("click",e=>{
+  const o=e.target.closest("[data-open]"), x=e.target.closest("[data-del]"), list=loadMyBuilds();
+  if(o){
+    const b=list[+o.dataset.open]; if(!b) return;
+    const kept=Object.keys(state.mods).length?{car:state.car,mods:JSON.parse(JSON.stringify(state.mods))}:null;
+    if(state.plateCar&&state.plateCar!==b.car) clearPlate();
+    state.car=b.car; state.mods=sanitizeAll(b.mods,car());
+    save(); renderStage(null,null); setSplit(50); renderInfo(); refreshDriveCar();
+    addAI(`Opened your saved build "${b.name}".`);
+    if(kept) setTimeout(()=>offerUndo(kept),0);
+  } else if(x){
+    const i=+x.dataset.del, b=list[i]; if(!b) return;
+    if(!window.confirm(`Delete your saved build "${b.name}"? This can't be undone.`)) return;
+    list.splice(i,1); storeMyBuilds(list); renderMyBuilds();
+    const first=$("myBuildsList").querySelector("button"); (first||$("saveBuildBtn")).focus();
+  }
+});
+renderMyBuilds();
+
 function commit(prev,changed){save();renderStage(prev,changed);renderInfo();refreshDriveCar();}
 function switchCar(id,announce){
   if(!CARS.some(c=>c.id===id)) return;
