@@ -1,0 +1,173 @@
+{
+  "file": "bmw440i.glb",
+  "credit": {
+    "title": "BMW 4 Series F32 2013-2020",
+    "author": "Merc_TV (@szymonpasterczyk)",
+    "url": "https://sketchfab.com/3d-models/bmw-4-series-f32-2013-2020-8db7d0707a6b4ffc85f81c5e7feb0633",
+    "licence": "CC BY 4.0",
+    "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+    "changes": "Duplicate part versions removed, panels set to one paint, cabin mirrored to right-hand drive, wheels, tyres and calipers added (rims from the site's wheel set), recoloured live by the site"
+  },
+  "notShown": [],
+  "provenance": "unverified: the uploader's profile says they import cars from BeamNG.drive, Assetto Corsa and GTA, so this is very likely a game asset and the CC BY licence may not be valid. Fine for local learning; do not publish.",
+  "fit": {
+    "_about": "Measured with models/tools/measure_fit.py (metres, front is +x, ground y=0); rear glass width, exhaust and cabin set by eye. Used to place add-on parts and the interior camera.",
+    "frontX": 2.33,
+    "rearX": -2.3,
+    "frontBottomY": 0.15,
+    "rearBottomY": 0.24,
+    "sideZ": 0.9,
+    "sillY": 0.2,
+    "roof": {
+      "x0": -1.07,
+      "x1": 0.23,
+      "y": 1.43,
+      "halfW": 0.56,
+      "minY": 1.36
+    },
+    "roofEdge": {
+      "x": -1.11,
+      "y": 1.33
+    },
+    "rearGlass": {
+      "top": [
+        -1.19,
+        1.3
+      ],
+      "bottom": [
+        -1.82,
+        1.08
+      ],
+      "halfW": 0.56
+    },
+    "bonnet": {
+      "x0": 1.09,
+      "x1": 2.25,
+      "minY": 0.7,
+      "halfW": 0.8,
+      "pts": [
+        [
+          1.19,
+          0.96
+        ],
+        [
+          1.44,
+          0.92
+        ],
+        [
+          1.7,
+          0.88
+        ],
+        [
+          1.95,
+          0.81
+        ],
+        [
+          2.14,
+          0.75
+        ]
+      ]
+    },
+    "exhaust": {
+      "x": -2.29,
+      "y": 0.315,
+      "z": 0.42
+    },
+    "door": {
+      "x": 0.3,
+      "y": 0.6
+    },
+    "seats": {
+      "driver": [
+        -0.2,
+        1.08,
+        0.37
+      ],
+      "passenger": [
+        -0.2,
+        1.08,
+        -0.37
+      ],
+      "rear": [
+        -0.95,
+        1.04,
+        0.33
+      ]
+    },
+    "cabin": {
+      "seatY": 0.45,
+      "frontSeatX": -0.05,
+      "rearSeatX": -0.86,
+      "seatZ": 0.37,
+      "headrestX": -0.35,
+      "headrestY": 1.2,
+      "roofInY": 1.34,
+      "wheel": [
+        0.4,
+        0.91,
+        0.36
+      ],
+      "dashX": 0.55
+    },
+    "headlight": {
+      "inner": [
+        2.18,
+        0.69,
+        0.48
+      ],
+      "outer": [
+        1.95,
+        0.745,
+        0.78
+      ]
+    },
+    "plates": {
+      "front": 0.44,
+      "rear": 0.77
+    }
+  },
+  "mirrorCabin": [],
+  "aero": "aero/bmw440i",
+  "_badges": "The model's roundels are blank (the game paints them on), so the site draws them: the bonnet one exactly on the model's blank disc (which is hidden), the boot one and the 440i name on the right of the boot (js/three/badges3d.js).",
+  "badges": [
+    {
+      "type": "bmw",
+      "on": "ARm4_common_bmw_logo_001-material",
+      "dir": [
+        -1,
+        0,
+        0
+      ],
+      "size": 0.066
+    },
+    {
+      "type": "bmw",
+      "from": [
+        -3,
+        0.95,
+        0
+      ],
+      "dir": [
+        1,
+        0,
+        0
+      ],
+      "size": 0.078
+    },
+    {
+      "type": "text",
+      "text": "440i",
+      "from": [
+        -3,
+        0.94,
+        0.41
+      ],
+      "dir": [
+        1,
+        0,
+        0
+      ],
+      "size": 0.1
+    }
+  ]
+}

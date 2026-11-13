@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 360 test</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #d9dadc; font-family: system-ui, sans-serif; }
+  #note { position: fixed; left: 12px; top: 10px; color: #222; font-size: 14px; }
+</style>
+<script type="importmap">{"imports":{"three":"../../vendor/three/build/three.module.js","three/addons/":"../../vendor/three/addons/"}}</script>
+</head>
+<body>
+<div id="note">AI 360 test: Golf made by free AI (TRELLIS) from one AI photo. Drag to spin.</div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(devicePixelRatio);
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xd9dadc);
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.01, 100);
+camera.position.set(1.6, 0.6, 1.6);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+new GLTFLoader().load('out/golf.glb', (g) => {
+  const box = new THREE.Box3().setFromObject(g.scene);
+  g.scene.position.sub(box.getCenter(new THREE.Vector3()));
+  scene.add(g.scene);
+  window.loaded = true;
+});
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+</script>
+</body>
+</html>

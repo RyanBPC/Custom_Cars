@@ -1,0 +1,15 @@
+{
+  "_about": "Aero parts for each car are made by models/tools/prep_aero.py (fitted against the car with ray casts). Splitter, side skirts, diffuser and exhaust tips are modelled by the script itself; the wing and the lip/ducktail come from these downloads (CC BY 4.0). Generated files are not committed.",
+  "downloads": {
+    "wing": {
+      "title": "Big Country Labs Style Spoiler Wing",
+      "author": "Socksthecat",
+      "url": "https://sketchfab.com/3d-models/a0e040a6c7aa40babe210e9e7637a846"
+    },
+    "spoilerpack": {
+      "title": "Ultimate Car Spoiler Pack | Game-Ready",
+      "author": "DevPoly3D",
+      "url": "https://sketchfab.com/3d-models/61834dfc0ef444e8a41e10477dd5318c"
+    }
+  }
+}

@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Custom Cars Build Studio</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314161a'/%3E%3Ccircle cx='32' cy='32' r='22' fill='none' stroke='%23c9ccd1' stroke-width='6'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%23c9ccd1'/%3E%3Cg stroke='%23c9ccd1' stroke-width='4' stroke-linecap='round'%3E%3Cpath d='M32 26V12M37.7 30.1 51 25.8M35.5 36.9l8.2 11.3M28.5 36.9l-8.2 11.3M26.3 30.1 13 25.8'/%3E%3C/g%3E%3C/svg%3E">
+<meta name="description" content="Pick a car, describe your build in plain English and watch the parts go on. Compare stock and modified specs, hear the engine and take a virtual test drive.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+<!-- Where the 3D view's module code finds three.js (a copy kept in vendor/, version 0.186.1). -->
+<script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.js","three/addons/":"./vendor/three/addons/","three/examples/jsm/":"./vendor/three/addons/","three-mesh-bvh":"./vendor/three-mesh-bvh/build/index.module.js","three-gpu-pathtracer":"./vendor/three-gpu-pathtracer/build/index.module.js"}}</script>
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#home">CUSTOM CARS<sup>™</sup></a>
+    <span class="tag">Prototype</span>
+    <nav class="main" aria-label="Pages">
+      <a href="#models">Models</a>
+      <a href="#build">Build</a>
+      <a href="#photo">Photo Studio</a>
+      <a href="#interior">Interior</a>
+      <a href="#about">About</a>
+    </nav>
+    <details class="navmore">
+      <summary>More</summary>
+      <nav class="navmore-list" aria-label="More pages">
+        <a href="#garage">Garage</a>
+        <a href="#drive">Test drive</a>
+        <a href="#prices">Price list</a>
+        <a href="#journal">Journal</a>
+      </nav>
+    </details>
+  </div>
+</header>
+
+<main id="content" tabindex="-1">
+<section id="home">
+  <div class="hero">
+    <img id="heroImg" src="photos/builds/hero/track.jpg" width="1600" height="900" fetchpriority="high" decoding="async" alt="">
+    <div class="wrap hero-text">
+      <div class="eyebrow">Custom Cars build studio</div>
+      <h1>Build your perfect <em>car.</em></h1>
+      <p>Choose the paint, wheels and aero, or just describe what you want, and see it fitted in 3D.</p>
+      <div class="hero-btns"><button class="btn primary" id="heroStart" type="button">Build yours</button><a class="btn" href="#models">Explore builds</a></div>
+    </div>
+  </div>
+</section>
+
+<section id="models">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="eyebrow">Models</div><h2>Pick a build to start from</h2></div>
+      <p>Every build opens in Build with its parts already fitted. Change anything you like from there.</p>
+    </div>
+    <div class="build-grid" id="buildGrid"></div>
+  </div>
+</section>
+
+<section id="studio">
+  <div class="wrap">
+    <div class="studio-head">
+      <div>
+        <div class="eyebrow">AI build studio</div>
+        <h1>Describe your build. <em>See it fitted in 3D.</em></h1>
+      </div>
+      <p>Pick a car, tell the advisor what you want, and watch it fitted live in 3D, in a city street or a forest, by day or by night. Drag to look around, compare before and after, and turn any view into a realistic photo.</p>
+    </div>
+
+    <div class="studio">
+        <div class="panel car-panel" style="overflow:hidden">
+          <div class="picker brands" id="brandPicker" role="group" aria-label="Choose a brand"></div>
+          <div class="picker" id="picker" role="group" aria-label="Choose a model"></div>
+          <div class="viewbar">
+            <span class="viewnote" id="viewNote" hidden>Open the site with start.bat to see your build in 3D.</span>
+            <div class="seg viewtabs" id="viewTabs" role="group" aria-label="What to show" hidden>
+              <button type="button" data-tab="3d" aria-pressed="true">3D view</button>
+              <button type="button" data-tab="ai" aria-pressed="false">AI Photo</button>
+            </div>
+            <label class="envpick" id="envPick" hidden>Setting <select id="envSelect"></select></label>
+            <button class="btn sm primary" id="renderBtn" type="button" hidden>AI render</button>
+            <!-- 3D view actions live in this bar, so nothing covers the car -->
+            <div class="view-actions" id="viewActions" hidden>
+              <button type="button" class="btn sm" data-spin="mode" title="Switch between looking all around the place and a sharp photo background">Photoshoot</button>
+              <button type="button" class="btn sm" data-spin="inside" title="Sit inside the car and look around">Interior</button>
+              <button type="button" class="btn sm" data-spin="lights" aria-pressed="false" title="Switch the car's head and tail lights on or off, to compare LED or smoked lights">Lights</button>
+              <button type="button" class="btn sm" data-spin="pt" aria-pressed="false" title="When you stop moving, the car sharpens into a photo-quality picture (real light simulation)">Photo quality</button>
+              <button type="button" class="btn sm" data-spin="save" title="Save this view of your build as a picture on your computer">Save picture</button>
+              <button type="button" class="btn sm primary" data-spin="photo" title="Turn this exact 3D view into a realistic AI photo">Make it a photo</button>
+            </div>
+          </div>
+          <div class="stage" id="stage">
+            <div class="layer after" id="afterLayer"></div>
+            <div class="layer before" id="beforeLayer"></div>
+            <div class="handle"></div>
+            <span class="lbl l" id="lblL">BEFORE</span><span class="lbl r" id="lblR">AFTER</span>
+            <span class="lbl ai" id="aiChip" hidden>AI-generated image</span>
+            <span class="photo-note" id="photoNote" hidden></span>
+            <div class="viewer3d" id="viewer3d" hidden>
+              <div class="spin-msg" id="spinMsg" hidden></div>
+              <!-- Notes that pop up over the 3D view, stacked at the top so they never cover the car -->
+              <div class="spin-notes">
+                <div class="spin-notshown" id="spinNotShown" hidden></div>
+                <div class="spin-modehint" id="spinModeHint" hidden>Photoshoot: pick a shot or drag to turn the car. Switch to 360° view to walk around it.</div>
+                <div class="spin-modehint" id="spinInHint" hidden>Interior: drag (or use the arrow keys) to look around. Esc steps out. Showing your build.</div>
+                <div class="spin-modehint" id="ptNote" hidden></div>
+                <div class="spin-modehint ai-bar" id="aiBar" hidden><span id="aiBarText"></span> <button type="button" class="btn sm" id="aiBarShow" hidden>Show it</button></div>
+              </div>
+              <span class="lbl spin-lbl l">BEFORE</span><span class="lbl spin-lbl r">AFTER</span>
+              <!-- Drag the knob (or use arrow keys on it) to compare stock and your build; drag anywhere else to spin. -->
+              <div class="spin-split" id="spinSplit">
+                <button type="button" class="spin-knob" id="spinKnob" role="slider" aria-label="Compare before (stock) and after (your build)" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">⟷</button>
+              </div>
+              <!-- 3D view vs AI photo of the same frame -->
+              <div class="ai3d" id="ai3d" hidden>
+                <img id="ai3dShot" alt="Your 3D view" draggable="false"><div class="ai3d-after"><img id="ai3dResult" alt="AI photo of your 3D view" draggable="false"></div>
+                <span class="lbl ai3d-l">3D VIEW</span><span class="lbl ai3d-r">AI PHOTO</span>
+                <span class="lbl ai3d-note">AI impression, not a real photo<span id="ai3dAdded" hidden> · parts not shown in 3D were added by the AI</span></span>
+                <!-- Turn away from this photo to another angle (the live 3D shows until a photo exists there) -->
+                <div class="ai3d-tools" role="group" aria-label="Turn to another angle">
+                  <button type="button" class="btn sm" data-ai="left" aria-label="Turn left 30 degrees">↺</button>
+                  <button type="button" class="btn sm" data-ai="right" aria-label="Turn right 30 degrees">↻</button>
+                  <button type="button" class="btn sm" data-ai="compare" aria-pressed="false">Compare with 3D</button>
+                  <button type="button" class="btn sm" data-ai="move">Move camera</button>
+                </div>
+                <input type="range" id="ai3dSplit" min="0" max="100" value="50" aria-label="Compare the 3D view and the AI photo">
+              </div>
+              <span class="lbl spin-chip"><span class="long">3D preview · </span>stand-in car shape</span>
+              <span class="visually-hidden" id="spinHint">Drag to turn the car, or use the turn buttons. Left and right arrow keys turn it, plus and minus zoom, Home resets.</span>
+              <span class="visually-hidden" id="spinLive" aria-live="polite"></span>
+              <div class="spin-tools" role="group" aria-label="Turn and zoom the 3D car">
+                <button type="button" class="btn sm" data-spin="left" aria-label="Turn left">↺</button>
+                <button type="button" class="btn sm" data-spin="right" aria-label="Turn right">↻</button>
+                <button type="button" class="btn sm" data-spin="in" aria-label="Zoom in">+</button>
+                <button type="button" class="btn sm" data-spin="out" aria-label="Zoom out">−</button>
+                <button type="button" class="btn sm" data-spin="reset">Reset</button>
+              </div>
+              <div class="spin-shots" id="spinShots" role="group" aria-label="Photoshoot angle" hidden>
+                <button type="button" class="btn sm" data-shot="-32">Front ¾</button>
+                <button type="button" class="btn sm" data-shot="0">Side</button>
+                <button type="button" class="btn sm" data-shot="148">Rear ¾</button>
+                <button type="button" class="btn sm" data-shot="-90">Head-on</button>
+              </div>
+              <div class="spin-shots" id="spinSeats" role="group" aria-label="Where to sit" hidden>
+                <button type="button" class="btn sm" data-seat="driver" aria-pressed="true">Driver's seat</button>
+                <button type="button" class="btn sm" data-seat="passenger" aria-pressed="false">Passenger</button>
+                <button type="button" class="btn sm" data-seat="rear" aria-pressed="false">Back seat</button>
+              </div>
+            </div>
+            <div class="callouts" id="callouts"></div>
+            <input type="range" id="split" min="0" max="100" value="50" aria-label="Compare before (stock) and after (your build)">
+          </div>
+          <!-- AI Photo tab: every saved AI photo of this car and build; pick one to jump to its angle -->
+          <!-- AI turntable: AI photos every 30 degrees round the car; drag the photo to spin through them -->
+          <div class="ai-turn" id="aiTurn" hidden>
+            <span class="ai-turn-dots" id="aiTurnDots" aria-hidden="true"></span>
+            <span id="aiTurnText"></span>
+            <button type="button" class="btn sm primary" id="aiTurnNext">Make the next angle</button>
+          </div>
+          <div class="ai-strip" id="aiStrip" role="list" aria-label="Your AI photos of this build" hidden></div>
+          <div class="under">
+            <div class="carname"><b id="carTitle">—</b><span id="carSub"></span></div>
+            <form class="plate-form" id="plateForm">
+              <label class="plate" title="Enter your registration">
+                <span class="gb">UK</span>
+                <input id="plate" maxlength="8" placeholder="AB12 CDE" autocomplete="off" aria-label="Registration number">
+              </label>
+              <button class="btn" type="submit">Find my car</button>
+            </form>
+          </div>
+          <div class="plate-msg" id="plateMsg">Demo plates: <button type="button" data-plate="MV24 GTI">MV24 GTI</button> · <button type="button" data-plate="MV19 BMW">MV19 BMW</button> · <button type="button" data-plate="MV08 FST">MV08 FST</button></div>
+          <div class="render-panel" id="renderPanel" aria-live="polite" hidden></div>
+        </div>
+
+        <!-- The chat sits between the car and the build sheet in the HTML, so keyboard and screen-reader order match the phone layout. -->
+        <!-- Configurator: option panels, or the advisor chat (the same parts either way) -->
+        <div class="panel config">
+          <div class="seg config-tabs" role="tablist" aria-label="How to choose parts">
+            <button type="button" role="tab" id="cfgTabOpts" aria-selected="true" aria-controls="options">Options</button>
+            <button type="button" role="tab" id="cfgTabChat" aria-selected="false" aria-controls="advisor">Advisor</button>
+          </div>
+          <div class="options" id="options" role="tabpanel" aria-labelledby="cfgTabOpts"></div>
+        <aside class="chat" id="advisor" role="tabpanel" aria-label="AI build advisor" hidden>
+          <div class="chat-head"><span class="dot" id="aiDot"></span><div><b>Build advisor</b><br><span id="aiMode">Connecting…</span></div></div>
+          <div class="msgs" id="msgs" aria-live="polite"></div>
+          <div class="suggest" id="suggest"></div>
+          <form class="ask" id="askForm">
+            <input id="askInput" placeholder="e.g. lower it with 19-inch bronze wheels" autocomplete="off" aria-label="Describe your modifications">
+            <button class="btn primary" id="askBtn" type="submit">Send</button>
+          </form>
+        </aside>
+        </div>
+
+        <div class="sheet">
+          <div class="panel">
+            <h3>Performance <small id="perfNote">Stock vs your build</small></h3>
+            <div class="statcards" id="specs"></div>
+            <div class="bars" id="bars"></div>
+            <div class="actions">
+              <button class="btn" id="hearStock" type="button">▶ Hear stock</button>
+              <button class="btn" id="hearBuild" type="button">▶ Hear your build</button>
+              <a class="btn ghost" href="#drive">Test drive it</a>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Build sheet <small id="modCount">0 parts</small></h3>
+            <ul class="fitted" id="fitted"></ul>
+            <div class="totals" id="totals"></div>
+            <div class="actions">
+              <a class="btn primary" id="buyLink" target="_blank" rel="noopener">Find this car for sale ↗</a>
+              <a class="btn" id="makerLink" target="_blank" rel="noopener">Book a real test drive ↗</a>
+              <button class="btn" id="shareBtn" type="button">Copy build link</button>
+              <button class="btn ghost" id="resetBtn" type="button">Reset to stock</button>
+            </div>
+            <p class="disclose">External links. Custom Cars has no affiliation with these sites. Prices are estimates for parts and fitting at UK specialists.</p>
+          </div>
+        </div>
+    </div>
+  </div>
+</section>
+
+<section id="about">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="eyebrow">About</div><h2>A car configurator you can talk to</h2></div>
+    </div>
+    <div class="about-grid">
+      <div><h3>What it is</h3><p>Custom Cars lets you plan modifications for popular UK cars, from a first car to a hot hatch, and see them fitted in 3D before you spend anything. Pick parts from the options, or describe what you want in plain English and the build advisor fits it for you.</p></div>
+      <div><h3>How it works</h3><ol><li>Start from one of the models, or a stock car.</li><li>Choose paint, wheels, ride height, aero and performance.</li><li>Walk round it in 3D, sit inside, and turn it into an AI photo.</li></ol></div>
+      <div><h3>Good to know</h3><p>Prices are estimates for parts and fitting at UK specialists. AI pictures are always labelled. Tell your insurer about every modification before you drive.</p></div>
+    </div>
+    <h3 class="about-more">More to explore</h3>
+    <div class="about-links">
+      <a href="#garage"><b>Garage</b><small>Every car in the studio, with specs.</small></a>
+      <a href="#drive"><b>Test drive</b><small>Hear your build and time a launch.</small></a>
+      <a href="#prices"><b>Price list</b><small>What each part costs, fitted.</small></a>
+      <a href="#journal"><b>Journal</b><small>Plain-English guides to modding.</small></a>
+    </div>
+    <p class="about-by">A University of Greenwich prototype by Ryan Carr.</p>
+  </div>
+</section>
+
+<section id="garage">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="eyebrow">The garage</div><h2>Every car in the studio</h2></div>
+      <p>UK favourites, each as a full 3D model you can modify, sorted by brand. Manufacturer-claimed figures, rounded; check the latest spec before you buy.</p>
+    </div>
+    <div class="brand-tabs" id="garageBrands" role="group" aria-label="Show cars by brand"></div>
+    <div id="garageGrid"></div>
+  </div>
+</section>
+
+<section id="drive">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="eyebrow">Virtual test drive</div><h2>Feel the difference</h2></div>
+      <p>Start the engine, then hold the throttle button (or Space) for a launch. Switch between stock and your build to hear and time both.</p>
+    </div>
+    <div class="drive">
+      <div class="road" id="road">
+        <canvas id="roadCanvas"></canvas>
+        <div class="car" id="driveCar"></div>
+        <div class="hint" id="driveHint" role="status" aria-live="polite">Start the engine to drive</div>
+      </div>
+      <div class="panel hud">
+        <div class="seg" role="group" aria-label="Car setup"><button type="button" id="dStock" aria-pressed="false">Stock</button><button type="button" id="dBuild" aria-pressed="true">Your build</button></div>
+        <div class="speedo"><b id="mph">0</b><span>mph</span></div>
+        <div class="rpm" aria-hidden="true"><i id="rpmBar"></i></div>
+        <div class="hudrow"><span>Gear <b id="gear">N</b></span><span><b id="rpmTxt">0</b> rpm</span></div>
+        <div class="hudrow"><span>Power</span><b id="drivePower">—</b></div>
+        <button class="btn" id="engineBtn" type="button">Start engine</button>
+        <button class="btn primary throttle" id="throttle" type="button" disabled>Hold to accelerate</button>
+        <div class="result" id="runResult" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="prices">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="eyebrow">Price list</div><h2>What a build costs</h2></div>
+      <p>Typical fitted prices at UK specialists. Your final quote depends on the car, the brand of part and labour rates near you.</p>
+    </div>
+    <p class="pricebuild" id="priceBuild" aria-live="polite"></p>
+    <div class="tablewrap"><table class="prices" id="priceTable"></table></div>
+    <p class="note">All prices include VAT and fitting and are estimates only. Remapping and power upgrades can affect your warranty. Tell your insurer about every modification before you drive.</p>
+  </div>
+</section>
+
+<section id="journal">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="eyebrow">Journal</div><h2>Know before you mod</h2></div>
+      <p>Plain-English guides to the rules, the costs and what actually makes a car better.</p>
+    </div>
+    <div class="posts" id="posts"></div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="logo">CUSTOM CARS™</span>
+    <nav class="foot-links" aria-label="All pages">
+      <a href="#models">Models</a><a href="#build">Build</a><a href="#photo">Photo Studio</a><a href="#interior">Interior</a><a href="#about">About</a>
+      <a href="#garage">Garage</a><a href="#drive">Test drive</a><a href="#prices">Prices</a><a href="#journal">Journal</a>
+    </nav>
+    <p class="credits"><b>Credits.</b> 3D Golf GTI model: <a href="https://sketchfab.com/3d-models/volkswagen-golf-8-gti-a8-e87d7c0f8937481db236529beb5ecab7" target="_blank" rel="noopener">"Volkswagen Golf 8. GTI (A8)"</a> by Mona x Supercars, <a href="http://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener license">CC BY 4.0</a>; changed (resized, parts renamed and separated, recoloured live). Its origin is unverified, so it's for this local prototype only. 3D BMW 440i model: <a href="https://sketchfab.com/3d-models/bmw-4-series-f32-2013-2020-8db7d0707a6b4ffc85f81c5e7feb0633" target="_blank" rel="noopener">"BMW 4 Series F32 2013-2020"</a> by Merc_TV (@szymonpasterczyk) and 3D Fiesta model: <a href="https://sketchfab.com/3d-models/ford-fiesta-mk5-f3a9d5d1fc9142d297f8d3c4d9b91431" target="_blank" rel="noopener">"Ford Fiesta Mk5"</a> by Ruletă (@romanian_guy_0069), both <a href="http://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener license">CC BY 4.0</a>; changed (resized, cabin mirrored to right-hand drive, wheels, tyres and brakes added, recoloured live). Probably game assets, so these are for this local prototype only too. Wheels (CC BY 4.0, reshaped to fit): <a href="https://sketchfab.com/3d-models/4e50d45e5ff04d00927a50c150e088c1" target="_blank" rel="noopener">mesh</a> by Martin Trafas (TinoD2), <a href="https://sketchfab.com/3d-models/2acc32fc79684a2c8b7df9faaa5a5c35" target="_blank" rel="noopener">multi-spoke</a> by mozzarellaARC, <a href="https://sketchfab.com/3d-models/e4ca99c55cec42b5940107b5c5ead0f6" target="_blank" rel="noopener">forged</a> by dermaks, <a href="https://sketchfab.com/3d-models/7205c04f3cb24a7dbdaf6a304fb31f21" target="_blank" rel="noopener">deep-dish</a> by alexanderlyreo, <a href="https://sketchfab.com/3d-models/67fc5dc7cb624908bdb86442e6bec99c" target="_blank" rel="noopener">turbofan</a> by l-odin. Spoilers (CC BY 4.0, refitted): <a href="https://sketchfab.com/3d-models/a0e040a6c7aa40babe210e9e7637a846" target="_blank" rel="noopener">GT wing</a> by Socksthecat, <a href="https://sketchfab.com/3d-models/61834dfc0ef444e8a41e10477dd5318c" target="_blank" rel="noopener">lip and ducktail</a> by DevPoly3D. Wheel and tyre brand names belong to their owners. 360° settings, background photos and ground textures: <a href="https://polyhaven.com" target="_blank" rel="noopener">Poly Haven</a> (CC0). 3D engine: <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> (MIT). Fonts: Google Fonts (SIL OFL). AI-generated car pictures and renders are labelled as such.</p>
+    <p>University of Greenwich prototype by Ryan Carr. Car names and figures belong to their manufacturers and are used for identification only; Custom Cars is not affiliated with any manufacturer. Car artwork is illustrative. Registration lookup runs in demo mode.</p>
+  </div>
+</footer>
+
+<!-- Plain script files (not modules), so the page also works when opened by double-clicking index.html.
+     They share one global scope and must load in this order; main.js runs last. -->
+<script src="js/data/cars.js"></script>
+<script src="js/data/catalogue.js"></script>
+<script src="js/data/builds.js"></script>
+<script src="js/data/content.js"></script>
+<script src="js/render/colour.js"></script>
+<script src="js/render/car-svg.js"></script>
+<script src="js/perf.js"></script>
+<script src="js/state.js"></script>
+<script src="js/studio.js"></script>
+<script src="js/audio/engine.js"></script>
+<script src="js/audio/rev-demo.js"></script>
+<script src="js/drive.js"></script>
+<script src="js/advisor/local-parser.js"></script>
+<script src="js/advisor/chat.js"></script>
+<script src="js/sections.js"></script>
+<script src="js/photo/prompt.js"></script>
+<script src="js/photo/photo-view.js"></script>
+<script src="js/spin-view.js"></script>
+<script src="js/photo3d.js"></script>
+<script src="js/home.js"></script>
+<script src="js/main.js"></script>
+<script src="js/configurator.js"></script>
+<script src="js/router.js"></script>
+
+</body></html>

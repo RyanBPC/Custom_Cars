@@ -1,0 +1,1167 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Customizacions Build Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Archivo:wdth,wght@62..125,300..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a dark showroom. The studio (stage + AI chat) is the hero; garage, test drive, prices and journal follow as quiet bands. */
+:root{
+  --bg:#0d1015;          /* showroom floor, blue-biased graphite */
+  --surface:#141920;
+  --surface-2:#1b222b;
+  --line:#28313c;
+  --fg:#e9ebee;
+  --muted:#8f99a6;
+  --accent:#d6b274;      /* champagne trim */
+  --accent-ink:#1a1408;
+  --good:#6fcf97;
+  --bad:#f07a6a;
+  --plate:#f7c600;
+  --f-display:"Michroma","Eurostile","Arial Black",sans-serif;
+  --f-body:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:10px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+a{color:var(--accent)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1280px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--f-display);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.15}
+h2{font-family:var(--f-body);font-stretch:85%;font-weight:750;font-size:clamp(26px,3.4vw,38px);letter-spacing:-.01em}
+h3{font-size:17px;font-weight:700}
+p{margin:0}
+.muted{color:var(--muted)}
+
+/* header */
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;gap:20px;height:58px}
+.logo{font-family:var(--f-display);font-size:15px;letter-spacing:.2em;text-decoration:none;color:var(--fg);white-space:nowrap}
+.logo sup{font-size:8px;letter-spacing:0;color:var(--muted)}
+nav.main{display:flex;gap:4px;margin-left:auto;overflow-x:auto;scrollbar-width:none}
+nav.main a{color:var(--muted);text-decoration:none;font-size:13.5px;padding:7px 11px;border-radius:7px;white-space:nowrap}
+nav.main a:hover{color:var(--fg);background:var(--surface)}
+.tag{font-family:var(--f-mono);font-size:10.5px;border:1px solid var(--line);color:var(--muted);padding:3px 7px;border-radius:5px;white-space:nowrap}
+@media (max-width:720px){.logo{font-size:12px;letter-spacing:.12em}header.top .tag{display:none}nav.main a{padding:7px 8px;font-size:13px}}
+
+/* studio */
+section{padding-block:56px}
+section+section{border-top:1px solid var(--line)}
+#studio{padding-block:28px 56px}
+.studio-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}
+.studio-head h1{font-family:var(--f-body);font-stretch:80%;font-weight:780;font-size:clamp(30px,4.6vw,54px);letter-spacing:-.015em;max-width:16ch}
+.studio-head h1 em{font-style:normal;color:var(--accent)}
+.studio-head p{max-width:46ch;color:var(--muted)}
+.studio{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:20px;align-items:start}
+@media (max-width:1020px){.studio{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px}
+
+.picker{display:flex;gap:6px;overflow-x:auto;padding:10px;scrollbar-width:thin;border-bottom:1px solid var(--line)}
+.picker button{flex:none;background:transparent;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.picker button:hover{color:var(--fg);border-color:#3a4552}
+.picker button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+
+.stage{position:relative;aspect-ratio:800/330;max-width:100%;overflow:hidden;background:#0e1217}
+.stage .layer{position:absolute;inset:0;z-index:1;background:linear-gradient(to bottom,transparent 83.5%,#1d252e 83.5%,#0e1217 83.9%,#0a0d11 100%),radial-gradient(60% 70% at 50% 18%,#25303c 0%,#141a21 55%,#0e1217 100%)}
+.stage .layer svg{width:100%;height:100%;display:block}
+.stage .before{clip-path:inset(0 calc(100% - var(--split,50%)) 0 0);transition:clip-path .9s cubic-bezier(.2,.8,.2,1)}
+.stage.dragging .before{transition:none}
+.stage .handle{position:absolute;top:0;bottom:0;left:var(--split,50%);width:2px;margin-left:-1px;background:var(--fg);z-index:3;pointer-events:none;transition:left .9s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 12px rgba(255,255,255,.35)}
+.stage.dragging .handle{transition:none}
+.stage .handle::after{content:"⟷";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;background:var(--fg);color:var(--bg);display:grid;place-items:center;font-size:14px}
+.stage input[type=range]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;z-index:4;margin:0}
+.stage .lbl{position:absolute;top:12px;z-index:2;font-family:var(--f-display);font-size:9.5px;letter-spacing:.2em;color:var(--muted);background:rgba(13,16,21,.7);padding:5px 8px;border-radius:5px}
+.stage .lbl.l{left:12px}.stage .lbl.r{right:12px;color:var(--accent)}
+.callouts{position:absolute;inset:0;z-index:5;pointer-events:none}
+.callout{position:absolute;transform:translate(-50%,-100%);background:var(--accent);color:var(--accent-ink);font-size:11.5px;font-weight:700;padding:4px 8px;border-radius:6px;white-space:nowrap;animation:pop 2.8s ease forwards}
+.callout::after{content:"";position:absolute;left:50%;bottom:-5px;margin-left:-5px;border:5px solid transparent;border-bottom:0;border-top-color:var(--accent)}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,-80%) scale(.8)}12%{opacity:1;transform:translate(-50%,-100%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-115%)}}
+.stage .platechip{position:absolute;left:12px;bottom:12px;z-index:2}
+
+.under{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border-top:1px solid var(--line)}
+.carname{display:flex;flex-direction:column;min-width:0}
+.carname b{font-size:20px;font-stretch:85%;font-weight:750}
+.carname span{color:var(--muted);font-size:13px}
+.plate-form{display:flex;align-items:stretch;gap:8px}
+.plate{display:flex;align-items:stretch;border-radius:6px;overflow:hidden;border:2px solid #111;background:var(--plate);height:42px}
+.plate .gb{background:#1f4fbf;color:#fff;font-size:9px;font-weight:800;display:grid;place-items:center;width:26px;letter-spacing:.05em;writing-mode:vertical-rl;transform:rotate(180deg)}
+.plate input{background:transparent;border:0;width:150px;text-align:center;font-family:var(--f-body);font-stretch:70%;font-weight:800;font-size:24px;letter-spacing:.06em;color:#111;text-transform:uppercase;padding:0 6px}
+.plate input::placeholder{color:rgba(0,0,0,.35)}
+.plate input:focus{outline:none}
+.plate:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);padding:9px 14px;font-size:13.5px;font-weight:600;cursor:pointer;text-decoration:none;color:var(--fg);white-space:nowrap}
+.btn:hover{border-color:#3e4957}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.sm{padding:6px 10px;font-size:12.5px}
+.plate-msg{font-size:12.5px;color:var(--muted);padding:0 16px 12px;margin-top:-6px}
+.plate-msg button{background:none;border:0;color:var(--accent);cursor:pointer;padding:0;font-family:var(--f-mono);font-size:12px;text-decoration:underline}
+
+/* build sheet */
+.sheet{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;margin-top:20px}
+@media (max-width:760px){.sheet{grid-template-columns:minmax(0,1fr)}}
+.sheet .panel{padding:18px}
+.sheet h3{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.sheet h3 small{font-weight:500;color:var(--muted);font-size:12px}
+table.specs{width:100%;border-collapse:collapse;font-size:13.5px}
+table.specs th{font-weight:500;color:var(--muted);text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:0 0 8px}
+table.specs th:not(:first-child),table.specs td:not(:first-child){text-align:right}
+table.specs td{padding:8px 0;border-top:1px solid var(--line)}
+table.specs td.v{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.up{color:var(--good)}.down{color:var(--bad)}.same{color:var(--muted)}
+.bars{display:grid;gap:10px;margin-top:14px}
+.bar{display:grid;grid-template-columns:96px minmax(0,1fr) 40px;align-items:center;gap:10px;font-size:12.5px}
+.bar .track{height:6px;background:var(--surface-2);border-radius:3px;position:relative;overflow:hidden}
+.bar .track i{position:absolute;inset:0 auto 0 0;background:#56606c;border-radius:3px}
+.bar .track b{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:3px;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.fitted{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.fitted li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px}
+.fitted li:first-child{border-top:0}
+.fitted li small{display:block;color:var(--muted);font-size:12px}
+.fitted .x{background:none;border:1px solid var(--line);border-radius:6px;width:26px;height:26px;cursor:pointer;color:var(--muted);line-height:1}
+.fitted .x:hover{color:var(--bad);border-color:var(--bad)}
+.empty{color:var(--muted);font-size:13.5px;padding:10px 0}
+.totals{display:grid;gap:6px;border-top:1px solid var(--line);margin-top:6px;padding-top:12px;font-size:13.5px}
+.totals div{display:flex;justify-content:space-between}
+.totals .grand{font-size:16px;font-weight:700}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.disclose{font-size:11.5px;color:var(--muted);margin-top:10px}
+
+/* chat */
+.chat{display:flex;flex-direction:column;height:min(760px,calc(100vh - 90px));position:sticky;top:calc(env(safe-area-inset-top,0px) + 70px)}
+@media (max-width:1020px){.chat{position:static;height:620px}}
+.chat-head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.chat-head .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.chat-head .dot.live{background:var(--good);box-shadow:0 0 0 3px rgba(111,207,151,.18)}
+.chat-head b{font-size:14px}
+.chat-head span{font-size:12px;color:var(--muted)}
+.msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0}
+.msg{max-width:92%;font-size:14px;line-height:1.5}
+.msg.user{align-self:flex-end;background:var(--fg);color:var(--bg);padding:9px 13px;border-radius:14px 14px 4px 14px}
+.msg.ai{align-self:flex-start;background:var(--surface-2);padding:11px 13px;border-radius:14px 14px 14px 4px;border:1px solid var(--line)}
+.msg.ai.thinking{color:var(--muted)}
+.msg.ai.thinking::after{content:"";display:inline-block;width:14px;animation:dots 1.2s steps(4) infinite;overflow:hidden;vertical-align:bottom;white-space:nowrap}
+@keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+.modcards{display:grid;gap:8px;margin-top:10px}
+.modcard{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:10px 11px;font-size:12.8px}
+.modcard .t{display:flex;justify-content:space-between;gap:8px;font-weight:700;font-size:13.5px;margin-bottom:4px}
+.modcard .t span{font-family:var(--f-mono);font-weight:600;color:var(--accent);font-size:12.5px}
+.modcard dl{margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 9px}
+.modcard dt{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding-top:2px}
+.modcard dd{margin:0}
+.modcard.removed{opacity:.6}
+.suggest{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 10px}
+.suggest button{background:transparent;border:1px solid var(--line);border-radius:999px;padding:5px 10px;font-size:12.5px;color:var(--muted);cursor:pointer;text-align:left}
+.suggest button:hover{color:var(--fg);border-color:#3e4957}
+form.ask{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
+form.ask input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px}
+form.ask input:focus{outline:none;border-color:var(--accent)}
+
+/* garage */
+.sec-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:26px}
+.sec-head p{max-width:52ch;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.card .art{background:radial-gradient(70% 80% at 50% 20%,#222b35,#12171d);aspect-ratio:800/300;max-width:100%}
+.card .art svg{width:100%;height:100%;display:block}
+.card .body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;flex:1}
+.card .name{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.card .name b{font-size:16px}
+.card .name span{font-size:12px;color:var(--muted)}
+.kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kv div{background:var(--surface-2);border-radius:7px;padding:7px 9px}
+.kv small{display:block;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.kv b{font-family:var(--f-mono);font-size:14px;font-weight:600}
+.card p.d{font-size:13px;color:var(--muted)}
+.card .row{display:flex;gap:8px;margin-top:auto;flex-wrap:wrap;align-items:center}
+.card .row .price{flex-basis:100%;font-size:13px}
+.card .row .price b{font-family:var(--f-mono)}
+
+/* drive */
+.drive{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px}
+@media (max-width:900px){.drive{grid-template-columns:minmax(0,1fr)}}
+.road{position:relative;aspect-ratio:16/7;max-width:100%;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#0b0e12;touch-action:none;user-select:none;-webkit-user-select:none}
+.road canvas{position:absolute;inset:0;width:100%;height:100%}
+.road .car{position:absolute;left:8%;width:62%;bottom:6%;pointer-events:none}
+.road .car svg{width:100%;display:block}
+.road .hint{position:absolute;right:14px;top:12px;font-size:12px;color:rgba(255,255,255,.7);background:rgba(0,0,0,.35);padding:5px 9px;border-radius:6px}
+.hud{display:flex;flex-direction:column;gap:14px;padding:18px}
+.speedo{display:flex;align-items:baseline;gap:8px}
+.speedo b{font-family:var(--f-mono);font-size:56px;line-height:1;font-weight:600;font-variant-numeric:tabular-nums}
+.speedo span{color:var(--muted)}
+.rpm{height:10px;background:var(--surface-2);border-radius:5px;overflow:hidden;position:relative}
+.rpm i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--accent),#e8c98f 70%,var(--bad));width:0}
+.hudrow{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.hudrow b{color:var(--fg);font-family:var(--f-mono)}
+.throttle{height:64px;font-size:15px;touch-action:none}
+.throttle.on{filter:brightness(1.15);transform:scale(.99)}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;background:transparent;border:0;padding:8px;font-size:13px;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface-2);color:var(--fg)}
+.result{font-size:13px;min-height:20px}
+
+/* prices + journal */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+table.prices{width:100%;border-collapse:collapse;font-size:14px;min-width:640px}
+table.prices th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500;padding:12px 16px;border-bottom:1px solid var(--line)}
+table.prices td{padding:12px 16px;border-top:1px solid var(--line);vertical-align:top}
+table.prices tr.cat td{background:var(--surface-2);font-family:var(--f-display);font-size:10px;letter-spacing:.2em;color:var(--accent);padding:8px 16px}
+table.prices td.p{font-family:var(--f-mono);text-align:right;white-space:nowrap}
+table.prices th:last-child{text-align:right}
+.note{font-size:12.5px;color:var(--muted);margin-top:12px;max-width:80ch}
+.posts{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+details.post{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+details.post summary{cursor:pointer;list-style:none;display:flex;flex-direction:column;gap:8px}
+details.post summary::-webkit-details-marker{display:none}
+details.post summary .meta{font-size:12px;color:var(--muted);font-family:var(--f-mono)}
+details.post summary h3{font-size:18px}
+details.post summary p{color:var(--muted);font-size:13.5px}
+details.post summary .more{font-size:12.5px;color:var(--accent)}
+details.post[open] summary .more{display:none}
+details.post .content{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);display:grid;gap:10px;font-size:14px;max-width:65ch}
+details.post .content h4{margin:6px 0 0;font-size:14px}
+footer{border-top:1px solid var(--line);padding-block:32px;color:var(--muted);font-size:12.5px}
+footer .wrap{display:grid;gap:10px}
+footer .logo{font-size:13px}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#studio">CUSTOMIZACIONS<sup>™</sup></a>
+    <span class="tag">Prototype</span>
+    <nav class="main" aria-label="Sections">
+      <a href="#studio">Studio</a>
+      <a href="#garage">Garage</a>
+      <a href="#drive">Test drive</a>
+      <a href="#prices">Prices</a>
+      <a href="#journal">Journal</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section id="studio">
+  <div class="wrap">
+    <div class="studio-head">
+      <div>
+        <div class="eyebrow">AI build studio</div>
+        <h1>Tell it what you want. <em>Watch it go on.</em></h1>
+      </div>
+      <p>Pick a car or enter your registration, then describe your build. The AI fits each part, explains what it does and updates the specs. Drag across the car to compare stock and modified.</p>
+    </div>
+
+    <div class="studio">
+      <div style="min-width:0">
+        <div class="panel" style="overflow:hidden">
+          <div class="picker" id="picker" role="group" aria-label="Choose a car"></div>
+          <div class="stage" id="stage">
+            <div class="layer after" id="afterLayer"></div>
+            <div class="layer before" id="beforeLayer"></div>
+            <div class="handle"></div>
+            <span class="lbl l">STOCK</span><span class="lbl r">YOUR BUILD</span>
+            <div class="callouts" id="callouts"></div>
+            <input type="range" id="split" min="0" max="100" value="50" aria-label="Compare stock and your build">
+          </div>
+          <div class="under">
+            <div class="carname"><b id="carTitle">—</b><span id="carSub"></span></div>
+            <form class="plate-form" id="plateForm">
+              <label class="plate" title="Enter your registration">
+                <span class="gb">UK</span>
+                <input id="plate" maxlength="8" placeholder="AB12 CDE" autocomplete="off" aria-label="Registration number">
+              </label>
+              <button class="btn" type="submit">Find my car</button>
+            </form>
+          </div>
+          <div class="plate-msg" id="plateMsg">Demo plates: <button type="button" data-plate="MV24 GTI">MV24 GTI</button> · <button type="button" data-plate="MV73 SUP">MV73 SUP</button> · <button type="button" data-plate="MV72 RSE">MV72 RSE</button></div>
+        </div>
+
+        <div class="sheet">
+          <div class="panel">
+            <h3>Performance <small id="perfNote">Stock vs your build</small></h3>
+            <table class="specs" id="specs"></table>
+            <div class="bars" id="bars"></div>
+            <div class="actions">
+              <button class="btn" id="hearStock" type="button">▶ Hear stock</button>
+              <button class="btn" id="hearBuild" type="button">▶ Hear your build</button>
+              <a class="btn ghost" href="#drive">Test drive it</a>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Build sheet <small id="modCount">0 parts</small></h3>
+            <ul class="fitted" id="fitted"></ul>
+            <div class="totals" id="totals"></div>
+            <div class="actions">
+              <a class="btn primary" id="buyLink" target="_blank" rel="noopener sponsored">Find this car for sale ↗</a>
+              <a class="btn" id="makerLink" target="_blank" rel="noopener">Book a real test drive ↗</a>
+              <button class="btn ghost" id="resetBtn" type="button">Reset to stock</button>
+            </div>
+            <p class="disclose">Partner links: Customizacions may earn commission if you buy through them. Prices are estimates for parts and fitting at UK specialists.</p>
+          </div>
+        </div>
+      </div>
+
+      <aside class="panel chat" aria-label="AI build advisor">
+        <div class="chat-head"><span class="dot" id="aiDot"></span><div><b>Build advisor</b><br><span id="aiMode">Connecting…</span></div></div>
+        <div class="msgs" id="msgs" aria-live="polite"></div>
+        <div class="suggest" id="suggest"></div>
+        <form class="ask" id="askForm">
+          <input id="askInput" placeholder="e.g. lower it with 19-inch bronze wheels" autocomplete="off" aria-label="Describe your modifications">
+          <button class="btn primary" id="askBtn" type="submit">Send</button>
+        </form>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section id="garage">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="eyebrow">The garage</div><h2>Every car in the studio</h2></div>
+      <p>Twelve UK performance favourites to start. Manufacturer-claimed figures, rounded; check the latest spec before you buy.</p>
+    </div>
+    <div class="grid" id="garageGrid"></div>
+  </div>
+</section>
+
+<section id="drive">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="eyebrow">Virtual test drive</div><h2>Feel the difference</h2></div>
+      <p>Start the engine, then hold the throttle button (or Space) for a launch. Switch between stock and your build to hear and time both.</p>
+    </div>
+    <div class="drive">
+      <div class="road" id="road">
+        <canvas id="roadCanvas"></canvas>
+        <div class="car" id="driveCar"></div>
+        <div class="hint" id="driveHint">Start the engine to drive</div>
+      </div>
+      <div class="panel hud">
+        <div class="seg" role="group" aria-label="Car setup"><button type="button" id="dStock" aria-pressed="false">Stock</button><button type="button" id="dBuild" aria-pressed="true">Your build</button></div>
+        <div class="speedo"><b id="mph">0</b><span>mph</span></div>
+        <div class="rpm" aria-hidden="true"><i id="rpmBar"></i></div>
+        <div class="hudrow"><span>Gear <b id="gear">N</b></span><span><b id="rpmTxt">0</b> rpm</span></div>
+        <div class="hudrow"><span>Power</span><b id="drivePower">—</b></div>
+        <button class="btn" id="engineBtn" type="button">Start engine</button>
+        <button class="btn primary throttle" id="throttle" type="button" disabled>Hold to accelerate</button>
+        <div class="result" id="runResult"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="prices">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="eyebrow">Price list</div><h2>What a build costs</h2></div>
+      <p>Typical fitted prices at UK specialists. Your final quote depends on the car, the brand of part and labour rates near you.</p>
+    </div>
+    <div class="tablewrap"><table class="prices" id="priceTable"></table></div>
+    <p class="note">All prices include VAT and fitting and are estimates only. Remapping and power upgrades can affect your warranty. Tell your insurer about every modification before you drive.</p>
+  </div>
+</section>
+
+<section id="journal">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="eyebrow">Journal</div><h2>Know before you mod</h2></div>
+      <p>Plain-English guides to the rules, the costs and what actually makes a car better.</p>
+    </div>
+    <div class="posts" id="posts"></div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="logo">CUSTOMIZACIONS™</span>
+    <p>University of Greenwich prototype by Ryan Carr. Car names and figures belong to their manufacturers and are used for identification only; Customizacions is not affiliated with any manufacturer. Car artwork is illustrative. Registration lookup runs in demo mode.</p>
+  </div>
+</footer>
+
+<script>
+(() => {
+"use strict";
+/* ---------- data ---------- */
+const CARS = [
+ {id:"golf",make:"Volkswagen",model:"Golf GTI",gen:"Mk8.5",style:"hatch",hp:261,nm:370,t62:5.9,kg:1429,drive:"FWD",engine:"2.0 turbo 4-cylinder",cyl:4,turbo:true,redline:6600,price:39000,wheel:18,colour:"#b5121b",colourName:"Red",handling:70,braking:68,url:"https://www.volkswagen.co.uk",keys:["golf","gti"],blurb:"The hot hatch everyone measures against. Quick, comfortable and easy to live with."},
+ {id:"civic",make:"Honda",model:"Civic Type R",gen:"FL5",style:"hatch",hp:324,nm:420,t62:5.4,kg:1430,drive:"FWD",engine:"2.0 turbo 4-cylinder",cyl:4,turbo:true,redline:7000,price:50000,wheel:19,colour:"#eceae4",colourName:"White",handling:82,braking:78,url:"https://www.honda.co.uk",keys:["civic","type r","type-r","ctr"],blurb:"A front-wheel-drive car that handles like it shouldn't. Sharp, loud and built for B-roads."},
+ {id:"yaris",make:"Toyota",model:"GR Yaris",gen:"2024",style:"hatch",hp:276,nm:390,t62:5.5,kg:1280,drive:"AWD",engine:"1.6 turbo 3-cylinder",cyl:3,turbo:true,redline:7000,price:44000,wheel:18,colour:"#2a2e34",colourName:"Grey",handling:84,braking:78,url:"https://www.toyota.co.uk",keys:["yaris","gr yaris"],blurb:"A rally car with number plates. Small, light and four-wheel drive."},
+ {id:"gr86",make:"Toyota",model:"GR86",gen:"ZN8",style:"coupe",hp:231,nm:250,t62:6.3,kg:1276,drive:"RWD",engine:"2.4 flat-4, no turbo",cyl:4,turbo:false,redline:7500,price:32000,wheel:18,colour:"#1f4fa8",colourName:"Blue",handling:80,braking:70,url:"https://www.toyota.co.uk",keys:["gr86","86","gt86"],blurb:"Light, rear-wheel drive and affordable. A blank canvas for tuners."},
+ {id:"supra",make:"Toyota",model:"GR Supra 3.0",gen:"A90",style:"coupe",hp:335,nm:500,t62:4.3,kg:1520,drive:"RWD",engine:"3.0 turbo straight-6",cyl:6,turbo:true,redline:7000,price:56000,wheel:19,colour:"#d9a400",colourName:"Yellow",handling:78,braking:76,url:"https://www.toyota.co.uk",keys:["supra","mk5"],blurb:"A straight-six that loves a remap. One of the easiest cars to add big power to."},
+ {id:"m3",make:"BMW",model:"M3 Competition xDrive",gen:"G80",style:"saloon",hp:523,nm:650,t62:3.5,kg:1780,drive:"AWD",engine:"3.0 twin-turbo straight-6",cyl:6,turbo:true,redline:7200,price:85000,wheel:19,colour:"#3d6b4f",colourName:"Green",handling:80,braking:82,url:"https://www.bmw.co.uk",keys:["m3"],blurb:"A four-door family car with supercar pace. Huge torque and all-wheel-drive traction."},
+ {id:"m2",make:"BMW",model:"M2",gen:"G87",style:"coupe",hp:473,nm:600,t62:4.1,kg:1725,drive:"RWD",engine:"3.0 twin-turbo straight-6",cyl:6,turbo:true,redline:7200,price:70000,wheel:19,colour:"#2a63c9",colourName:"Blue",handling:80,braking:80,url:"https://www.bmw.co.uk",keys:["m2"],blurb:"Compact, rear-wheel drive and aggressive. The M car for drivers who like to slide."},
+ {id:"rs3",make:"Audi",model:"RS 3 Sportback",gen:"8Y",style:"hatch",hp:394,nm:500,t62:3.8,kg:1575,drive:"AWD",engine:"2.5 turbo 5-cylinder",cyl:5,turbo:true,redline:7000,price:61000,wheel:19,colour:"#7d8790",colourName:"Grey",handling:78,braking:78,url:"https://www.audi.co.uk",keys:["rs3","rs 3","audi"],blurb:"That five-cylinder warble is the reason people buy it. Brutally quick off the line."},
+ {id:"a45",make:"Mercedes-AMG",model:"A 45 S",gen:"W177",style:"hatch",hp:415,nm:500,t62:3.9,kg:1635,drive:"AWD",engine:"2.0 turbo 4-cylinder",cyl:4,turbo:true,redline:7200,price:63000,wheel:19,colour:"#16181c",colourName:"Black",handling:78,braking:78,url:"https://www.mercedes-benz.co.uk",keys:["a45","a 45","amg","mercedes"],blurb:"The most powerful production four-cylinder of its era, wrapped in a hatchback."},
+ {id:"mustang",make:"Ford",model:"Mustang GT",gen:"S650",style:"coupe",hp:440,nm:540,t62:4.9,kg:1820,drive:"RWD",engine:"5.0 V8, no turbo",cyl:8,turbo:false,redline:7500,price:56000,wheel:19,colour:"#c8501e",colourName:"Orange",handling:70,braking:74,url:"https://www.ford.co.uk",keys:["mustang","v8","ford"],blurb:"A naturally aspirated V8 in 2026. Loud, characterful and made for cruising."},
+ {id:"c911",make:"Porsche",model:"911 Carrera",gen:"992.2",style:"coupe",hp:388,nm:450,t62:4.1,kg:1475,drive:"RWD",engine:"3.0 twin-turbo flat-6",cyl:6,turbo:true,redline:7500,price:100000,wheel:20,colour:"#c5c8cc",colourName:"Silver",handling:88,braking:88,url:"https://www.porsche.com/uk/",keys:["911","porsche","carrera"],blurb:"The everyday supercar. Precise, beautifully built and holds its value."},
+ {id:"mx5",make:"Mazda",model:"MX-5 2.0",gen:"ND",style:"roadster",hp:181,nm:205,t62:6.5,kg:1078,drive:"RWD",engine:"2.0 4-cylinder, no turbo",cyl:4,turbo:false,redline:7500,price:30000,wheel:17,colour:"#9b1424",colourName:"Red",handling:82,braking:70,url:"https://www.mazda.co.uk",keys:["mx5","mx-5","miata","mazda"],blurb:"Roof down, light and simple. Proof you don't need big power to have fun."}
+];
+const DEMO_PLATES = {"MV24GTI":"golf","MV73SUP":"supra","MV72RSE":"rs3","MV23CTR":"civic","MV74MXF":"mx5","MV25MTH":"m3"};
+
+const COLOURS = [
+ ["british racing green","#1f4a33"],["nardo grey","#7a7e80"],["midnight purple","#3a2550"],["baby blue","#8fbfe0"],["sky blue","#5aa6dc"],["navy","#1b2a4a"],
+ ["gunmetal","#50565e"],["black","#16181c"],["white","#ecebe6"],["silver","#c5c8cc"],["grey","#6f757c"],["gray","#6f757c"],["red","#b5121b"],["blue","#2459c2"],
+ ["green","#2f7a45"],["yellow","#e0b400"],["orange","#d9601e"],["purple","#5b2d86"],["pink","#d8608f"],["teal","#1d8a86"],["gold","#b8964e"],["bronze","#8c6a3f"],["lime","#7fc241"],["burgundy","#5e1422"],["brown","#5a3d2b"]
+];
+const RIM_FINISH = {silver:"#c9cdd2",gunmetal:"#545a62",black:"#1c1e22",bronze:"#8c6a3f",gold:"#b8964e",white:"#e8e8e4"};
+const CALIPER = {red:"#c41d24",yellow:"#e1b400",black:"#26282c",blue:"#2459c2",gold:"#b8964e",green:"#2f7a45",orange:"#d9601e"};
+const WHEEL_STYLES = ["multi-spoke","mesh","monoblock","deep-dish","turbofan"];
+
+const MODS = {
+ tune:{name:"Engine remap",cat:"Performance",order:1},
+ intake:{name:"Cold-air intake",cat:"Performance",order:2},
+ exhaust:{name:"Valved cat-back exhaust",cat:"Performance",order:3},
+ wheels:{name:"Wheels",cat:"Wheels & suspension",order:4},
+ drop:{name:"Coilovers",cat:"Wheels & suspension",order:5},
+ brakes:{name:"Big brake kit",cat:"Wheels & suspension",order:6},
+ bodykit:{name:"Aero kit",cat:"Bodywork",order:7},
+ widebody:{name:"Widebody arches",cat:"Bodywork",order:8},
+ spoiler:{name:"Spoiler",cat:"Bodywork",order:9},
+ wrap:{name:"Vinyl wrap",cat:"Styling",order:10},
+ stripes:{name:"Racing stripe",cat:"Styling",order:11},
+ tint:{name:"Window tint",cat:"Styling",order:12},
+ lights:{name:"Smoked lights",cat:"Styling",order:13}
+};
+const fmt = n => "£" + Math.round(n).toLocaleString("en-GB");
+const TUNE_GAIN = {t:{1:[.12,.16],2:[.22,.26],3:[.40,.38]}, n:{1:[.04,.04],2:[.08,.07],3:[.38,.35]}};
+
+function modPrice(id,p,car){
+  switch(id){
+    case "tune": return ({1:450,2:1900,3:car.turbo?5500:7500})[p.stage];
+    case "intake": return 320;
+    case "exhaust": return car.cyl>=6?2200:1600;
+    case "wheels": return 1500+(p.size-17)*260+(p.style==="monoblock"?1400:0)+(p.style==="deep-dish"?500:0);
+    case "drop": return 1350;
+    case "brakes": return 3400;
+    case "bodykit": return 1800;
+    case "widebody": return 6500;
+    case "spoiler": return ({lip:350,ducktail:650,"gt-wing":1900})[p.type];
+    case "wrap": return p.finish==="chrome"?4800:2600;
+    case "stripes": return 380;
+    case "tint": return 220;
+    case "lights": return 280;
+  }
+  return 0;
+}
+function colourName(hex){const f=COLOURS.find(c=>c[1].toLowerCase()===String(hex).toLowerCase());return f?f[0].replace(/\b\w/g,m=>m.toUpperCase()):"Custom colour";}
+function modLabel(id,p){
+  switch(id){
+    case "tune": return p.stage===3?"Stage 3 power upgrade":"Stage "+p.stage+" remap";
+    case "wheels": return p.size+"″ "+p.finish+" "+p.style+" wheels";
+    case "drop": return "Coilovers, −"+p.mm+"mm";
+    case "spoiler": return ({lip:"Lip spoiler",ducktail:"Ducktail spoiler","gt-wing":"GT wing"})[p.type];
+    case "wrap": return p.finish[0].toUpperCase()+p.finish.slice(1)+" "+colourName(p.colour).toLowerCase()+" wrap";
+    case "tint": return p.vlt+"% rear window tint";
+    case "brakes": return "Big brakes, "+p.caliper+" calipers";
+    case "stripes": return colourName(p.colour)+" racing stripe";
+  }
+  return MODS[id].name;
+}
+function modInfo(id,p,car){
+  const T=car.turbo;
+  switch(id){
+    case "tune": return p.stage===1?{what:"Rewrites the engine software to use more boost and better ignition timing.",effect:"Noticeably stronger mid-range pull with no hardware changes.",spec:T?"ECU software, 99 RON fuel recommended":"ECU software, higher rev limit and revised cams map"}
+      : p.stage===2?{what:"A remap paired with a high-flow downpipe and intake so the engine can breathe.",effect:"Big gains across the rev range, louder and quicker to spool.",spec:T?"Software + downpipe + intake + uprated intercooler":"Software + headers + intake"}
+      : {what:T?"A larger hybrid turbo, fuel system upgrades and a custom map.":"A supercharger kit with injectors, fuel pump and custom map.",effect:"A step-change in power. Needs a strong clutch and regular servicing.",spec:T?"Hybrid turbo, uprated fuel pump, custom dyno map":"Centrifugal supercharger, injectors, dyno map"};
+    case "intake": return {what:"Replaces the airbox with a less restrictive filter and pipework.",effect:"Small power gain and more induction noise under throttle.",spec:"Cotton or foam filter, heat-shielded"};
+    case "exhaust": return {what:"Stainless pipes from the catalytic converter back, with valves you control.",effect:"Quiet in town, loud when you want it. Saves a few kilos.",spec:"T304 stainless, 76mm bore, valved, MOT-legal with cats kept"};
+    case "wheels": { const forged=p.style==="monoblock"; return {what:(forged?"Forged ":"Flow-formed ")+p.style+" wheels in "+p.finish+", with matched performance tyres.",effect:p.size>car.wheel?"Fills the arches and sharpens steering, at a small cost to ride comfort.":p.size<car.wheel?"Smaller wheels with taller tyres ride better and are cheaper to replace.":"Same size as stock, so ride stays the same with a fresh look.",spec:p.size+"×"+(p.size>=19?"9":"8.5")+"J, "+(forged?"about 9kg each":"about 11kg each")+", "+(p.size>=20?"255/35":"235/40")+" R"+p.size}; }
+    case "drop": return {what:"Height and damping adjustable suspension replacing the stock springs and dampers.",effect:"Lower centre of gravity, less body roll and a firmer ride. The car sits "+p.mm+"mm lower.",spec:"Mono-tube, 32-way damping, "+p.mm+"mm drop"};
+    case "brakes": return {what:"Larger discs with six-piston front calipers.",effect:"Shorter stopping distances and less fade on track days.",spec:"6-pot front, 380mm two-piece discs, "+p.caliper+" calipers"};
+    case "bodykit": return {what:"Front splitter, side skirts and a rear diffuser.",effect:"Sharper, lower look and a little front-end grip at speed.",spec:"Gloss carbon-look ABS, bolt-on"};
+    case "widebody": return {what:"Bolt-on arch flares that widen the body to fit wider wheels and tyres.",effect:"A much more aggressive stance with room for a wider track.",spec:"+50mm per side, FRP, riveted"};
+    case "spoiler": return ({lip:{what:"A small lip on the boot or roof edge.",effect:"Subtle styling change with a touch of rear stability.",spec:"Carbon-look, adhesive fit"},ducktail:{what:"A raised, swept-up tail spoiler.",effect:"Classic look and modest rear downforce.",spec:"Painted to body colour"},"gt-wing":{what:"A swan-neck rear wing on tall uprights.",effect:"Real rear downforce at speed. Best on track days.",spec:"Carbon, adjustable angle, about 90kg downforce at 100mph"}})[p.type];
+    case "wrap": return {what:"A full-body vinyl wrap in "+p.finish+" "+colourName(p.colour).toLowerCase()+".",effect:"Completely changes the colour and protects the paint underneath. Removable.",spec:"Cast vinyl, about 5-7 year life"};
+    case "stripes": return {what:"A shoulder-line racing stripe in "+colourName(p.colour).toLowerCase()+".",effect:"Motorsport styling. Removable without paint damage.",spec:"Cast vinyl, 90mm"};
+    case "tint": return {what:"Film applied to the rear side windows and rear screen.",effect:"More privacy and less heat. UK law only allows dark tint on rear windows.",spec:p.vlt+"% light transmission, rear only"};
+    case "lights": return {what:"Smoked tint on head and tail light lenses.",effect:"A darker, meaner look. Lights must still pass MOT brightness tests.",spec:"Light smoke film, MOT-legal grade"};
+  }
+}
+
+/* ---------- colour utils ---------- */
+function hexToRgb(h){h=h.replace("#","");if(h.length===3)h=h.split("").map(c=>c+c).join("");const n=parseInt(h,16);return[n>>16&255,n>>8&255,n&255];}
+function rgbToHex(r,g,b){return"#"+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,"0")).join("");}
+function mix(a,b,t){const A=hexToRgb(a),B=hexToRgb(b);return rgbToHex(A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t,A[2]+(B[2]-A[2])*t);}
+const lighten=(c,t)=>mix(c,"#ffffff",t), darken=(c,t)=>mix(c,"#000000",t);
+function validHex(h){return /^#?[0-9a-f]{6}$/i.test(String(h||""));}
+
+/* ---------- car renderer ---------- */
+const GROUND=262, TYRE=46, WCY=GROUND-TYRE, ARCH=54, HALF=51.6;
+const RATIO={17:.6,18:.64,19:.68,20:.72,21:.76};
+const GEO={
+ hatch:{rear:100,front:712,Rw:205,Fw:590,sill:226,belt:156,roofY:96,
+   upper:g=>`M${g.rear+12} ${g.sill} L${g.rear} ${g.sill-24} L${g.rear-2} ${g.belt+2} L118 132 Q134 ${g.roofY+4} 200 ${g.roofY} Q320 ${g.roofY-4} 430 ${g.roofY} Q474 ${g.roofY+6} 548 ${g.belt-4}`,
+   rearGlass:[[142,150],[196,104],[326,100],[326,150]], frontGlass:[[338,150],[338,100],[426,101],[528,152]],
+   spoiler:{x:196,y:94,kind:"roof"}, tail:{x:100,y:150}, doors:[330,"5"]},
+ saloon:{rear:72,front:728,Rw:198,Fw:600,sill:226,belt:158,roofY:96,
+   upper:g=>`M${g.rear+12} ${g.sill} L${g.rear} ${g.sill-24} L${g.rear-2} 162 Q${g.rear} 150 92 150 L205 146 Q240 ${g.roofY+4} 272 ${g.roofY} L450 ${g.roofY-1} Q490 ${g.roofY+6} 560 ${g.belt-4}`,
+   rearGlass:[[222,150],[278,104],[356,102],[356,152]], frontGlass:[[368,152],[368,102],[444,103],[540,153]],
+   spoiler:{x:96,y:150,kind:"deck"}, tail:{x:72,y:158}, doors:[362,"4"]},
+ coupe:{rear:82,front:728,Rw:205,Fw:602,sill:226,belt:160,roofY:104,
+   upper:g=>`M${g.rear+12} ${g.sill} L${g.rear} ${g.sill-24} L${g.rear-1} 152 Q${g.rear+4} 144 112 142 Q200 112 300 ${g.roofY} L440 ${g.roofY-1} Q484 ${g.roofY+8} 562 ${g.belt-4}`,
+   rearGlass:[[262,152],[306,112],[372,110],[372,153]], frontGlass:[[384,153],[384,110],[436,108],[540,155]],
+   spoiler:{x:116,y:142,kind:"deck"}, tail:{x:82,y:152}, doors:[380,"2"]},
+ roadster:{rear:96,front:714,Rw:210,Fw:590,sill:226,belt:160,roofY:120,
+   upper:g=>`M${g.rear+12} ${g.sill} L${g.rear} ${g.sill-24} L${g.rear-1} ${g.belt-2} Q${g.rear+4} ${g.belt-12} 140 ${g.belt-12} L300 ${g.belt-11} L470 ${g.belt-8} L520 ${g.belt-6}`,
+   rearGlass:null, frontGlass:[[470,152],[438,114],[450,113],[486,152]],
+   spoiler:{x:124,y:148,kind:"deck"}, tail:{x:96,y:156}, doors:[0,"2"]}
+};
+function bodyPath(g){
+  const f=g.front, b=g.belt, s=g.sill;
+  return g.upper(g)+` L${f-60} ${b+4} Q${f-6} ${b+10} ${f} ${b+32} L${f+2} ${s-16} Q${f} ${s} ${f-18} ${s} L${(g.Fw+HALF).toFixed(1)} ${s} A${ARCH} ${ARCH} 0 1 0 ${(g.Fw-HALF).toFixed(1)} ${s} L${(g.Rw+HALF).toFixed(1)} ${s} A${ARCH} ${ARCH} 0 1 0 ${(g.Rw-HALF).toFixed(1)} ${s} Z`;
+}
+const pts = a => a.map(p=>p.join(",")).join(" ");
+function paintStops(c,finish){
+  if(finish==="matte") return [[0,lighten(c,.07)],[1,darken(c,.22)]];
+  if(finish==="satin") return [[0,lighten(c,.2)],[.5,c],[1,darken(c,.42)]];
+  if(finish==="chrome") return [[0,lighten(c,.75)],[.32,lighten(c,.2)],[.47,darken(c,.55)],[.56,lighten(c,.5)],[1,darken(c,.35)]];
+  return [[0,lighten(c,.34)],[.36,c],[.72,darken(c,.32)],[1,darken(c,.6)]];
+}
+function grad(id,stops){return `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">${stops.map(s=>`<stop offset="${s[0]}" stop-color="${s[1]}"/>`).join("")}</linearGradient>`;}
+function eff(car,m){
+  m=m||{};
+  return {
+    size:m.wheels?m.wheels.size:car.wheel, style:m.wheels?m.wheels.style:"stock", finish:m.wheels?m.wheels.finish:(car.id==="c911"||car.id==="m3"?"gunmetal":"silver"),
+    drop:m.drop?m.drop.mm*0.2:0, paint:m.wrap?m.wrap.colour:car.colour, pfin:m.wrap?m.wrap.finish:"gloss",
+    caliper:m.brakes?CALIPER[m.brakes.caliper]||CALIPER.red:"#4a4e54", bigBrake:!!m.brakes,
+    spoiler:m.spoiler?m.spoiler.type:null, kit:!!m.bodykit, wide:!!m.widebody, exhaust:!!m.exhaust,
+    tint:m.tint?m.tint.vlt:null, stripe:m.stripes?m.stripes.colour:null, smoked:!!m.lights
+  };
+}
+function P(cx,cy,r,a){return[(cx+r*Math.cos(a)).toFixed(1),(cy+r*Math.sin(a)).toFixed(1)];}
+function rimSpokes(cx,cy,r,style,col){
+  const hi=lighten(col,.3), lo=darken(col,.45); let s="";
+  const n = {stock:5,"multi-spoke":10,mesh:12,monoblock:5,"deep-dish":6,turbofan:12}[style]||5;
+  for(let i=0;i<n;i++){
+    const a=i/n*Math.PI*2-Math.PI/2;
+    if(style==="stock"){ for(const o of [-.09,.09]){const p1=P(cx,cy,r*.2,a+o*1.6),p2=P(cx,cy,r*.86,a+o),p3=P(cx,cy,r*.86,a+o*.4),p4=P(cx,cy,r*.2,a+o*.6);s+=`<polygon points="${[p1,p2,p3,p4].map(p=>p.join(",")).join(" ")}" fill="${col}" stroke="${lo}" stroke-width=".6"/>`;} }
+    else if(style==="multi-spoke"){const w=.055,p1=P(cx,cy,r*.2,a-w*1.5),p2=P(cx,cy,r*.87,a-w*.6),p3=P(cx,cy,r*.87,a+w*.6),p4=P(cx,cy,r*.2,a+w*1.5);s+=`<polygon points="${[p1,p2,p3,p4].map(p=>p.join(",")).join(" ")}" fill="${col}" stroke="${lo}" stroke-width=".5"/>`;}
+    else if(style==="mesh"){for(const d of [-.42,.42]){const p1=P(cx,cy,r*.22,a),p2=P(cx,cy,r*.86,a+d);s+=`<line x1="${p1[0]}" y1="${p1[1]}" x2="${p2[0]}" y2="${p2[1]}" stroke="${col}" stroke-width="${(r*.07).toFixed(1)}" stroke-linecap="round"/>`;}}
+    else if(style==="monoblock"){const p1=P(cx,cy,r*.18,a-.34),p2=P(cx,cy,r*.87,a-.17),p3=P(cx,cy,r*.87,a+.17),p4=P(cx,cy,r*.18,a+.34);s+=`<polygon points="${[p1,p2,p3,p4].map(p=>p.join(",")).join(" ")}" fill="${col}" stroke="${hi}" stroke-width=".8"/>`;}
+    else if(style==="deep-dish"){const p1=P(cx,cy,r*.18,a-.2),p2=P(cx,cy,r*.66,a-.12),p3=P(cx,cy,r*.66,a+.12),p4=P(cx,cy,r*.18,a+.2);s+=`<polygon points="${[p1,p2,p3,p4].map(p=>p.join(",")).join(" ")}" fill="${col}" stroke="${lo}" stroke-width=".6"/>`;}
+    else if(style==="turbofan"){const p1=P(cx,cy,r*.22,a),p2=P(cx,cy,r*.86,a+.55),p3=P(cx,cy,r*.86,a+.3),c=P(cx,cy,r*.6,a+.05);s+=`<path d="M${p1} Q${c} ${p2} L${p3} Q${P(cx,cy,r*.55,a+.2)} ${P(cx,cy,r*.22,a+.25)} Z" fill="${col}" stroke="${lo}" stroke-width=".5"/>`;}
+  }
+  if(style==="turbofan") s=`<circle cx="${cx}" cy="${cy}" r="${(r*.86).toFixed(1)}" fill="${darken(col,.55)}"/>`+s;
+  if(style==="mesh") s+=`<circle cx="${cx}" cy="${cy}" r="${(r*.86).toFixed(1)}" fill="none" stroke="${col}" stroke-width="2"/>`;
+  s+=`<circle cx="${cx}" cy="${cy}" r="${(r*.2).toFixed(1)}" fill="${col}" stroke="${lo}" stroke-width="1"/><circle cx="${cx}" cy="${cy}" r="${(r*.08).toFixed(1)}" fill="${lo}"/>`;
+  return s;
+}
+function wheel(cx,cy,E,opts){
+  const r=TYRE*(RATIO[E.size]||.64), col=RIM_FINISH[E.finish]||RIM_FINISH.silver;
+  const disc=r*(E.bigBrake?.8:.7);
+  let s=`<circle cx="${cx}" cy="${cy}" r="${TYRE}" fill="#101215"/><circle cx="${cx}" cy="${cy}" r="${TYRE-3}" fill="none" stroke="#1d2024" stroke-width="2"/>`;
+  s+=`<circle cx="${cx}" cy="${cy}" r="${r.toFixed(1)}" fill="${darken(col,.35)}"/>`;
+  s+=`<circle cx="${cx}" cy="${cy}" r="${(r*.9).toFixed(1)}" fill="#0b0d10"/>`;
+  s+=`<circle cx="${cx}" cy="${cy}" r="${disc.toFixed(1)}" fill="#5d636a"/><circle cx="${cx}" cy="${cy}" r="${(disc*.55).toFixed(1)}" fill="#3a3f45"/>`;
+  const a1=E.bigBrake?-1.45:-1.25,a2=E.bigBrake?-.15:-.4,ri=disc*(E.bigBrake?.45:.55),ro=disc*1.04;
+  const c1=P(cx,cy,ro,a1),c2=P(cx,cy,ro,a2),c3=P(cx,cy,ri,a2),c4=P(cx,cy,ri,a1);
+  s+=`<path d="M${c1} A${ro.toFixed(1)} ${ro.toFixed(1)} 0 0 1 ${c2} L${c3} A${ri.toFixed(1)} ${ri.toFixed(1)} 0 0 0 ${c4} Z" fill="${E.caliper}"/>`;
+  let lip="";
+  if(E.style==="deep-dish") lip=`<circle cx="${cx}" cy="${cy}" r="${(r*.82).toFixed(1)}" fill="none" stroke="${lighten(col,.45)}" stroke-width="${(r*.2).toFixed(1)}"/>`;
+  else lip=`<circle cx="${cx}" cy="${cy}" r="${(r*.95).toFixed(1)}" fill="none" stroke="${lighten(col,.25)}" stroke-width="2.2"/>`;
+  const spokes=rimSpokes(cx,cy,r*(E.style==="deep-dish"?.95:1),E.style,col);
+  return {base:s, rim:lip+`<g class="spin" data-cx="${cx}" data-cy="${cy}">${spokes}</g>`};
+}
+function carSVG(car,mods,o){
+  o=o||{}; const u=o.uid||"c"; const g=GEO[car.style]; const E=eff(car,mods);
+  const prev=o.prev?eff(car,o.prev):null; const A=!!prev;
+  const ch=k=>A&&JSON.stringify(prev[k])!==JSON.stringify(E[k]);
+  const f=g.front,r=g.rear,b=g.belt,s=g.sill;
+  const body=bodyPath(g);
+  const paintNew=`url(#${u}pN)`;
+  let defs=grad(u+"pN",paintStops(E.paint,E.pfin));
+  if(A) defs+=grad(u+"pO",paintStops(prev.paint,prev.pfin));
+  defs+=grad(u+"gl",[[0,"#6a7d8f"],[.5,"#26323d"],[1,"#0f141a"]]);
+  defs+=`<linearGradient id="${u}cf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2b2f35"/><stop offset=".5" stop-color="#16191d"/><stop offset="1" stop-color="#25292e"/></linearGradient>`;
+  defs+=`<linearGradient id="${u}ex" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3a4b66"/><stop offset=".5" stop-color="#c2a36d"/><stop offset="1" stop-color="#8d7ea8"/></linearGradient>`;
+  defs+=`<filter id="${u}bl" x="-20%" y="-200%" width="140%" height="500%"><feGaussianBlur stdDeviation="7"/></filter>`;
+  const dropAnim=(from,to)=>A&&from!==to?`<animateTransform attributeName="transform" type="translate" from="0 ${from}" to="0 ${to}" dur="1.1s" begin="0.15s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines=".25 .8 .25 1"/>`:"";
+  const dFrom=A?prev.drop:E.drop;
+  const appear=(on,delay,dx,dy)=>A&&on?` opacity="0"><animate attributeName="opacity" from="0" to="1" dur=".5s" begin="${delay}s" fill="freeze"/><animateTransform attributeName="transform" type="translate" from="${dx||0} ${dy||0}" to="0 0" dur=".8s" begin="${delay}s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines=".2 .9 .3 1"/`:"";
+  let svg=`<svg viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${car.make} ${car.model}"><defs>${defs}</defs>`;
+  svg+=`<ellipse cx="${(r+f)/2}" cy="${GROUND+2}" rx="${(f-r)/2+14}" ry="11" fill="#000" opacity=".7" filter="url(#${u}bl)"/>`;
+  // arch liners (move with body)
+  svg+=`<g transform="translate(0 ${dFrom})">${dropAnim(dFrom,E.drop)}<circle cx="${g.Rw}" cy="${WCY-4}" r="${ARCH}" fill="#07080a"/><circle cx="${g.Fw}" cy="${WCY-4}" r="${ARCH}" fill="#07080a"/></g>`;
+  // wheels
+  const wChanged=ch("size")||ch("style")||ch("finish")||ch("bigBrake")||ch("caliper");
+  for(const cx of [g.Rw,g.Fw]){
+    const w=wheel(cx,WCY,E);
+    if(A&&wChanged){
+      const ow=wheel(cx,WCY,prev);
+      svg+=`<g>${ow.base}${ow.rim}<animate attributeName="opacity" from="1" to="0" dur=".35s" begin=".3s" fill="freeze"/></g>`;
+      svg+=`<g opacity="0">${w.base}<g>${w.rim}<animateTransform attributeName="transform" type="rotate" from="-540 ${cx} ${WCY}" to="0 ${cx} ${WCY}" dur="1.2s" begin=".35s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines=".15 .7 .3 1"/></g><animate attributeName="opacity" from="0" to="1" dur=".3s" begin=".35s" fill="freeze"/></g>`;
+    } else svg+=w.base+w.rim;
+  }
+  // body group
+  svg+=`<g transform="translate(0 ${dFrom})">${dropAnim(dFrom,E.drop)}`;
+  // exhaust (behind bumper)
+  if(E.exhaust){ svg+=`<g${appear(ch("exhaust"),.9,28,0)}><rect x="${r-14}" y="${s-14}" width="30" height="9" rx="4.5" fill="url(#${u}ex)"/><rect x="${r-14}" y="${s-4}" width="30" height="9" rx="4.5" fill="url(#${u}ex)"/><ellipse cx="${r-13}" cy="${s-9.5}" rx="2.5" ry="4" fill="#0a0b0d"/><ellipse cx="${r-13}" cy="${s+.5}" rx="2.5" ry="4" fill="#0a0b0d"/></g>`; }
+  else svg+=`<rect x="${r-4}" y="${s-8}" width="16" height="7" rx="3.5" fill="#7b8087"/>`;
+  // body: old paint, then new paint swept on
+  const wrapChanged=ch("paint")||ch("pfin");
+  if(wrapChanged){
+    svg+=`<path d="${body}" fill="url(#${u}pO)"/>`;
+    svg+=`<clipPath id="${u}sw"><rect x="${r-20}" y="0" width="0" height="300"><animate attributeName="width" from="0" to="${f-r+50}" dur="1.3s" begin=".05s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines=".5 0 .3 1"/></rect></clipPath>`;
+    svg+=`<path d="${body}" fill="${paintNew}" clip-path="url(#${u}sw)"/>`;
+    svg+=`<rect x="${r-20}" y="60" width="4" height="180" fill="#fff" opacity=".85" filter="url(#${u}bl)"><animate attributeName="x" from="${r-20}" to="${f+30}" dur="1.3s" begin=".05s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines=".5 0 .3 1"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.1;.85;1" dur="1.3s" begin=".05s" fill="freeze"/></rect>`;
+  } else svg+=`<path d="${body}" fill="${paintNew}"/>`;
+  // reflections
+  const hiOp={gloss:.32,satin:.14,matte:0,chrome:.5}[E.pfin]||.3;
+  if(hiOp) svg+=`<path d="M${r+24} ${b+8} L${f-60} ${b+9} L${f-56} ${b+15} L${r+22} ${b+16} Z" fill="#fff" opacity="${hiOp}"/>`;
+  svg+=`<path d="M${r+20} ${b+30} Q${(r+f)/2} ${b+26} ${f-30} ${b+30}" stroke="#fff" stroke-opacity=".12" stroke-width="1.5" fill="none"/>`;
+  svg+=`<path d="M${g.Rw+HALF+4} ${s-6} L${g.Fw-HALF-4} ${s-6}" stroke="#000" stroke-opacity=".35" stroke-width="3"/>`;
+  // stripes
+  if(E.stripe){
+    const st=`<path d="M${r+8} ${b+19} L${f-14} ${b+21}" stroke="${E.stripe}" stroke-width="8" fill="none"/><path d="M${r+8} ${b+26} L${f-12} ${b+28}" stroke="${E.stripe}" stroke-width="2" fill="none"/>`;
+    if(ch("stripe")) svg+=`<clipPath id="${u}st"><rect x="${r}" y="0" width="0" height="300"><animate attributeName="width" from="0" to="${f-r+20}" dur=".9s" begin="1.1s" fill="freeze"/></rect></clipPath><g clip-path="url(#${u}st)">${st}</g>`;
+    else svg+=st;
+  }
+  // glass
+  const gl=g.frontGlass, rg=g.rearGlass;
+  svg+=`<polygon points="${pts(gl)}" fill="url(#${u}gl)" stroke="#0b0e12" stroke-width="1.5"/>`;
+  if(rg){
+    const tOp=E.tint?({20:.95,35:.85,50:.7})[E.tint]:0, tFrom=prev&&prev.tint?({20:.95,35:.85,50:.7})[prev.tint]:0;
+    svg+=`<polygon points="${pts(rg)}" fill="url(#${u}gl)" stroke="#0b0e12" stroke-width="1.5"/>`;
+    if(E.tint) svg+=`<polygon points="${pts(rg)}" fill="#050608" opacity="${ch("tint")?tFrom:tOp}">${ch("tint")?`<animate attributeName="opacity" from="${tFrom}" to="${tOp}" dur=".8s" begin="1s" fill="freeze"/>`:""}</polygon>`;
+    svg+=`<path d="M${rg[0][0]+10} ${rg[0][1]-4} L${rg[1][0]+8} ${rg[1][1]+6}" stroke="#fff" stroke-opacity=".18" stroke-width="5"/>`;
+  } else {
+    svg+=`<rect x="318" y="118" width="30" height="36" rx="8" fill="#15181c"/><rect x="356" y="122" width="24" height="32" rx="7" fill="#15181c"/>`;
+  }
+  svg+=`<path d="M${gl[2][0]-6} ${gl[2][1]+8} L${gl[3][0]-30} ${gl[3][1]-6}" stroke="#fff" stroke-opacity=".2" stroke-width="5"/>`;
+  // doors + handle + mirror
+  const dx=g.doors[0];
+  svg+=`<g stroke="#000" stroke-opacity=".45" stroke-width="1.2" fill="none">`;
+  if(dx) svg+=`<path d="M${dx+6} ${b-2} L${dx+2} ${s-6}"/>`;
+  svg+=`<path d="M${g.Fw-62} ${b+4} L${g.Fw-62} ${s-6}"/>`;
+  if(g.doors[1]!=="2") svg+=`<path d="M${g.Rw+64} ${b+2} Q${g.Rw+58} ${s-30} ${g.Rw+60} ${s-6}"/>`;
+  svg+=`</g>`;
+  const hx=dx?dx+22:430;
+  svg+=`<rect x="${hx}" y="${b+10}" width="24" height="5" rx="2.5" fill="${darken(E.paint,.45)}"/>`;
+  svg+=`<path d="M${gl[3][0]-18} ${gl[3][1]-2} q-4 -14 14 -16 l10 2 q2 12 -8 16 z" fill="${paintNew}" stroke="#000" stroke-opacity=".3"/>`;
+  // lights
+  const hl=E.smoked?"#3a4048":"#e9eef2", tl=E.smoked?"#3a0d12":"#c0161f";
+  const lAnim=ch("smoked")?(from,to)=>`<animate attributeName="fill" from="${from}" to="${to}" dur=".6s" begin="1s" fill="freeze"/>`:()=>"";
+  svg+=`<path d="M${f-56} ${b+9} L${f-10} ${b+15} L${f-5} ${b+25} L${f-48} ${b+21} Z" fill="${ch("smoked")?(prev.smoked?"#3a4048":"#e9eef2"):hl}">${lAnim(prev&&prev.smoked?"#3a4048":"#e9eef2",hl)}</path>`;
+  svg+=`<path d="M${f-50} ${b+18} L${f-12} ${b+21}" stroke="#ffd9a0" stroke-opacity=".7" stroke-width="1.5"/>`;
+  svg+=`<rect x="${g.tail.x-2}" y="${g.tail.y-6}" width="22" height="10" rx="3" fill="${ch("smoked")?(prev.smoked?"#3a0d12":"#c0161f"):tl}">${lAnim(prev&&prev.smoked?"#3a0d12":"#c0161f",tl)}</rect>`;
+  svg+=`<rect x="${f-36}" y="${s-24}" width="28" height="9" rx="3" fill="#0d0f12" opacity=".8"/>`;
+  // widebody flares
+  if(E.wide){
+    let fl="";
+    for(const cx of [g.Rw,g.Fw]) fl+=`<path d="M${cx-HALF-8} ${s+2} A${ARCH+6} ${ARCH+6} 0 0 1 ${cx+HALF+8} ${s+2}" stroke="${paintNew}" stroke-width="13" fill="none"/><path d="M${cx-HALF-12} ${s+2} A${ARCH+11} ${ARCH+11} 0 0 1 ${cx+HALF+12} ${s+2}" stroke="#000" stroke-opacity=".4" stroke-width="1.4" fill="none"/>`+[ -1.1,-0.6,-0.1,0.4,0.9].map(t=>{const p=P(cx,WCY-4,ARCH+6,-Math.PI/2+t);return `<circle cx="${p[0]}" cy="${p[1]}" r="1.6" fill="#c8ccd0"/>`;}).join("");
+    svg+=`<g${appear(ch("wide"),.6,0,-12)}>${fl}</g>`;
+  }
+  // aero kit
+  if(E.kit){
+    const kit=`<path d="M${f-70} ${s-2} L${f+4} ${s-6} L${f+12} ${s+3} L${f-70} ${s+5} Z" fill="url(#${u}cf)"/><rect x="${g.Rw+HALF+2}" y="${s-6}" width="${g.Fw-g.Rw-2*HALF-4}" height="11" rx="2" fill="url(#${u}cf)"/><path d="M${r-2} ${s-4} L${r+74} ${s-2} L${r+74} ${s+5} L${r-6} ${s+6} Z" fill="url(#${u}cf)"/>`+[14,30,46].map(x=>`<path d="M${r+x} ${s-2} l-4 8" stroke="#555b62" stroke-width="2"/>`).join("")+`<path d="M${f-14} ${s-30} l16 -2 l-3 6 z" fill="url(#${u}cf)"/>`;
+    svg+=`<g${appear(ch("kit"),.6,0,14)}>${kit}</g>`;
+  }
+  // spoiler
+  if(E.spoiler){
+    const sp=g.spoiler; let sv="";
+    if(sp.kind==="roof"){
+      if(E.spoiler==="lip") sv=`<path d="M${sp.x+16} ${sp.y-1} L${sp.x-22} ${sp.y+2} L${sp.x-46} ${sp.y+9} L${sp.x-12} ${sp.y+8} Z" fill="${paintNew}" stroke="#000" stroke-opacity=".3"/>`;
+      else if(E.spoiler==="ducktail") sv=`<path d="M${sp.x+24} ${sp.y-1} Q${sp.x-20} ${sp.y-6} ${sp.x-58} ${sp.y-2} L${sp.x-30} ${sp.y+12} L${sp.x-6} ${sp.y+6} Z" fill="${paintNew}" stroke="#000" stroke-opacity=".3"/>`;
+      else sv=`<path d="M${sp.x-10} ${sp.y} L${sp.x-22} ${sp.y-30} M${sp.x+28} ${sp.y-1} L${sp.x+18} ${sp.y-30}" stroke="#1b1e22" stroke-width="5"/><path d="M${sp.x-74} ${sp.y-30} Q${sp.x-10} ${sp.y-46} ${sp.x+40} ${sp.y-36} L${sp.x+40} ${sp.y-28} Q${sp.x-10} ${sp.y-34} ${sp.x-74} ${sp.y-24} Z" fill="url(#${u}cf)"/><rect x="${sp.x-78}" y="${sp.y-44}" width="6" height="24" rx="1.5" fill="#1b1e22"/>`;
+    } else {
+      if(E.spoiler==="lip") sv=`<path d="M${sp.x+44} ${sp.y-1} L${sp.x-6} ${sp.y-1} L${sp.x-14} ${sp.y-9} Z" fill="${paintNew}" stroke="#000" stroke-opacity=".3"/>`;
+      else if(E.spoiler==="ducktail") sv=`<path d="M${sp.x+76} ${sp.y-2} Q${sp.x+20} ${sp.y-6} ${sp.x-16} ${sp.y-22} L${sp.x-10} ${sp.y-1} Z" fill="${paintNew}" stroke="#000" stroke-opacity=".3"/>`;
+      else sv=`<path d="M${sp.x+46} ${sp.y-2} L${sp.x+30} ${sp.y-42} M${sp.x+10} ${sp.y-1} L${sp.x-4} ${sp.y-42}" stroke="#1b1e22" stroke-width="5"/><path d="M${sp.x-46} ${sp.y-42} Q${sp.x+20} ${sp.y-58} ${sp.x+80} ${sp.y-46} L${sp.x+80} ${sp.y-38} Q${sp.x+20} ${sp.y-46} ${sp.x-46} ${sp.y-35} Z" fill="url(#${u}cf)"/><rect x="${sp.x-50}" y="${sp.y-56}" width="6" height="26" rx="1.5" fill="#1b1e22"/>`;
+    }
+    svg+=`<g${appear(ch("spoiler"),.8,0,26)}>${sv}</g>`;
+  }
+  svg+=`</g></svg>`;
+  return svg;
+}
+function anchorFor(car,id){
+  const g=GEO[car.style];
+  const m={wheels:[g.Fw,WCY-50],drop:[g.Rw,WCY-62],spoiler:[g.spoiler.x,g.spoiler.y-(g.spoiler.kind==="roof"?40:46)],bodykit:[g.front-30,g.sill-8],widebody:[g.Rw,g.sill-58],exhaust:[g.rear,g.sill-14],tune:[g.front-110,g.belt-6],intake:[g.front-140,g.belt],brakes:[g.Fw+10,WCY-30],wrap:[(g.rear+g.front)/2,g.belt+20],tint:[g.rearGlass?g.rearGlass[1][0]+40:300,(g.rearGlass?g.rearGlass[1][1]:120)-6],stripes:[(g.rear+g.front)/2+80,g.belt+16],lights:[g.front-30,g.belt+6]}[id];
+  return m?[m[0]/800*100,m[1]/300*100]:[50,40];
+}
+
+/* ---------- performance ---------- */
+function perf(car,m){
+  m=m||{}; let hp=0,nm=0,kg=car.kg,grip=car.handling,brake=car.braking,down=0;
+  if(m.tune){const t=TUNE_GAIN[car.turbo?"t":"n"][m.tune.stage];hp+=t[0];nm+=t[1];}
+  if(m.intake){hp+=.015;nm+=.01;}
+  if(m.exhaust){hp+=car.turbo?.02:.03;nm+=.02;kg-=6;}
+  if(m.wheels){const d=m.wheels.size-car.wheel;grip+=d*1.5;kg+=(m.wheels.style==="monoblock"?-8:0)+d*4;}
+  if(m.drop){grip+=5+m.drop.mm/10;}
+  if(m.widebody){grip+=4;kg+=12;}
+  if(m.bodykit){grip+=2;kg+=6;down+=25;}
+  if(m.spoiler){const s={lip:[10,1,0],ducktail:[25,2,1],"gt-wing":[90,5,4]}[m.spoiler.type];down+=s[0];kg+=s[1];grip+=s[2];}
+  if(m.brakes){brake+=14;kg+=2;}
+  const HP=Math.round(car.hp*(1+hp)), NM=Math.round(car.nm*(1+nm));
+  const floor=Math.min(car.t62,{FWD:4.3,RWD:3.4,AWD:2.7}[car.drive]);
+  const t62=Math.max(floor,car.t62*Math.pow((car.hp/car.kg)/(HP/kg),.72));
+  return {hp:HP,nm:NM,kg:Math.round(kg),t62:Math.round(t62*10)/10,ptw:Math.round(HP/(kg/1000)),grip:Math.min(100,Math.round(grip)),brake:Math.min(100,Math.round(brake)),down};
+}
+function buildCost(car,m){return Object.keys(m||{}).reduce((a,k)=>a+modPrice(k,m[k],car),0);}
+
+/* ---------- state ---------- */
+let state={car:"golf",mods:{},plate:""};
+try{const s=JSON.parse(localStorage.getItem("modvista.build")||"null");if(s&&CARS.some(c=>c.id===s.car)){state={car:s.car,mods:sanitizeAll(s.mods||{},CARS.find(c=>c.id===s.car)),plate:s.plate||""};}}catch(e){}
+function save(){try{localStorage.setItem("modvista.build",JSON.stringify(state));}catch(e){}}
+const car=()=>CARS.find(c=>c.id===state.car);
+
+function nearest(arr,v){return arr.reduce((a,b)=>Math.abs(b-v)<Math.abs(a-v)?b:a);}
+function toColour(v,fallback){
+  if(validHex(v)) return (v[0]==="#"?v:"#"+v).toLowerCase();
+  const s=String(v||"").toLowerCase(); const f=COLOURS.find(c=>s.includes(c[0])); return f?f[1]:fallback;
+}
+function sanitize(id,p,c){
+  p=p||{};
+  switch(id){
+    case "tune": {const st=parseInt(p.stage,10);return {stage:[1,2,3].includes(st)?st:1};}
+    case "wheels": return {size:nearest([17,18,19,20,21],parseInt(p.size,10)||c.wheel+1),style:WHEEL_STYLES.includes(p.style)?p.style:"multi-spoke",finish:RIM_FINISH[p.finish]?p.finish:"gunmetal"};
+    case "drop": return {mm:Math.max(15,Math.min(50,Math.round((parseInt(p.mm,10)||30)/5)*5))};
+    case "brakes": return {caliper:CALIPER[p.caliper]?p.caliper:"red"};
+    case "spoiler": return {type:["lip","ducktail","gt-wing"].includes(p.type)?p.type:"ducktail"};
+    case "wrap": return {colour:toColour(p.colour,"#16181c"),finish:["gloss","satin","matte","chrome"].includes(p.finish)?p.finish:"gloss"};
+    case "stripes": return {colour:toColour(p.colour,"#ecebe6")};
+    case "tint": return {vlt:nearest([20,35,50],parseInt(p.vlt,10)||35)};
+    default: return {};
+  }
+}
+function sanitizeAll(m,c){const o={};for(const k in m) if(MODS[k]) o[k]=sanitize(k,m[k],c);return o;}
+
+/* ---------- DOM refs ---------- */
+const $=id=>document.getElementById(id);
+const stage=$("stage"), afterL=$("afterLayer"), beforeL=$("beforeLayer"), split=$("split");
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function setSplit(v){stage.style.setProperty("--split",v+"%");split.value=v;}
+split.addEventListener("input",()=>{stage.classList.add("dragging");setSplit(split.value);});
+split.addEventListener("change",()=>stage.classList.remove("dragging"));
+split.addEventListener("pointerup",()=>stage.classList.remove("dragging"));
+
+let splitTimer=null, renderN=0;
+function renderStage(prevMods,changed){
+  const c=car(); renderN++;
+  afterL.innerHTML=carSVG(c,state.mods,{uid:"a"+renderN,prev:reduce?null:prevMods});
+  beforeL.innerHTML=carSVG(c,{},{uid:"b"+renderN});
+  if(changed&&changed.length){
+    clearTimeout(splitTimer); setSplit(0);
+    const co=$("callouts"); co.innerHTML="";
+    changed.forEach((id,i)=>{const a=anchorFor(c,id);const el=document.createElement("div");el.className="callout";el.style.left=a[0]+"%";el.style.top=a[1]+"%";el.style.animationDelay=(.3+i*.25)+"s";el.style.opacity="0";el.textContent=(state.mods[id]?"+ ":"− ")+(state.mods[id]?modLabel(id,state.mods[id]):MODS[id].name);co.appendChild(el);});
+    splitTimer=setTimeout(()=>setSplit(50),3200);
+  }
+}
+function renderPicker(){
+  $("picker").innerHTML=CARS.map(c=>`<button type="button" data-car="${c.id}" aria-pressed="${c.id===state.car}">${c.make==="Mercedes-AMG"?"AMG":c.make} ${c.model.replace(" Sportback","").replace(" Competition xDrive","").replace(" 3.0","")}</button>`).join("");
+}
+$("picker").addEventListener("click",e=>{const b=e.target.closest("button[data-car]");if(b) switchCar(b.dataset.car,true);});
+
+function renderInfo(){
+  const c=car();
+  $("carTitle").textContent=c.make+" "+c.model;
+  $("carSub").textContent=c.gen+" · "+c.engine+" · "+c.drive+(state.plate?" · "+state.plate:"");
+  const s=perf(c,{}), p=perf(c,state.mods);
+  const rows=[["Power","hp","bhp",1],["Torque","nm","Nm",1],["0–62 mph","t62","s",-1],["Weight","kg","kg",-1],["Power-to-weight","ptw","bhp/t",1]];
+  $("specs").innerHTML=`<tr><th>Spec</th><th>Stock</th><th>Build</th><th>Change</th></tr>`+rows.map(([l,k,u,dir])=>{
+    const d=Math.round((p[k]-s[k])*10)/10; const good=d*dir>0, cls=d===0?"same":good?"up":"down";
+    const ds=d===0?"—":(d>0?"+":"")+(k==="t62"?d.toFixed(1):d)+(u==="s"?"s":"");
+    return `<tr><td>${l}</td><td class="v">${k==="t62"?s[k].toFixed(1):s[k].toLocaleString("en-GB")} ${u==="s"?"s":""}</td><td class="v">${k==="t62"?p[k].toFixed(1):p[k].toLocaleString("en-GB")} ${u==="s"?"s":""}</td><td class="v ${cls}">${ds}</td></tr>`;
+  }).join("")+`<tr><td>Downforce at 100 mph</td><td class="v">0 kg</td><td class="v">${p.down} kg</td><td class="v ${p.down?"up":"same"}">${p.down?"+"+p.down:"—"}</td></tr>`;
+  $("bars").innerHTML=[["Grip & handling",s.grip,p.grip],["Braking",s.brake,p.brake]].map(([l,a,b])=>`<div class="bar"><span>${l}</span><div class="track"><b style="width:${b}%"></b><i style="width:${a}%"></i></div><span class="mono">${b}</span></div>`).join("");
+  const ids=Object.keys(state.mods).sort((a,b)=>MODS[a].order-MODS[b].order);
+  $("modCount").textContent=ids.length+(ids.length===1?" part":" parts");
+  $("fitted").innerHTML=ids.length?ids.map(id=>`<li><div>${modLabel(id,state.mods[id])}<small>${MODS[id].cat}</small></div><span class="mono">${fmt(modPrice(id,state.mods[id],c))}</span><button class="x" type="button" data-remove="${id}" aria-label="Remove ${MODS[id].name}">×</button></li>`).join(""):`<li class="empty">Stock. Ask the advisor for your first upgrade.</li>`;
+  const bc=buildCost(c,state.mods);
+  $("totals").innerHTML=`<div><span>Car, new (approx.)</span><span class="mono">${fmt(c.price)}</span></div><div><span>Parts and fitting</span><span class="mono">${fmt(bc)}</span></div><div class="grand"><span>Total</span><span class="mono">${fmt(c.price+bc)}</span></div>`;
+  $("buyLink").href=`https://www.autotrader.co.uk/car-search?make=${encodeURIComponent(c.make)}&model=${encodeURIComponent(c.model.split(" ").slice(0,2).join(" "))}`;
+  $("makerLink").href=c.url;
+  document.querySelectorAll("#picker button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.car===state.car));
+}
+$("fitted").addEventListener("click",e=>{const b=e.target.closest("[data-remove]");if(!b)return;const prev={...state.mods};delete state.mods[b.dataset.remove];commit(prev,[b.dataset.remove]);});
+$("resetBtn").addEventListener("click",()=>{const prev={...state.mods};const ch=Object.keys(prev);state.mods={};commit(prev,ch);});
+
+function commit(prev,changed){save();renderStage(prev,changed);renderInfo();refreshDriveCar();}
+function switchCar(id,announce){
+  if(!CARS.some(c=>c.id===id)) return;
+  const old=car(); state.car=id;
+  state.mods=sanitizeAll(state.mods,car());
+  save(); renderStage(null,null); setSplit(50); renderInfo(); refreshDriveCar();
+  if(announce&&old.id!==id) addAI(`Loaded the ${car().make} ${car().model}. I've kept your build on it. What would you like to change?`);
+}
+
+/* ---------- plate lookup (demo) ---------- */
+$("plateForm").addEventListener("submit",e=>{e.preventDefault();lookupPlate($("plate").value);});
+$("plateMsg").addEventListener("click",e=>{const b=e.target.closest("[data-plate]");if(b){$("plate").value=b.dataset.plate;lookupPlate(b.dataset.plate);}});
+function lookupPlate(v){
+  const raw=String(v||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+  const msg=$("plateMsg");
+  if(raw.length<2||raw.length>7){msg.textContent="Enter a UK registration, like AB12 CDE.";return;}
+  const pretty=/^[A-Z]{2}\d{2}[A-Z]{3}$/.test(raw)?raw.slice(0,4)+" "+raw.slice(4):raw;
+  state.plate=pretty; $("plate").value=pretty;
+  const hit=DEMO_PLATES[raw];
+  if(hit){switchCar(hit,false);msg.textContent=`Found ${pretty}: ${car().make} ${car().model}. (Demo data. Live DVLA lookup arrives in phase 2.)`;addAI(`I found ${pretty}. It's a ${car().make} ${car().model} with a ${car().engine}. What do you want to do to it?`);}
+  else {msg.textContent=`${pretty} saved. Demo mode can't look up real plates yet, so pick your model from the list above.`;renderInfo();save();}
+}
+
+/* ---------- AI chat ---------- */
+const msgs=$("msgs"); let sample=null, history=[], busy=null;
+function scrollMsgs(){msgs.scrollTop=msgs.scrollHeight;}
+function addUser(t){const d=document.createElement("div");d.className="msg user";d.textContent=t;msgs.appendChild(d);scrollMsgs();}
+function addAI(text,cards){
+  const d=document.createElement("div");d.className="msg ai";
+  const p=document.createElement("p");p.textContent=text;d.appendChild(p);
+  if(cards&&cards.length){const w=document.createElement("div");w.className="modcards";cards.forEach(c=>w.appendChild(c));d.appendChild(w);}
+  msgs.appendChild(d);scrollMsgs();return d;
+}
+function modCard(id,notes){
+  const c=car(), p=state.mods[id], el=document.createElement("div");
+  if(!p){el.className="modcard removed";el.innerHTML=`<div class="t">Removed: ${MODS[id].name}</div>`;return el;}
+  const base=modInfo(id,p,c), n=(notes&&notes[id])||{};
+  el.className="modcard";
+  const t=document.createElement("div");t.className="t";t.innerHTML=`<b></b><span>${fmt(modPrice(id,p,c))}</span>`;t.querySelector("b").textContent=modLabel(id,p);
+  const dl=document.createElement("dl");
+  [["Does",n.what||base.what],["Effect",n.effect||base.effect],["Spec",base.spec]].forEach(([k,v])=>{const dt=document.createElement("dt");dt.textContent=k;const dd=document.createElement("dd");dd.textContent=String(v).slice(0,300);dl.append(dt,dd);});
+  el.append(t,dl);return el;
+}
+const SUGGESTIONS=["Lower it on coilovers with 19-inch bronze wheels","Make it faster and louder","Full track build","Satin black wrap with a GT wing and red calipers","Show me a BMW M3 with a widebody kit"];
+$("suggest").innerHTML=SUGGESTIONS.map(s=>`<button type="button">${s}</button>`).join("");
+$("suggest").addEventListener("click",e=>{const b=e.target.closest("button");if(b){$("askInput").value=b.textContent;$("askForm").requestSubmit();}});
+$("askForm").addEventListener("submit",e=>{e.preventDefault();if(busy){busy.abort();return;}const t=$("askInput").value.trim();if(!t)return;$("askInput").value="";ask(t);});
+
+function catalogueText(){
+  return `CATALOGUE (id: params)
+- tune: stage 1|2|3 (1 = remap, 2 = remap + downpipe + intake, 3 = big turbo or supercharger)
+- intake: no params
+- exhaust: no params (valved stainless cat-back)
+- wheels: size 17|18|19|20|21, style "multi-spoke"|"mesh"|"monoblock"|"deep-dish"|"turbofan", finish "silver"|"gunmetal"|"black"|"bronze"|"gold"|"white"
+- drop: mm 15 to 50 (coilovers, how much lower)
+- brakes: caliper "red"|"yellow"|"black"|"blue"|"gold"|"green"|"orange"
+- bodykit: no params (splitter, skirts, diffuser)
+- widebody: no params (arch flares)
+- spoiler: type "lip"|"ducktail"|"gt-wing"
+- wrap: colour (hex like "#16181c"), finish "gloss"|"satin"|"matte"|"chrome"
+- stripes: colour (hex)
+- tint: vlt 20|35|50 (rear windows only, UK law)
+- lights: no params (smoked lenses)
+CARS: ${CARS.map(c=>c.id+" = "+c.make+" "+c.model).join("; ")}`;
+}
+const RULES=`You are the build advisor inside Customizacions, a UK car customisation website. The user describes what they want in plain English. You pick modifications from the catalogue, and the website animates them onto the car and calculates prices and performance itself.
+
+${catalogueText()}
+
+Rules:
+- Use only catalogue ids and the listed parameter values.
+- Keep the current build unless the user asks to change or remove parts. To change a part, put it in "apply" with new params. To take a part off, put its id in "remove". Set "reset": true only if they want to go back to stock.
+- Vague requests are fine: "faster" means tune stage 1 or 2, "louder" means exhaust, "track build" means coilovers, brakes, aero kit, GT wing, wheels and tune.
+- If they ask for something not in the catalogue (engine swap, interior, audio), say it is not in the studio yet and offer the nearest option.
+- If they name a car from CARS, set "switchCar" to its id. If they name a car that is not listed, say so and suggest the closest listed car.
+- "reply": 2 to 4 short sentences in UK English. Be specific to their car. Mention UK legal or insurance points when relevant (front window tint limits, telling the insurer about mods, MOT noise and lights).
+- "notes": for each part you apply, a "what" sentence (what the part is and does) and an "effect" sentence (how it changes this car's look, handling or performance).
+Reply with only JSON in this shape:
+{"reply":"...","switchCar":null,"reset":false,"apply":[{"id":"wheels","params":{"size":19,"style":"monoblock","finish":"bronze"}}],"remove":[],"notes":{"wheels":{"what":"...","effect":"..."}}}`;
+
+async function ask(text){
+  addUser(text);
+  const think=document.createElement("div");think.className="msg ai thinking";think.textContent="Working on it";msgs.appendChild(think);scrollMsgs();
+  const btn=$("askBtn");btn.textContent="Stop";
+  let plan=null;
+  if(sample){
+    const ctl=new AbortController();busy=ctl;
+    const c=car();
+    const stateText=`Current car: ${c.make} ${c.model} (${c.gen}), ${c.engine}, ${c.hp}bhp, ${c.nm}Nm, ${c.drive}, stock wheels ${c.wheel}in.\nCurrent build: ${JSON.stringify(state.mods)}\n\nUser says: ${text}`;
+    const turns=[{role:"user",content:RULES},...history.slice(-8),{role:"user",content:stateText}];
+    try{ plan=await sample.json(turns,{modelTier:"quick",cache:false,signal:ctl.signal}); }
+    catch(e){
+      if(e&&e.code==="cancelled"){think.remove();busy=null;btn.textContent="Send";return;}
+      if(e&&["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(e.code)){sample=null;setMode(false);}
+      plan=null;
+    }
+    busy=null;
+  }
+  if(!plan||typeof plan!=="object") plan=localPlan(text);
+  think.remove(); btn.textContent="Send";
+  applyPlan(plan,text);
+}
+function applyPlan(plan,text){
+  const prev={...state.mods}; let carChanged=false;
+  if(plan.switchCar&&CARS.some(c=>c.id===plan.switchCar)&&plan.switchCar!==state.car){state.car=plan.switchCar;carChanged=true;}
+  if(plan.reset) state.mods={};
+  (Array.isArray(plan.remove)?plan.remove:[]).forEach(id=>{delete state.mods[id];});
+  const applied=[];
+  (Array.isArray(plan.apply)?plan.apply:[]).forEach(a=>{if(a&&MODS[a.id]){state.mods[a.id]=sanitize(a.id,a.params,car());applied.push(a.id);}});
+  state.mods=sanitizeAll(state.mods,car());
+  const changed=[...new Set([...Object.keys(prev),...Object.keys(state.mods)])].filter(k=>JSON.stringify(prev[k])!==JSON.stringify(state.mods[k]));
+  if(carChanged){save();renderStage(null,null);renderInfo();refreshDriveCar();setTimeout(()=>{const p2={};commit(p2,Object.keys(state.mods));},350);}
+  else commit(prev,changed);
+  const c=car(), before=perf(c,prev), after=perf(c,state.mods);
+  let reply=String(plan.reply||"Done.").slice(0,900);
+  if(changed.length&&after.hp!==before.hp&&!carChanged) reply+=` Power is now ${after.hp}bhp (${after.hp>before.hp?"+":""}${after.hp-before.hp}).`;
+  addAI(reply,changed.sort((a,b)=>MODS[a].order-MODS[b].order).map(id=>modCard(id,plan.notes)));
+  history.push({role:"user",content:text},{role:"assistant",content:String(plan.reply||"")});
+}
+
+/* offline interpreter */
+function colourNear(t,re){
+  const m=t.match(re); if(!m) return null;
+  let before=t.slice(Math.max(0,m.index-32),m.index);
+  const cut=before.split(/,|;|\band\b|\bwith\b|\bplus\b|\balso\b/); before=cut[cut.length-1];
+  let best=null,bi=-1;
+  for(const [n,h] of COLOURS){const i=before.lastIndexOf(n);if(i>bi){best=h;bi=i;}}
+  if(best) return best;
+  let after=t.slice(m.index+m[0].length,m.index+m[0].length+24).split(/,|;|\band\b|\bwith\b/)[0];
+  for(const [n,h] of COLOURS){if(after.includes(n)) return h;}
+  return null;
+}
+function localPlan(text){
+  const t=" "+text.toLowerCase()+" "; const apply=[],remove=[]; let switchCar=null, reset=false;
+  for(const c of CARS){if(c.keys.some(k=>new RegExp("(^|[^a-z0-9])"+k.replace(/[-]/g,"\\-")+"([^a-z0-9]|$)").test(t))){switchCar=c.id;break;}}
+  const c=CARS.find(x=>x.id===(switchCar||state.car));
+  if(/\b(reset|back to stock|start (again|over)|remove (everything|all))\b/.test(t)) reset=true;
+  const rem=t.match(/\b(remove|take off|delete|get rid of|lose|no more)\s+(the\s+)?([a-z ]+)/);
+  if(rem){const w=rem[3];const map={wing:"spoiler",spoiler:"spoiler",wheel:"wheels",rim:"wheels",kit:"bodykit",splitter:"bodykit",wide:"widebody",arch:"widebody",exhaust:"exhaust",tint:"tint",stripe:"stripes",wrap:"wrap",coilover:"drop",suspension:"drop",remap:"tune",tune:"tune",brake:"brakes",light:"lights",intake:"intake"};for(const k in map) if(w.includes(k)){remove.push(map[k]);break;}}
+  const removing=!!rem;
+  const add=(id,params)=>{if(!removing||!remove.includes(id)) apply.push({id,params});};
+  const track=/\b(track|full build|go wild|everything|race car|time attack)\b/.test(t);
+  if(track){add("drop",{mm:35});add("brakes",{caliper:"red"});add("bodykit",{});add("spoiler",{type:"gt-wing"});add("wheels",{size:Math.min(21,c.wheel+1),style:"monoblock",finish:"gunmetal"});add("tune",{stage:2});add("exhaust",{});}
+  if(/wheel|rim|alloy/.test(t)&&!remove.includes("wheels")){
+    const sz=t.match(/\b(1[7-9]|2[01])\s*(?:"|”|''|-?inch|in\b|s\b)/)||t.match(/\b(1[7-9]|2[01])\b/);
+    const style=/mesh|bbs|cross/.test(t)?"mesh":/forged|mono/.test(t)?"monoblock":/dish|deep/.test(t)?"deep-dish":/turbo ?fan|fan/.test(t)?"turbofan":/spoke/.test(t)?"multi-spoke":"multi-spoke";
+    const fc=colourNear(t,/wheel|rim|alloy/); let finish="gunmetal";
+    if(fc){const name=(COLOURS.find(x=>x[1]===fc)||[""])[0];finish=Object.keys(RIM_FINISH).find(k=>name.includes(k))||(name.includes("grey")||name.includes("gray")?"gunmetal":"gunmetal");}
+    add("wheels",{size:sz?+sz[1]:Math.min(21,c.wheel+1),style,finish});
+  }
+  if(/lower|drop|coilover|stance|slam|suspension/.test(t)&&!remove.includes("drop")){const mm=t.match(/(\d{2})\s*mm/);add("drop",{mm:mm?+mm[1]:/slam/.test(t)?50:30});}
+  if(/spoiler|wing|ducktail/.test(t)&&!remove.includes("spoiler")) add("spoiler",{type:/gt|big|track|swan/.test(t)||(/wing/.test(t)&&!/duck/.test(t))?"gt-wing":/duck/.test(t)?"ducktail":/lip|small|subtle/.test(t)?"lip":"ducktail"});
+  if(/body ?kit|splitter|skirt|diffuser|aero/.test(t)&&!remove.includes("bodykit")) add("bodykit",{});
+  if(/wide ?body|widebody|wider|flare|arches/.test(t)&&!remove.includes("widebody")) add("widebody",{});
+  if(/exhaust|louder|loud|pops|crackle|sound/.test(t)&&!remove.includes("exhaust")) add("exhaust",{});
+  if(/intake|induction/.test(t)) add("intake",{});
+  const st=t.match(/stage ?([123])/);
+  if(st) add("tune",{stage:+st[1]});
+  else if(/big turbo|bigger turbo|supercharg|turbo upgrade/.test(t)) add("tune",{stage:3});
+  else if(/(much|way|really|insanely|seriously) (faster|quicker|more power)|max power|loads of power/.test(t)) add("tune",{stage:2});
+  else if(/faster|quicker|more power|remap|tune|more hp|horsepower|bhp/.test(t)&&!remove.includes("tune")) add("tune",{stage:1});
+  if(/brake|caliper/.test(t)&&!remove.includes("brakes")){const cc=colourNear(t,/brake|caliper/);const name=cc?(COLOURS.find(x=>x[1]===cc)||[""])[0]:"red";add("brakes",{caliper:Object.keys(CALIPER).find(k=>name.includes(k))||"red"});}
+  if(/tint/.test(t)&&!remove.includes("tint")){const v=t.match(/\b(20|35|50)\s*%?/);add("tint",{vlt:v?+v[1]:35});}
+  if(/stripe|livery/.test(t)&&!remove.includes("stripes")) add("stripes",{colour:colourNear(t,/stripe|livery/)||"#ecebe6"});
+  if(/smoke|smoked|light/.test(t)&&!/lighter|lightweight/.test(t)) add("lights",{});
+  const finish=/matte|matt\b/.test(t)?"matte":/satin/.test(t)?"satin":/chrome/.test(t)?"chrome":"gloss";
+  let wrapCol=colourNear(t,/wrap|paint|respray|colou?r/);
+  if(!wrapCol&&/matte|satin|chrome|gloss/.test(t)) wrapCol=colourNear(t,/matte|matt\b|satin|chrome|gloss/);
+  if(wrapCol&&!remove.includes("wrap")) add("wrap",{colour:wrapCol,finish});
+  let reply;
+  const names=apply.map(a=>modLabel(a.id,sanitize(a.id,a.params,c)).toLowerCase());
+  if(reset) reply="Back to stock. Clean slate. What shall we start with?";
+  else if(names.length) reply=(switchCar&&switchCar!==state.car?`Switched to the ${c.make} ${c.model}. `:"")+`Fitted: ${names.join(", ")}.`+(apply.some(a=>a.id==="tune")?" Remember to tell your insurer about any power upgrade.":"")+(apply.some(a=>a.id==="drop")?" Watch out for speed bumps.":"");
+  else if(remove.length) reply="Taken off. Anything else?";
+  else if(switchCar) reply=`Here's the ${c.make} ${c.model}. Try asking for wheels, a drop, a wrap colour, a spoiler or more power.`;
+  else reply="I can fit wheels, coilovers, brakes, aero kits, widebody arches, spoilers, wraps, stripes, tint, smoked lights, intakes, exhausts and remaps. Try \"matte grey wrap and 20-inch black wheels\".";
+  return {reply,switchCar,reset,apply,remove,notes:{}};
+}
+function setMode(live){
+  $("aiDot").classList.toggle("live",live);
+  $("aiMode").textContent=live?"AI live · understands any request":"Built-in assistant · keyword mode";
+}
+setMode(false); $("aiMode").textContent="Connecting…";
+(async()=>{
+  try{ if(window.claude&&claude.use){ sample=await claude.use("sample"); } }catch(e){sample=null;}
+  setMode(!!sample);
+})();
+
+/* ---------- engine sound ---------- */
+class Engine{
+  constructor(){this.ctx=null;this.on=false;}
+  start(c,m){
+    if(!this.ctx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;this.ctx=new AC();}
+    if(this.on) this.stop(true);
+    const x=this.ctx; x.resume&&x.resume();
+    this.p={cyl:c.cyl,turbo:c.turbo||(m.tune&&m.tune.stage===3),v8:c.cyl===8,ex:!!m.exhaust,red:c.redline,int:!!m.intake,stage:m.tune?m.tune.stage:0};
+    const out=x.createDynamicsCompressor(); out.connect(x.destination);
+    const master=x.createGain(); master.gain.value=0; master.connect(out);
+    const filt=x.createBiquadFilter(); filt.type="lowpass"; filt.Q.value=4; filt.connect(master);
+    const shaper=x.createWaveShaper(); const k=this.p.ex?28:14, n=1024, curve=new Float32Array(n);
+    for(let i=0;i<n;i++){const v=i*2/n-1;curve[i]=(1+k)*v/(1+k*Math.abs(v));} shaper.curve=curve; shaper.connect(filt);
+    const body=x.createGain(); body.gain.value=.55; body.connect(shaper);
+    const o1=x.createOscillator();o1.type="sawtooth";o1.connect(body);
+    const g2=x.createGain();g2.gain.value=.5;g2.connect(body);const o2=x.createOscillator();o2.type="square";o2.connect(g2);
+    const g3=x.createGain();g3.gain.value=.18;g3.connect(body);const o3=x.createOscillator();o3.type="triangle";o3.connect(g3);
+    let lfo=null; if(this.p.v8||this.p.cyl===5||this.p.cyl===3){lfo=x.createOscillator();lfo.type="sine";const lg=x.createGain();lg.gain.value=this.p.v8?.35:.18;lfo.connect(lg);lg.connect(body.gain);lfo.start();}
+    const buf=x.createBuffer(1,x.sampleRate*2,x.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    const ns=x.createBufferSource();ns.buffer=buf;ns.loop=true;const bp=x.createBiquadFilter();bp.type="bandpass";bp.frequency.value=1400;bp.Q.value=.6;const ng=x.createGain();ng.gain.value=0;ns.connect(bp);bp.connect(ng);ng.connect(master);ns.start();
+    let tg=null,to=null; if(this.p.turbo){to=x.createOscillator();to.type="sine";tg=x.createGain();tg.gain.value=0;to.connect(tg);tg.connect(out);to.start();}
+    [o1,o2,o3].forEach(o=>o.start());
+    this.n={out,master,filt,o1,o2,o3,lfo,ng,tg,to,buf};
+    this.on=true; this.lastLoad=0; this.set(900,0);
+    master.gain.setTargetAtTime(this.vol(0),x.currentTime,.1);
+    return true;
+  }
+  vol(load){return (.09+.13*load)*(this.p.ex?1.45:1);}
+  set(rpm,load){
+    if(!this.on) return; const x=this.ctx,t=x.currentTime,n=this.n,p=this.p;
+    const f=rpm/60*p.cyl/2;
+    n.o1.frequency.setTargetAtTime(f,t,.025); n.o2.frequency.setTargetAtTime(f/2,t,.025); n.o3.frequency.setTargetAtTime(f*1.5,t,.025);
+    if(n.lfo) n.lfo.frequency.setTargetAtTime(f/(p.v8?4:2.5),t,.05);
+    n.filt.frequency.setTargetAtTime((220+rpm*.2+load*700)*(p.ex?1.5:1),t,.04);
+    n.master.gain.setTargetAtTime(this.vol(load),t,.05);
+    n.ng.gain.setTargetAtTime(load*(p.int?.06:.03)*(rpm/p.red),t,.05);
+    if(n.tg){n.to.frequency.setTargetAtTime(2400+rpm*.7,t,.2);n.tg.gain.setTargetAtTime(load*.012*(rpm/p.red)*(p.stage>=2?1.6:1),t,.25);}
+    if(this.lastLoad>.5&&load<.1){ if(p.turbo&&rpm>3000) this.burst(.25,2500,.08); if(p.ex&&rpm>3800) for(let i=0;i<5;i++) setTimeout(()=>this.burst(.05+Math.random()*.04,400,.22),80+i*90+Math.random()*60); }
+    this.lastLoad=load;
+  }
+  burst(dur,hp,amp){
+    if(!this.on) return; const x=this.ctx,t=x.currentTime;
+    const s=x.createBufferSource();s.buffer=this.n.buf;const h=x.createBiquadFilter();h.type="highpass";h.frequency.value=hp;const g=x.createGain();
+    g.gain.setValueAtTime(amp,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);s.connect(h);h.connect(g);g.connect(this.n.out);s.start(t,Math.random());s.stop(t+dur+.05);
+  }
+  stop(now){
+    if(!this.on) return; const n=this.n,x=this.ctx,t=x.currentTime;
+    n.master.gain.setTargetAtTime(0,t,now?.01:.15); if(n.tg) n.tg.gain.setTargetAtTime(0,t,.05);
+    const all=[n.o1,n.o2,n.o3,n.lfo,n.to].filter(Boolean);
+    setTimeout(()=>{all.forEach(o=>{try{o.stop();}catch(e){}});try{n.out.disconnect();}catch(e){}},now?60:700);
+    this.on=false;
+  }
+}
+const engine=new Engine();
+
+/* studio rev demo */
+let revRAF=null, revBtn=null;
+function playRev(which,btn){
+  if(revBtn===btn){stopRev();return;}
+  stopRev(); stopDriveEngine();
+  const c=car(), m=which==="build"?state.mods:{};
+  if(!engine.start(c,m)) return;
+  revBtn=btn; btn.textContent="■ Stop";
+  const red=c.redline, seq=[[0,900,0],[900,900,0],[1100,4200,1],[1450,1500,0],[1900,900,0],[2300,1200,1],[3900,red*.98,1],[4000,red*.98,0],[4900,900,0],[5600,900,0]];
+  const t0=performance.now();
+  const tick=now=>{
+    const t=now-t0; let i=0; while(i<seq.length-1&&seq[i+1][0]<t) i++;
+    if(i>=seq.length-1){stopRev();return;}
+    const a=seq[i],b=seq[i+1],k=(t-a[0])/(b[0]-a[0]);
+    engine.set(a[1]+(b[1]-a[1])*Math.min(1,k*(b[2]?1:1.6)),b[2]);
+    revRAF=requestAnimationFrame(tick);
+  };
+  revRAF=requestAnimationFrame(tick);
+}
+function stopRev(){if(revRAF)cancelAnimationFrame(revRAF);revRAF=null;if(revBtn){revBtn.textContent=revBtn.id==="hearStock"?"▶ Hear stock":"▶ Hear your build";revBtn=null;engine.stop();}}
+$("hearStock").addEventListener("click",e=>playRev("stock",e.currentTarget));
+$("hearBuild").addEventListener("click",e=>playRev("build",e.currentTarget));
+
+/* ---------- test drive ---------- */
+const road=$("road"), cvs=$("roadCanvas"), cx2=cvs.getContext("2d");
+let dMode="build", drv={running:false,v:0,gear:1,rpm:0,thr:false,shift:0,dist:0,t0:null,done:false,last:0,wheelA:0};
+const GEAR_TOP=[.26,.4,.55,.7,.85,1];
+function dMods(){return dMode==="build"?state.mods:{};}
+function refreshDriveCar(){
+  $("driveCar").innerHTML=carSVG(car(),dMods(),{uid:"d"});
+  const p=perf(car(),dMods()); $("drivePower").textContent=p.hp+" bhp · "+p.kg+" kg";
+}
+function setDMode(m){dMode=m;$("dStock").setAttribute("aria-pressed",m==="stock");$("dBuild").setAttribute("aria-pressed",m==="build");refreshDriveCar();resetRun();if(drv.running){engine.start(car(),dMods());}}
+$("dStock").addEventListener("click",()=>setDMode("stock"));
+$("dBuild").addEventListener("click",()=>setDMode("build"));
+function resetRun(){drv.v=0;drv.gear=1;drv.t0=null;drv.done=false;$("runResult").textContent="";}
+function stopDriveEngine(){if(drv.running){drv.running=false;engine.stop();$("engineBtn").textContent="Start engine";$("throttle").disabled=true;$("driveHint").textContent="Start the engine to drive";drv.thr=false;}}
+$("engineBtn").addEventListener("click",()=>{
+  if(drv.running){stopDriveEngine();return;}
+  stopRev();
+  if(!engine.start(car(),dMods())){$("runResult").textContent="Sound is not supported in this browser.";}
+  drv.running=true; resetRun(); $("engineBtn").textContent="Stop engine"; $("throttle").disabled=false; $("driveHint").textContent="Hold the throttle or press Space";
+  drv.last=performance.now();
+});
+const thrBtn=$("throttle");
+const thrOn=e=>{if(!drv.running)return;e.preventDefault();drv.thr=true;thrBtn.classList.add("on");};
+const thrOff=()=>{drv.thr=false;thrBtn.classList.remove("on");};
+thrBtn.addEventListener("pointerdown",thrOn);["pointerup","pointerleave","pointercancel"].forEach(ev=>thrBtn.addEventListener(ev,thrOff));
+road.addEventListener("pointerdown",thrOn);["pointerup","pointerleave","pointercancel"].forEach(ev=>road.addEventListener(ev,thrOff));
+document.addEventListener("keydown",e=>{if((e.code==="Space"||e.code==="ArrowUp")&&drv.running&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();drv.thr=true;thrBtn.classList.add("on");}});
+document.addEventListener("keyup",e=>{if(e.code==="Space"||e.code==="ArrowUp")thrOff();});
+
+function sizeCanvas(){const r=road.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);cvs.width=Math.round(r.width*d);cvs.height=Math.round(r.height*d);}
+new ResizeObserver(sizeCanvas).observe(road); sizeCanvas();
+function drawRoad(){
+  const W=cvs.width,H=cvs.height,x=cx2,d=drv.dist;
+  const sky=x.createLinearGradient(0,0,0,H*.62);sky.addColorStop(0,"#0f1a2b");sky.addColorStop(.7,"#3a3550");sky.addColorStop(1,"#c98a52");
+  x.fillStyle=sky;x.fillRect(0,0,W,H);
+  x.fillStyle="rgba(255,214,160,.85)";x.beginPath();x.arc(W*.78,H*.5,H*.07,0,Math.PI*2);x.fill();
+  const hills=(base,amp,speed,col,f)=>{x.fillStyle=col;x.beginPath();x.moveTo(0,H);for(let i=0;i<=W;i+=W/60){const wx=(i+d*speed)/W*f;x.lineTo(i,base-amp*(Math.sin(wx*2.1)*.6+Math.sin(wx*5.3)*.25+Math.sin(wx*.7)*.4));}x.lineTo(W,H);x.fill();};
+  hills(H*.58,H*.08,6,"#242238",3);
+  hills(H*.62,H*.05,18,"#17171f",6);
+  x.fillStyle="#101216";x.fillRect(0,H*.64,W,H*.36);
+  x.fillStyle="#1c1f25";x.fillRect(0,H*.66,W,H*.24);
+  x.fillStyle="#2b2f36";x.fillRect(0,H*.655,W,H*.008);
+  const dash=W*.12,gap=W*.1,off=(d*60)%(dash+gap);
+  x.fillStyle="#d8d2c2";for(let i=-off;i<W;i+=dash+gap) x.fillRect(i,H*.885,dash,H*.008);
+  const pg=W*.22,po=(d*60)%pg;x.fillStyle="#cfd3d8";
+  for(let i=-po;i<W+pg;i+=pg){x.fillRect(i,H*.6,W*.006,H*.06);x.fillStyle="#d14a2a";x.fillRect(i,H*.6,W*.006,H*.012);x.fillStyle="#cfd3d8";}
+  if(drv.v>25){x.strokeStyle=`rgba(255,255,255,${Math.min(.18,(drv.v-25)/200)})`;x.lineWidth=1;for(let i=0;i<14;i++){const y=H*(.2+((i*37)%50)/100),len=W*.15,xx=(W-((d*90+i*173)%(W+len)));x.beginPath();x.moveTo(xx,y);x.lineTo(xx+len,y);x.stroke();}}
+}
+function driveLoop(now){
+  const dt=Math.min(.05,(now-(drv.last||now))/1000); drv.last=now;
+  const c=car(), p=perf(c,dMods()), m=p.kg+80;
+  const red=c.redline, P=p.hp*745.7*.8, mu={FWD:.72,RWD:.85,AWD:1.05}[c.drive];
+  const vTop=69.3;
+  if(drv.running){
+    if(drv.thr&&drv.t0===null&&drv.v<.5){drv.t0=now;drv.done=false;$("runResult").textContent="";}
+    let F=0;
+    if(drv.shift>0) drv.shift-=dt;
+    else if(drv.thr) F=Math.min(P/Math.max(drv.v,2.5),mu*m*9.81);
+    const drag=.42*drv.v*drv.v+.012*m*9.81+(drv.thr?0:.06*m*9.81);
+    drv.v=Math.max(0,Math.min(vTop,drv.v+(F-drag)/m*dt));
+    const gt=GEAR_TOP[drv.gear-1]*vTop*1.02;
+    drv.rpm=Math.max(drv.thr&&drv.gear===1?2200+drv.v/gt*red:900,red*drv.v/gt);
+    if(drv.rpm>=red*.97&&drv.gear<6){drv.gear++;drv.shift=.22;engine.burst(.05,900,.05);}
+    if(!drv.thr&&drv.gear>1&&drv.rpm<red*.35) drv.gear--;
+    drv.rpm=Math.min(drv.rpm,red);
+    engine.set(drv.rpm,drv.thr&&drv.shift<=0?1:0);
+    const mph=drv.v*2.237;
+    if(drv.t0!==null&&!drv.done&&mph>=62){drv.done=true;const t=(now-drv.t0)/1000;$("runResult").innerHTML=`Virtual 0–62 mph: <b class="mono">${t.toFixed(2)}s</b> <span class="muted">(${dMode==="build"?"your build":"stock"}; claimed ${perf(c,dMods()).t62.toFixed(1)}s)</span>`;}
+    if(drv.v<.3&&!drv.thr) drv.t0=null;
+    $("mph").textContent=Math.round(mph);$("gear").textContent=drv.v<.2&&!drv.thr?"N":drv.gear;$("rpmTxt").textContent=Math.round(drv.rpm/50)*50;$("rpmBar").style.width=(drv.rpm/red*100)+"%";
+  }
+  drv.dist+=drv.v*dt*.06;
+  drv.wheelA=(drv.wheelA+drv.v*dt/0.33*57.3)%360;
+  document.querySelectorAll("#driveCar .spin").forEach(g=>g.setAttribute("transform",`rotate(${drv.wheelA.toFixed(1)} ${g.dataset.cx} ${g.dataset.cy})`));
+  drawRoad();
+  requestAnimationFrame(driveLoop);
+}
+requestAnimationFrame(driveLoop);
+
+/* ---------- garage ---------- */
+$("garageGrid").innerHTML=CARS.map(c=>`<article class="card"><div class="art">${carSVG(c,{},{uid:"g"+c.id})}</div><div class="body">
+<div class="name"><b>${c.make} ${c.model}</b><span>${c.gen}</span></div>
+<div class="kv"><div><small>Power</small><b>${c.hp}</b> bhp</div><div><small>Torque</small><b>${c.nm}</b> Nm</div><div><small>0–62</small><b>${c.t62.toFixed(1)}</b> s</div></div>
+<p class="d">${c.blurb} ${c.engine}, ${c.drive}.</p>
+<div class="row"><span class="price">From <b>${fmt(c.price)}</b></span><button class="btn sm primary" type="button" data-custom="${c.id}">Customise</button><a class="btn sm" href="https://www.autotrader.co.uk/car-search?make=${encodeURIComponent(c.make)}&model=${encodeURIComponent(c.model.split(" ").slice(0,2).join(" "))}" target="_blank" rel="noopener sponsored">For sale ↗</a></div>
+</div></article>`).join("");
+$("garageGrid").addEventListener("click",e=>{const b=e.target.closest("[data-custom]");if(b){switchCar(b.dataset.custom,true);document.getElementById("studio").scrollIntoView({behavior:reduce?"auto":"smooth"});}});
+
+/* ---------- price list ---------- */
+const PRICE_ROWS=[
+ ["Performance",[["Stage 1 remap","Software only, about +10–15% power on turbo engines","£400–£600"],["Stage 2 package","Remap, downpipe and intake, about +20–25%","£1,500–£2,500"],["Stage 3 / big turbo or supercharger","Hardware upgrade with custom dyno map","£4,500–£9,000"],["Cold-air intake","Freer-flowing filter and pipework","£250–£450"],["Valved cat-back exhaust","Stainless system, quiet or loud at the press of a button","£1,200–£2,800"]]],
+ ["Wheels & suspension",[["Flow-formed wheels (set of 4)","With performance tyres, 18–20 inch","£1,500–£2,800"],["Forged wheels (set of 4)","Lighter and stronger, with tyres","£3,000–£5,500"],["Coilovers","Height and damping adjustable, fitted with alignment","£1,100–£2,200"],["Big brake kit","Six-piston front calipers and larger discs","£2,500–£4,500"]]],
+ ["Bodywork",[["Aero kit","Splitter, side skirts and diffuser","£1,200–£2,500"],["Widebody arches","Bolt-on flares, painted and fitted","£4,500–£9,000"],["Spoiler","Lip £300 · ducktail £600 · GT wing £1,500+","£300–£2,500"]]],
+ ["Styling",[["Full vinyl wrap","Gloss, satin or matte. Chrome costs more","£2,200–£5,000"],["Racing stripes","Cast vinyl, fitted","£300–£600"],["Window tint","Rear side windows and rear screen","£180–£300"],["Smoked lights","Light smoke film, MOT-legal grade","£200–£350"]]]
+];
+$("priceTable").innerHTML=`<thead><tr><th>Upgrade</th><th>What you get</th><th>Fitted price</th></tr></thead><tbody>`+PRICE_ROWS.map(([cat,rows])=>`<tr class="cat"><td colspan="3">${cat.toUpperCase()}</td></tr>`+rows.map(r=>`<tr><td>${r[0]}</td><td class="muted">${r[1]}</td><td class="p">${r[2]}</td></tr>`).join("")).join("")+`</tbody>`;
+
+/* ---------- journal ---------- */
+const POSTS=[
+ {t:"UK window tint law, explained",m:"4 min read · Legal",s:"How dark you can go, and which windows you're allowed to tint.",c:`<p>The rules are about how much light passes through the glass, called visible light transmission (VLT).</p><h4>Front windscreen and front side windows</h4><p>The windscreen must let at least 75% of light through. The front side windows must let at least 70% through. Most factory glass is already close to these limits, so even a light film can make a car illegal.</p><h4>Rear windows</h4><p>There's no limit on the rear side windows or the rear screen. That's why Customizacions only applies tint to the rear.</p><h4>What happens if it's too dark</h4><p>Police can test your windows at the roadside. You can get a prohibition notice, points and a fine, and you'll have to remove the tint.</p>`},
+ {t:"Stage 1 vs Stage 2: what's the difference?",m:"5 min read · Performance",s:"Software alone, or software plus hardware. Here's what you actually get.",c:`<p>A <b>Stage 1</b> remap changes the engine software only. On a turbocharged engine it raises boost and adjusts timing, which usually adds 10–15% power for a few hundred pounds.</p><p><b>Stage 2</b> adds parts that let the engine breathe, typically a downpipe, an intake and sometimes an intercooler. The software is then mapped for those parts, so gains are bigger, often 20–25%.</p><h4>Things to check</h4><p>Remaps can affect your manufacturer warranty. Use a tuner who runs the car on a dyno before and after, and keep the receipts. Naturally aspirated engines, like the GR86 or Mustang V8, gain much less from software alone.</p>`},
+ {t:"Coilovers or lowering springs?",m:"4 min read · Suspension",s:"Both lower your car. Only one lets you fine-tune it.",c:`<p><b>Lowering springs</b> replace the standard springs and work with your existing dampers. They're cheap, but the stock dampers weren't designed for the new springs, so ride and control can suffer.</p><p><b>Coilovers</b> replace the spring and damper together. You can set the ride height and, on most kits, the damping. They cost more but give a better balance between looks and handling.</p><h4>How low is too low?</h4><p>A 25–35mm drop suits most UK roads. Go further and you'll scrape on speed bumps and driveways. Always get a four-wheel alignment after fitting.</p>`},
+ {t:"Telling your insurer about modifications",m:"3 min read · Insurance",s:"Why every change counts, even wheels and wraps.",c:`<p>Insurers need to know about anything that changes the car from the factory spec. That includes wheels, wraps, tints, suspension and remaps, not only big engine work.</p><p>If you don't tell them, they can refuse to pay out after a claim or cancel your policy. Declaring mods usually raises the premium a little, but some specialist insurers cover modified cars at fair prices.</p><h4>Tip</h4><p>Keep a list with receipts and photos of each part. The Customizacions build sheet is a good start: it lists every part on your build.</p>`}
+];
+$("posts").innerHTML=POSTS.map(p=>`<details class="post"><summary><span class="meta">${p.m}</span><h3>${p.t}</h3><p>${p.s}</p><span class="more">Read article →</span></summary><div class="content">${p.c}</div></details>`).join("");
+
+/* ---------- init ---------- */
+renderPicker(); renderStage(null,null); setSplit(50); renderInfo(); refreshDriveCar();
+if(state.plate) $("plate").value=state.plate;
+addAI(`Hi, I'm your build advisor. You're looking at the ${car().make} ${car().model}. Tell me what you'd like, such as "drop it 30mm with 19-inch bronze wheels" or "make it louder", and I'll fit it.`);
+})();
+</script>
+
+</body></html>

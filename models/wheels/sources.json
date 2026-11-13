@@ -1,0 +1,31 @@
+{
+  "_about": "Wheel models fitted by js/three/wheels3d.js. Files are made with models/tools/prep_wheels.py from these downloads (not committed: download each GLB from Sketchfab, name it <style>.glb, then run the script).",
+  "licence": "CC BY 4.0",
+  "wheels": {
+    "mesh": {
+      "title": "BBS RS16 Tuner Car Wheel",
+      "author": "Martin Trafas (TinoD2)",
+      "url": "https://sketchfab.com/3d-models/4e50d45e5ff04d00927a50c150e088c1"
+    },
+    "multispoke": {
+      "title": "BBS CH-R + Goodyear Eagle F1 Supercar 3",
+      "author": "mozzarellaARC",
+      "url": "https://sketchfab.com/3d-models/2acc32fc79684a2c8b7df9faaa5a5c35"
+    },
+    "monoblock": {
+      "title": "RAYS TE037",
+      "author": "dermaks",
+      "url": "https://sketchfab.com/3d-models/e4ca99c55cec42b5940107b5c5ead0f6"
+    },
+    "deepdish": {
+      "title": "Work Meister S1 3P Wheel",
+      "author": "alexanderlyreo",
+      "url": "https://sketchfab.com/3d-models/7205c04f3cb24a7dbdaf6a304fb31f21"
+    },
+    "turbofan": {
+      "title": "BBS Turbofan Wheel",
+      "author": "l-odin",
+      "url": "https://sketchfab.com/3d-models/67fc5dc7cb624908bdb86442e6bec99c"
+    }
+  }
+}

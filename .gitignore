@@ -1,0 +1,41 @@
+# Secrets: API keys must never be committed
+.env
+.env.*
+!.env.example
+*.key
+
+# Python virtual environments and cached AI renders (for the planned local server)
+.venv/
+venv/
+renders/
+
+# Local tool settings
+.claude/settings.local.json
+
+# Tooling and OS clutter
+node_modules/
+__pycache__/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 3D car models: rebuilt from source by models/tools/prep_model.py; not kept in git (see models/README.md)
+models/source/
+models/*.glb
+
+# Real-world settings for the 3D view (CC0 HDRIs, ~7 MB each); re-download with: python env/get_hdris.py
+env/*.hdr
+# Background photos for the 3D view (CC0); re-download with: python env/get_backplates.py
+env/backplates/
+env/sky/
+
+# Downloaded wheel models (rebuild with models/tools/prep_wheels.py; sources in models/wheels/sources.json)
+models/wheels/*.glb
+# Fitted aero parts (rebuild with models/tools/prep_aero.py; sources in models/aero/sources.json)
+models/aero/*/
+# Home page build photos (renders of the local-only Golf model)
+photos/builds/
+# Garage pictures of the local-only BMW and Fiesta 3D models (captured from the 3D view)
+photos/garage/
+# Ground textures under the car in 360 settings (CC0); re-download with: python env/get_ground.py
+env/ground/

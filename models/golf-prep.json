@@ -1,0 +1,26 @@
+{
+  "_about": "Settings for models/tools/prep_model.py. Part names come from models/inspect.html.",
+  "source": "source/golf-sketchfab.glb",
+  "output": "golf.glb",
+  "lengthM": 4.287,
+  "front": "+Y",
+  "glassSplitX": -0.2,
+  "roles": {
+    "Object_6": "Paint",
+    "Object_8": "Paint",
+    "Object_10": "Glass",
+    "Object_7": "LensCovers",
+    "Object_19": "Lens_Rear",
+    "Object_2": "wheel:Hub",
+    "Object_3": "wheel:Tyre",
+    "Object_4": "wheel:Rim",
+    "Object_5": "wheel:Disc"
+  },
+  "splitByColour": {
+    "Object_4": {
+      "colour": "red",
+      "material": "Caliper",
+      "role": "wheel"
+    }
+  }
+}

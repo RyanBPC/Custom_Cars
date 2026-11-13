@@ -1,0 +1,140 @@
+{
+  "file": "golf.glb",
+  "credit": {
+    "title": "Volkswagen Golf 8. GTI (A8)",
+    "author": "Mona x Supercars (@Car2022)",
+    "url": "https://sketchfab.com/3d-models/volkswagen-golf-8-gti-a8-e87d7c0f8937481db236529beb5ecab7",
+    "licence": "CC BY 4.0",
+    "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+    "changes": "Resized, renamed parts, windows split front/rear, wheels separated, cabin mirrored to right-hand drive, recoloured live by the site"
+  },
+  "notShown": [],
+  "provenance": "unverified: the uploader shows a bulk-upload pattern (467 models across many brands), so this may be a game asset. Fine for local learning; do not publish.",
+  "fit": {
+    "_about": "Measured once from golf.glb (metres, front is +x, ground y=0). Used to place add-on parts.",
+    "frontX": 2.1,
+    "rearX": -2.1,
+    "frontBottomY": 0.2,
+    "rearBottomY": 0.3,
+    "sideZ": 0.87,
+    "sillY": 0.25,
+    "roof": {
+      "x0": -1.76,
+      "x1": 0.22,
+      "y": 1.45,
+      "halfW": 0.56,
+      "minY": 1.38
+    },
+    "roofEdge": {
+      "x": -1.8,
+      "y": 1.34
+    },
+    "rearGlass": {
+      "top": [
+        -1.82,
+        1.2
+      ],
+      "bottom": [
+        -2.0,
+        1.0
+      ],
+      "halfW": 0.6
+    },
+    "bonnet": {
+      "x0": 1.1,
+      "x1": 2.02,
+      "minY": 0.7,
+      "halfW": 0.74,
+      "pts": [
+        [
+          1.21,
+          0.98
+        ],
+        [
+          1.43,
+          0.95
+        ],
+        [
+          1.65,
+          0.9
+        ],
+        [
+          1.87,
+          0.82
+        ],
+        [
+          1.98,
+          0.75
+        ]
+      ]
+    },
+    "exhaust": {
+      "x": -2.06,
+      "y": 0.3,
+      "z": 0.55
+    },
+    "door": {
+      "x": 0.4,
+      "y": 0.62
+    },
+    "seats": {
+      "driver": [
+        -0.16,
+        1.12,
+        0.36
+      ],
+      "passenger": [
+        -0.16,
+        1.12,
+        -0.36
+      ],
+      "rear": [
+        -0.98,
+        1.08,
+        0.33
+      ]
+    },
+    "cabin": {
+      "seatY": 0.5,
+      "frontSeatX": -0.1,
+      "rearSeatX": -0.9,
+      "seatZ": 0.36,
+      "headrestX": -0.4,
+      "headrestY": 1.22,
+      "roofInY": 1.36,
+      "wheel": [
+        0.3,
+        0.95,
+        0.36
+      ],
+      "dashX": 0.49
+    },
+    "plates": {
+      "front": 0.52,
+      "rear": 0.49,
+      "panel": "Object_13"
+    }
+  },
+  "mirrorCabin": [
+    "Object_9",
+    "Object_14"
+  ],
+  "aero": "aero/golf",
+  "_badges": "The boot's VW logo is mirror chrome and looks like a black disc, so the site draws a clear one over it (js/three/badges3d.js).",
+  "badges": [
+    {
+      "type": "vw",
+      "from": [
+        -3,
+        0.855,
+        0.004
+      ],
+      "dir": [
+        1,
+        0,
+        0
+      ],
+      "size": 0.118
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "_about": "Real-world settings for the 3D view, all from Poly Haven (CC0). 'polyhaven' is the 360\u00b0 HDR photo that lights the car (reflections); 'backplate' is a sharp normal photo taken at the same spot, shown behind the car. Ids match the AI photo settings in js/photo/prompt.js. Large files aren't in git; run: python env/get_hdris.py and python env/get_backplates.py. 'camera' matches the photo: fov = horizontal field of view in degrees, height = camera height in metres, horizon = how far down the photo the horizon is (0 top, 1 bottom), distance = metres from camera to car, carYaw = which way the car faces (degrees).",
+  "street-day": {
+    "name": "City street, day",
+    "polyhaven": "wide_street_02",
+    "backplate": [
+      "wide_street_02",
+      "DSC_4902"
+    ],
+    "exposure": 0.9,
+    "camera": {
+      "fov": 65,
+      "height": 1.6,
+      "horizon": 0.47,
+      "distance": 7.0,
+      "carYaw": -32
+    },
+    "ground": {
+      "texture": "asphalt_04",
+      "tile": 3.0
+    }
+  },
+  "street-night": {
+    "name": "City street, night",
+    "polyhaven": "vignaioli_night",
+    "backplate": [
+      "vignaioli_night",
+      "DSC07544"
+    ],
+    "exposure": 0.2,
+    "camera": {
+      "fov": 73.7,
+      "height": 1.6,
+      "horizon": 0.47,
+      "distance": 7.0,
+      "carYaw": -32
+    },
+    "sun": {
+      "azimuth": 140,
+      "elevation": 70,
+      "strength": 0.35
+    },
+    "ground": {
+      "texture": "rectangular_paving",
+      "tile": 5,
+      "wet": true,
+      "tint": "#6a665e"
+    },
+    "skyLevel": 0.2
+  },
+  "forest-day": {
+    "name": "Forest track, day",
+    "polyhaven": "barnaslingan_02",
+    "backplate": [
+      "barnaslingan_02",
+      "08"
+    ],
+    "exposure": 0.9,
+    "camera": {
+      "fov": 40,
+      "height": 1.6,
+      "horizon": 0.47,
+      "distance": 9.5,
+      "carYaw": -32
+    },
+    "ground": {
+      "texture": "dirt_floor",
+      "tile": 2.5,
+      "tint": "#9ea6b4"
+    }
+  },
+  "forest-night": {
+    "name": "Forest avenue, night",
+    "polyhaven": "viale_giuseppe_garibaldi",
+    "backplate": [
+      "viale_giuseppe_garibaldi",
+      "DSC07210"
+    ],
+    "exposure": 0.25,
+    "camera": {
+      "fov": 65,
+      "height": 1.6,
+      "horizon": 0.47,
+      "distance": 7.0,
+      "carYaw": -32
+    },
+    "sun": {
+      "azimuth": 140,
+      "elevation": 70,
+      "strength": 0.3
+    },
+    "ground": {
+      "texture": "sandy_gravel",
+      "tile": 2.0
+    },
+    "skyLevel": 0.32
+  }
+}

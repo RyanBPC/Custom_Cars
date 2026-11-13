@@ -1,0 +1,208 @@
+{
+  "file": "fiesta.glb",
+  "credit": {
+    "title": "Ford Fiesta Mk5",
+    "author": "Ruletă (@romanian_guy_0069)",
+    "url": "https://sketchfab.com/3d-models/ford-fiesta-mk5-f3a9d5d1fc9142d297f8d3c4d9b91431",
+    "licence": "CC BY 4.0",
+    "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+    "changes": "Resized to a real Mk6, hubcap wheels replaced with wheels, tyres, discs and calipers (rims from the site's wheel set), lights split out so the light mods work, number plate blanked, dashboard mirrored to right-hand drive, recoloured live by the site"
+  },
+  "notShown": [],
+  "provenance": "unverified: the part names match another upload of the same car (Merc_TV, who imports cars from driving games) and it came with a Turkish number plate, so it's very likely from a mobile driving game and the CC BY licence may not be valid. Fine for local learning; do not publish.",
+  "fit": {
+    "_about": "Measured with models/tools/measure_fit.py (metres, front is +x, ground y=0); headlights, exhaust, cabin, plates and visors measured from the model's parts. Used to place add-on parts and the interior camera.",
+    "frontX": 1.96,
+    "rearX": -1.96,
+    "frontBottomY": 0.18,
+    "rearBottomY": 0.26,
+    "sideZ": 0.83,
+    "sillY": 0.19,
+    "roof": {
+      "x0": -1.42,
+      "x1": 0.16,
+      "y": 1.45,
+      "halfW": 0.58,
+      "minY": 1.38
+    },
+    "roofEdge": {
+      "x": -1.46,
+      "y": 1.37
+    },
+    "rearGlass": {
+      "top": [
+        -1.51,
+        1.34
+      ],
+      "bottom": [
+        -1.83,
+        0.99
+      ],
+      "halfW": 0.59
+    },
+    "bonnet": {
+      "x0": 1.14,
+      "x1": 1.86,
+      "minY": 0.69,
+      "halfW": 0.72,
+      "pts": [
+        [
+          1.2,
+          0.91
+        ],
+        [
+          1.35,
+          0.89
+        ],
+        [
+          1.51,
+          0.85
+        ],
+        [
+          1.67,
+          0.8
+        ],
+        [
+          1.79,
+          0.74
+        ]
+      ]
+    },
+    "exhaust": {
+      "x": -1.88,
+      "y": 0.275,
+      "z": 0.27
+    },
+    "headlight": {
+      "inner": [
+        1.72,
+        0.735,
+        0.47
+      ],
+      "outer": [
+        1.47,
+        0.785,
+        0.66
+      ]
+    },
+    "plates": {
+      "front": 0.467,
+      "rear": 0.759,
+      "frontAt": {
+        "at": [
+          1.939,
+          0.467,
+          0
+        ],
+        "normal": [
+          0.999,
+          -0.032,
+          0
+        ]
+      },
+      "rearAt": {
+        "at": [
+          -1.889,
+          0.759,
+          0
+        ],
+        "normal": [
+          -0.98,
+          0.2,
+          0
+        ]
+      },
+      "panelRear": {
+        "mesh": "bagajkapa_i1_0_2",
+        "uv": [
+          0.39,
+          0.235,
+          0.855,
+          0.345
+        ]
+      }
+    },
+    "visor": {
+      "y": 1.33,
+      "front": [
+        -0.28,
+        0.48
+      ],
+      "rear": [
+        -1.04,
+        -0.4
+      ],
+      "tilt": 0.45
+    },
+    "door": {
+      "x": 0.1,
+      "y": 0.6
+    },
+    "seats": {
+      "driver": [
+        -0.08,
+        1.08,
+        0.34
+      ],
+      "passenger": [
+        -0.08,
+        1.08,
+        -0.34
+      ],
+      "rear": [
+        -0.95,
+        1.04,
+        0.32
+      ]
+    },
+    "cabin": {
+      "seatY": 0.45,
+      "frontSeatX": 0.02,
+      "rearSeatX": -0.85,
+      "seatZ": 0.34,
+      "headrestX": -0.25,
+      "headrestY": 1.0,
+      "roofInY": 1.36,
+      "wheel": [
+        0.41,
+        0.85,
+        0.32
+      ],
+      "dashX": 0.5
+    },
+    "_plates": "Plate mounts measured from the model (the faces using the plate patch of its texture): their height and angle. Each plate then sits just clear of the panel's most bulging point."
+  },
+  "mirrorCabin": [],
+  "aero": "aero/fiesta",
+  "_badges": "The Ford ovals are only a tiny, blurry patch of the model's texture, so sharp ones are drawn exactly over them (centre and facing measured from the faces that use the oval's patch; js/three/badges3d.js).",
+  "badges": [
+    {
+      "type": "ford",
+      "at": [
+        1.905,
+        0.628,
+        0
+      ],
+      "normal": [
+        0.881,
+        0.473,
+        0
+      ],
+      "size": 0.138
+    },
+    {
+      "type": "ford",
+      "at": [
+        -1.907,
+        0.918,
+        0
+      ],
+      "normal": [
+        -0.956,
+        0.293,
+        0
+      ],
+      "size": 0.115
+    }
+  ]
+}

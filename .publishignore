@@ -1,0 +1,6 @@
+# Left out of the public GitHub repository by tools/publish.sh (they stay in the local project).
+# AI model and video made from a render of the local-only Golf model (its origin is unverified).
+experiments/ai-360/out
+experiments/ai-360/screenshot.jpg
+# AI pictures of the local-only Golf model.
+photos/golf-*.jpg

@@ -1,0 +1,36 @@
+{
+  "_about": "Settings for models/tools/prep_game_model.py: Ford Fiesta Mk6 (UK, 2002-2008; the download calls it Mk5). Object names come from the downloaded file (a glTF folder); regexes match the start of a name.",
+  "source": "source/fiesta-rg/scene.gltf",
+  "output": "fiesta.glb",
+  "front": "-Y",
+  "scale": 0.887,
+  "_scale": "The download is 4.42 m long; a real Mk6 is 3.92 m.",
+  "delete": ["COLIDER", "WHEEL_teker", "FR_teker", "RL_teker", "wheel_teker"],
+  "_delete": "An invisible collision box and the four hubcap wheels; four new wheels are built.",
+  "paint": [".*_primary_0$"],
+  "glass": [".*_glass_0$"],
+  "lensFront": [],
+  "lensRear": [],
+  "_lensUV": "The lights are painted into one texture with the grille, badges and dials: these are the headlight and rear-light areas of that texture (image coordinates, top left).",
+  "lensUV": {
+    "material": "material",
+    "front": [[0.24, 0.645, 0.49, 0.81], [0.205, 0.69, 0.27, 0.775]],
+    "rear": [[0.0, 0.49, 0.27, 0.975], [0.0, 0.08, 0.14, 0.19], [0.105, 0.925, 0.315, 0.99]]
+  },
+  "_fillUV": "The download has a Turkish number plate: it's painted over as a blank dark plate (like the Golf's).",
+  "fillUV": { "material_baseColor": [[0.39, 0.235, 0.855, 0.345, 0.06, 0.06, 0.065]] },
+  "_paintUV": "The tailgate's 'TDCi' badge is for the diesel; the 1.4 Zetec is petrol, so it becomes plain body paint, and so does the plate area (the site draws UK plates on top, which can be taken off).",
+  "paintUV": { "material": "material", "boxes": [[0.0, 0.185, 0.26, 0.25], [0.39, 0.235, 0.855, 0.345]] },
+  "_colours": "Material name prefix: [red, green, blue, roughness]. The colour is ignored where a texture is used; this just takes the mirror-like shine off the trim.",
+  "colours": { "material": [1, 1, 1, 0.45] },
+  "_cabin": "Left-hand-drive model, and the dashboard shares objects with outside parts: only the faces in cabinBox (the dashboard and steering wheel, downloaded file's coordinates) are mirrored so the wheel is on the right (UK).",
+  "cabin": ["sterring", "i_i\\.0_0", "i_i\\.1_0"],
+  "cabinBox": [[-0.8, -1.35, -0.3], [0.83, -0.35, 0.75]],
+  "wheels": {
+    "hubs": [[0.77, -1.509, -0.368], [-0.77, -1.509, -0.368], [0.77, 1.29, -0.368], [-0.77, 1.29, -0.368]],
+    "rim": "wheels/multispoke.glb",
+    "rimInch": 15,
+    "tyre": { "outerM": 0.59, "widthM": 0.195 },
+    "trackHalfM": 0.7
+  }
+}

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<title>Model inspector</title>
+<!-- Developer tool only (not part of the site): shows every part of a car model on its own, so parts can be identified and named.
+     Open with start.bat running: http://127.0.0.1:8000/models/tools/inspect.html?file=source/golf-sketchfab.glb -->
+<style>
+body{margin:0;background:#15191f;color:#e9ebee;font:13px system-ui,sans-serif}
+#grid{position:relative;width:1600px;height:1000px}
+canvas{position:absolute;inset:0}
+.tile{position:absolute;box-sizing:border-box;border:1px solid #2c343e;padding:4px 6px;pointer-events:none}
+.tile b{background:rgba(0,0,0,.6);padding:1px 4px}
+pre{padding:8px 12px;margin:0;white-space:pre-wrap}
+</style>
+<script type="importmap">{"imports":{"three":"/vendor/three/build/three.module.js","three/addons/":"/vendor/three/addons/"}}</script>
+</head>
+<body>
+<div id="grid"></div>
+<pre id="info">Loading…</pre>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+
+const file = new URLSearchParams(location.search).get("file") || "source/golf-sketchfab.glb";
+const view = new URLSearchParams(location.search).get("view") || "front"; // front | side | top | back
+const W = 1600, H = 1000, COLS = 5;
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H); renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.AgXToneMapping;
+document.getElementById("grid").append(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x2a313a);
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+
+const gltf = await new GLTFLoader().loadAsync("/models/" + file);
+const root = gltf.scene; scene.add(root);
+root.updateMatrixWorld(true);
+const meshes = []; root.traverse(o => { if (o.isMesh) meshes.push(o); });
+const box = new THREE.Box3().setFromObject(root), size = box.getSize(new THREE.Vector3()), centre = box.getCenter(new THREE.Vector3());
+const ROWS = Math.ceil((meshes.length + 1) / COLS), tw = W / COLS, th = H / ROWS;
+const cam = new THREE.PerspectiveCamera(30, tw / th, 0.01, 1000);
+const r = size.length() * 1.15;
+const dirs = { front: [1, 0.35, 1.1], side: [0, 0.15, 1], top: [0.01, 1, 0.01], back: [-1, 0.35, -1.1] };
+cam.position.copy(centre).add(new THREE.Vector3(...dirs[view]).normalize().multiplyScalar(r * 1.6)); cam.lookAt(centre);
+
+renderer.setScissorTest(true);
+const grid = document.getElementById("grid"), lines = [];
+const tiles = [{ name: "WHOLE CAR", only: null }, ...meshes.map((m, i) => ({ name: `${i}: ${m.name} / ${m.material.name.replace("Meshesuntitleduniqueid", "")}`, only: m }))];
+tiles.forEach((t, i) => {
+  meshes.forEach(m => m.visible = !t.only || m === t.only);
+  const x = (i % COLS) * tw, y = Math.floor(i / COLS) * th;
+  renderer.setViewport(x, H - y - th, tw, th); renderer.setScissor(x, H - y - th, tw, th);
+  renderer.render(scene, cam);
+  const d = document.createElement("div"); d.className = "tile";
+  Object.assign(d.style, { left: x + "px", top: y + "px", width: tw + "px", height: th + "px" });
+  d.innerHTML = "<b></b>"; d.firstChild.textContent = t.name; grid.append(d);
+  if (t.only) {
+    const b = new THREE.Box3().setFromObject(t.only), mn = b.min, mx = b.max;
+    const mat = t.only.material;
+    lines.push(`${i - 1}: ${t.only.name}  tris ${t.only.geometry.index ? t.only.geometry.index.count / 3 : "?"}  colour #${mat.color.getHexString()} map ${!!mat.map} opacity ${mat.opacity} transparent ${mat.transparent}  box x ${mn.x.toFixed(2)}..${mx.x.toFixed(2)} y ${mn.y.toFixed(2)}..${mx.y.toFixed(2)} z ${mn.z.toFixed(2)}..${mx.z.toFixed(2)}`);
+  }
+});
+document.getElementById("info").textContent = `Whole car size (m, if 1 unit = 1 m): x ${size.x.toFixed(2)} y ${size.y.toFixed(2)} z ${size.z.toFixed(2)}  centre ${centre.toArray().map(v => v.toFixed(2))}\n` + lines.join("\n");
+window.inspectDone = true;
+</script>
+</body>
+</html>
