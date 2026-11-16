@@ -11,6 +11,10 @@
 #     git config publish.name  "Ryan Carr"
 #     git config publish.email <id>+<user>@users.noreply.github.com
 set -e
+# Run from the post-commit hook, git passes the local commit's author (with the personal email) and repository
+# paths down to this script. Drop them all so only the publish.* settings below are used.
+unset GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_AUTHOR_DATE GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL GIT_COMMITTER_DATE \
+      GIT_INDEX_FILE GIT_DIR GIT_WORK_TREE GIT_PREFIX
 SRC=$(git rev-parse --show-toplevel)
 REMOTE=$(git -C "$SRC" config --get publish.remote || true)
 NAME=$(git -C "$SRC" config --get publish.name || true)
@@ -43,7 +47,10 @@ fi
 cd "$PUB"
 git add -A
 if git diff --cached --quiet; then echo "publish: nothing new"; exit 0; fi
-git -c user.name="$NAME" -c user.email="$EMAIL" commit -q -m "$(git -C "$SRC" log -1 --format=%B)"
+GIT_AUTHOR_NAME="$NAME" GIT_AUTHOR_EMAIL="$EMAIL" GIT_COMMITTER_NAME="$NAME" GIT_COMMITTER_EMAIL="$EMAIL" \
+  git commit -q -m "$(git -C "$SRC" log -1 --format=%B)"
+# Never let the personal email out: if it somehow ended up on the commit, undo it and stop.
+if [ "$(git log -1 --format='%ae %ce')" != "$EMAIL $EMAIL" ]; then git reset -q --soft HEAD~1; echo "publish: stopped, commit had the wrong email"; exit 1; fi
 git branch -M main
 git push -q -u origin main
 echo "publish: pushed $(git rev-parse --short HEAD)"
