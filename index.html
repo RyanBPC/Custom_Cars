@@ -87,10 +87,51 @@
       <p>Pick a car, tell the advisor what you want, and watch it fitted live in 3D, in a city street or a forest, by day or by night. Drag to look around, compare before and after, and turn any view into a realistic photo.</p>
     </div>
 
-    <div class="studio">
-        <div class="panel car-panel" style="overflow:hidden">
+    <!-- Four steps down the page: your car, your build, the parts with prices and shops, then your own photo modified. -->
+    <nav class="flow-steps" id="flowSteps" aria-label="Build steps">
+      <button type="button" data-step="flowCar" aria-current="step"><b>1</b><span>Your car</span></button>
+      <button type="button" data-step="flowBuild"><b>2</b><span>Your build</span></button>
+      <button type="button" data-step="flowParts"><b>3</b><span>Parts &amp; prices</span></button>
+      <button type="button" data-step="flowPhoto"><b>4</b><span>See it on your car</span></button>
+    </nav>
+
+    <div class="flow-step" id="flowCar">
+      <div class="flow-head"><span class="flow-num">1</span><div><h2>Your car</h2><p>Pick the make and model. Add a photo of your own car too, and step 4 shows your build on it.</p></div></div>
+      <div class="flow-car panel">
+        <div class="flow-pick">
           <div class="picker brands" id="brandPicker" role="group" aria-label="Choose a brand"></div>
           <div class="picker" id="picker" role="group" aria-label="Choose a model"></div>
+          <p class="muted small flow-pick-note" id="flowCarNote"></p>
+        </div>
+        <div class="myphoto" id="myPhoto">
+          <img id="myPhotoImg" alt="Your photo of your car" hidden>
+          <div class="myphoto-empty" id="myPhotoEmpty">
+            <b>Add a photo of your car</b>
+            <span>One clear photo from the front or side, in daylight. It stays on this computer.</span>
+          </div>
+          <div class="myphoto-actions">
+            <button type="button" class="btn sm primary" id="myPhotoAdd">Add photo</button>
+            <button type="button" class="btn sm ghost" id="myPhotoRemove" hidden>Remove</button>
+            <input type="file" id="myPhotoFile" accept="image/png,image/jpeg,image/webp" hidden tabindex="-1" aria-hidden="true">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-step" id="flowBuild">
+      <div class="flow-head"><span class="flow-num">2</span><div><h2>Your build</h2><p>Choose parts in Options, or tell the advisor what you want. Every part is fitted live on the 3D car.</p></div></div>
+      <details class="flow-look panel">
+        <summary><b>Seen a build you like?</b> <span class="muted">Get its parts from a photo, free</span></summary>
+        <ol>
+          <li><button type="button" class="btn sm" id="lookCopy">Copy the instruction</button> <span class="muted small" id="lookCopied" hidden>Copied</span></li>
+          <li><a class="btn sm" href="https://gemini.google.com/app" target="_blank" rel="noopener">Open Gemini ↗</a> Attach the photo of the build you like, paste the instruction and send.</li>
+          <li><button type="button" class="btn sm primary" id="lookAsk">Paste its answer into the advisor</button> The advisor fits the same parts to your car.</li>
+        </ol>
+      </details>
+    </div>
+
+    <div class="studio">
+        <div class="panel car-panel" style="overflow:hidden">
           <div class="viewbar">
             <span class="viewnote" id="viewNote" hidden>Open the site with start.bat to see your build in 3D.</span>
             <div class="seg viewtabs" id="viewTabs" role="group" aria-label="What to show" hidden>
@@ -241,6 +282,18 @@
           </div>
         </div>
     </div>
+
+    <div class="flow-step" id="flowParts">
+      <div class="flow-head"><span class="flow-num">3</span><div><h2>Parts &amp; prices</h2><p>Every part on your build, what it looks like on your car, a typical UK fitted price and where to buy it.</p></div></div>
+      <div class="part-cards" id="partCards"></div>
+      <div class="part-total panel" id="partTotal"></div>
+      <p class="disclose">Prices are typical UK prices for the part plus fitting at a specialist, rounded. Shop links open a search for your car on that shop's site. Custom Cars isn't linked to these shops and earns nothing from them.</p>
+    </div>
+
+    <div class="flow-step" id="flowPhoto">
+      <div class="flow-head"><span class="flow-num">4</span><div><h2>See it on your car</h2><p>Your own photo with your build added by AI, free through the Gemini app.</p></div></div>
+      <div class="myrender panel" id="myRender" aria-live="polite"></div>
+    </div>
   </div>
 </section>
 
@@ -361,6 +414,7 @@
 <script src="js/home.js"></script>
 <script src="js/main.js"></script>
 <script src="js/configurator.js"></script>
+<script src="js/flow.js"></script>
 <script src="js/router.js"></script>
 
 </body></html>
