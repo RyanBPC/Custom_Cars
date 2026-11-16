@@ -1,6 +1,6 @@
 /* Badges (makers' logos and model names) drawn sharp onto the 3D cars.
    Game models often ship their badges blank (the game paints them on while it runs), so a car's
-   models/<car>.json can list them: { "type": "bmw" | "vw" | "text", "text": "440i", "from": [x, y, z], "dir": [dx, dy, dz], "size": metres }.
+   models/<car>.json can list them: { "type": "bmw" | "vw" | "ford" | "text", "text": "440i", "style": "red" (text only), "from": [x, y, z], "dir": [dx, dy, dz], "size": metres }.
    A ray from "from" along "dir" finds the body, and the badge is laid flat on the spot it hits, upright. */
 import * as THREE from "three";
 
@@ -34,7 +34,7 @@ function drawVW(g, S) {
 }
 
 function badgeTexture(b) {
-  const key = b.type + (b.text || "");
+  const key = b.type + (b.text || "") + (b.style || "");
   if (texCache[key]) return texCache[key];
   const S = 512, cv = document.createElement("canvas"), g = cv.getContext("2d");
   let aspect = 1;
@@ -44,8 +44,13 @@ function badgeTexture(b) {
     cv.width = Math.round(S * 0.5 * aspect); cv.height = Math.round(S * 0.5);
     const grad = g.createLinearGradient(0, 0, 0, cv.height);
     grad.addColorStop(0, "#f4f6f8"); grad.addColorStop(0.5, "#9da3aa"); grad.addColorStop(1, "#e3e6ea");
-    g.font = font; g.fillStyle = grad; g.textAlign = "center"; g.textBaseline = "middle";
-    g.fillText(b.text, cv.width / 2, cv.height / 2 + S * 0.02);
+    g.font = font; g.textAlign = "center"; g.textBaseline = "middle";
+    const tx = cv.width / 2, ty = cv.height / 2 + S * 0.02;
+    if (b.style === "red") {
+      // GTI grille badge: red letters with a thin chrome edge
+      g.lineJoin = "round"; g.lineWidth = S * 0.045; g.strokeStyle = grad; g.strokeText(b.text, tx, ty);
+      g.fillStyle = "#d0121b"; g.fillText(b.text, tx, ty);
+    } else { g.fillStyle = grad; g.fillText(b.text, tx, ty); }
   } else if (b.type === "ford") {
     // The Ford oval: chrome rim, deep blue, white script "Ford" with a thin white line inside the rim.
     aspect = 2.45; cv.width = S; cv.height = Math.round(S / aspect);
