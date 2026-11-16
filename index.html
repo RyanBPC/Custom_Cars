@@ -14,6 +14,13 @@
 </head>
 <body>
 <a class="skip-link" href="#content">Skip to content</a>
+<!-- Opened by double-clicking index.html? Browsers block the 3D and chat code on file:// pages, so say how to start it properly. -->
+<noscript><div class="startnote" role="alert"><strong>This site needs JavaScript turned on.</strong> Turn it on in your browser, then double-click <b>start.bat</b> in the customizacions folder and open <b>http://127.0.0.1:8000</b>.</div></noscript>
+<script>
+if (location.protocol === "file:") {
+  document.write('<div class="startnote" role="alert"><strong>This site needs its little helper running.</strong> Close this tab, double-click <b>start.bat</b> in the customizacions folder, then open <a href="http://127.0.0.1:8000">http://127.0.0.1:8000</a>. (Opening index.html straight from the folder stops the 3D car and chat working.)</div>');
+}
+</script>
 
 <header class="top">
   <div class="wrap">
