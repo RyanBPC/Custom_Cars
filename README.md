@@ -103,7 +103,11 @@ Each folder does its own thing, and together they make the whole site work.
    - Pick a brand and a car
    - Choose your mods in Options, or tell the Advisor what you want
 
-5. **Make it a photo (optional)**
+5. **See real parts (optional, free)**
+   - Step 3 of the Build page can show a real eBay listing for every part, with its photo, price and link
+   - It needs free eBay developer keys in your `.env` file. The steps are in `docs/EBAY.md`
+
+6. **Make it a photo (optional)**
    - The AI photos work for free by copying an instruction into the Gemini app
    - If you want them to be automatic, copy `.env.example` to `.env` and add your own Google API key (Google charges for this, so be careful)
 

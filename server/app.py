@@ -23,6 +23,7 @@ import threading
 import time
 import traceback
 import urllib.error
+import urllib.parse
 import urllib.request
 import webbrowser
 
@@ -79,6 +80,74 @@ ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}"}
 
 usage_lock = threading.Lock()
 photo_hashes = {}  # (path, size, mtime) -> sha256 of the photo, so photos aren't re-read every request
+
+# ---------- real parts from eBay UK (free eBay developer keys in .env; see docs/EBAY.md) ----------
+EBAY_ID = ENV.get("EBAY_CLIENT_ID", "")
+EBAY_SECRET = ENV.get("EBAY_CLIENT_SECRET", "")
+EBAY_CATEGORY = "131090"  # eBay UK "Vehicle Parts & Accessories"
+EBAY_TTL = 6 * 3600       # keep each search's answer for 6 hours (prices and stock change)
+ebay_lock = threading.Lock()
+ebay_token = {"value": "", "expires": 0.0}
+ebay_cache = {}           # search words -> (time, items)
+
+
+def ebay_get_token():
+    """An app-only sign-in token from eBay (lasts about 2 hours, renewed automatically)."""
+    with ebay_lock:
+        if ebay_token["value"] and time.time() < ebay_token["expires"] - 60:
+            return ebay_token["value"]
+        auth = base64.b64encode(f"{EBAY_ID}:{EBAY_SECRET}".encode()).decode()
+        data = urllib.parse.urlencode({"grant_type": "client_credentials", "scope": "https://api.ebay.com/oauth/api_scope"}).encode()
+        req = urllib.request.Request("https://api.ebay.com/identity/v1/oauth2/token", data=data, method="POST",
+                                     headers={"Authorization": f"Basic {auth}", "Content-Type": "application/x-www-form-urlencoded"})
+        try:
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                tok = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            print(f"eBay sign-in failed (HTTP {e.code}): {e.read().decode('utf-8', 'replace')[:300]}")
+            raise ApiError(502, "ebay_keys", "eBay didn't accept the keys in .env. Check EBAY_CLIENT_ID and EBAY_CLIENT_SECRET (production keys).")
+        ebay_token["value"] = tok["access_token"]
+        ebay_token["expires"] = time.time() + int(tok.get("expires_in", 7200))
+        return ebay_token["value"]
+
+
+def ebay_search(words, limit=3):
+    """Top fixed-price listings on eBay UK for these words, as {title, price, image, url, condition}."""
+    if not (EBAY_ID and EBAY_SECRET):
+        raise ApiError(503, "no_ebay_key", "No eBay keys yet. Add EBAY_CLIENT_ID and EBAY_CLIENT_SECRET to .env (see docs/EBAY.md), then restart start.bat.")
+    key = f"{limit}|{words.lower()}"
+    hit = ebay_cache.get(key)
+    if hit and time.time() - hit[0] < EBAY_TTL:
+        return hit[1]
+
+    def search(category):
+        params = {"q": words, "limit": str(limit), "filter": "buyingOptions:{FIXED_PRICE},itemLocationCountry:GB"}
+        if category:
+            params["category_ids"] = category
+        req = urllib.request.Request("https://api.ebay.com/buy/browse/v1/item_summary/search?" + urllib.parse.urlencode(params),
+                                     headers={"Authorization": f"Bearer {ebay_get_token()}", "X-EBAY-C-MARKETPLACE-ID": "EBAY_GB",
+                                              "Accept-Language": "en-GB"})
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            return json.loads(resp.read().decode("utf-8")).get("itemSummaries", [])
+
+    try:
+        found = search(EBAY_CATEGORY) or search(None)
+    except urllib.error.HTTPError as e:
+        print(f"eBay search failed (HTTP {e.code}): {e.read().decode('utf-8', 'replace')[:300]}")
+        if e.code in (401, 403):
+            ebay_token["value"] = ""
+        raise ApiError(502, "ebay_failed", "eBay didn't answer the search. Try again in a minute.")
+    except urllib.error.URLError as e:
+        raise ApiError(502, "ebay_offline", f"Couldn't reach eBay ({e.reason}). Check the internet connection.")
+    items = []
+    for it in found:
+        price, img = it.get("price") or {}, (it.get("image") or it.get("thumbnailImages", [{}])[0] or {}).get("imageUrl", "")
+        if not it.get("itemWebUrl") or not price.get("value"):
+            continue
+        items.append({"title": it.get("title", ""), "price": float(price["value"]), "currency": price.get("currency", "GBP"),
+                      "image": img.replace("s-l225", "s-l500"), "url": it["itemWebUrl"], "condition": it.get("condition", "")})
+    ebay_cache[key] = (time.time(), items)
+    return items
 
 
 class ApiError(Exception):
@@ -356,7 +425,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if route == "/api/status":
             _, used = read_usage()
             return self.send_json(200, {"mode": MODE, "model": MODEL if MODE == "gemini" else None,
-                                        "hasKey": bool(API_KEY), "dailyLimit": DAILY_LIMIT, "usedToday": used})
+                                        "hasKey": bool(API_KEY), "dailyLimit": DAILY_LIMIT, "usedToday": used,
+                                        "ebay": bool(EBAY_ID and EBAY_SECRET)})
+        if route == "/api/parts":
+            # Real listings for a part: /api/parts?q=Volkswagen+Golf+Mk8.5+coilovers
+            query = urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
+            words = (query.get("q") or [""])[0].strip()[:120]
+            if not words:
+                return self.send_json(400, {"error": "bad_request", "message": "Say what to search for."})
+            try:
+                return self.send_json(200, {"items": ebay_search(words)})
+            except ApiError as e:
+                return self.send_json(e.status, {"error": e.code, "message": e.message})
         if self.blocked():
             return self.send_error(404)
         return super().do_GET()
@@ -487,6 +567,17 @@ def check_key():
 
 
 def main():
+    if "--check-ebay" in sys.argv:
+        # Free test of the eBay keys: py server\app.py --check-ebay
+        try:
+            found = ebay_search("Volkswagen Golf coilovers")
+        except ApiError as e:
+            print(e.message)
+            sys.exit(1)
+        print(f"Your eBay keys work. Found {len(found)} listings, for example:")
+        for it in found:
+            print(f"  £{it['price']:.2f}  {it['title'][:70]}")
+        sys.exit(0)
     if "--check" in sys.argv:
         sys.exit(check_key())
     open_browser = "--no-browser" not in sys.argv

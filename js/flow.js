@@ -102,6 +102,26 @@ const SEARCH = {
 };
 const q = s => encodeURIComponent(s).replace(/%20/g, "+");
 const carWords = c => `${c.make} ${c.model.split(" ")[0]} ${c.gen}`;
+// Wheel bolt patterns, so the eBay search finds wheels that actually fit.
+const PCD = { golf: "5x112", bmw440i: "5x120", fiesta: "4x108" };
+// What to look for on eBay for each part (null = a service, such as a remap or a respray, not something to buy).
+function productQuery(x, c) {
+  const p = x.p, cw = carWords(c);
+  if (x.item) {
+    if (x.item.name === "Private number plate") return null;
+    if (x.item.name === "Styled number plates") return "4D gel number plates road legal pair";
+    if (/plate delete/i.test(x.item.name)) return null;
+    return `${cw} ${x.item.name}`;
+  }
+  switch (x.id) {
+    case "tune": return null;
+    case "wrap": return p.paint ? null : `${p.finish} vinyl car wrap film`;
+    case "wheels": return `${p.size} inch ${p.finish} alloy wheels ${PCD[c.id] || ""}`.trim();
+    case "stripes": return "racing stripes vinyl car";
+    case "tint": return "car window tint film";
+    default: { const s = typeof SEARCH[x.id] === "function" ? SEARCH[x.id](p) : SEARCH[x.id]; return s ? `${cw} ${s}` : null; }
+  }
+}
 function shops(id, p, c, item) {
   const near = what => ({ name: "Near you", url: `https://www.google.com/maps/search/${q(what)}` });
   const ebay = s => ({ name: "eBay UK", url: `https://www.ebay.co.uk/sch/i.html?_nkw=${q(s)}` });
@@ -161,9 +181,10 @@ function renderParts() {
     <article class="part-card panel">
       <div class="part-pic" data-i="${i}">${x.angle === undefined ? `<span class="part-unseen">${esc(UNSEEN[x.id] || "Not visible from outside")}</span>` : `<span class="part-loading">Loading picture…</span>`}</div>
       <div class="part-body">
-        <div class="part-top"><small>${esc(x.cat)}</small><b class="mono">${x.price ? fmt(x.price) : "Ask for a quote"}</b></div>
+        <div class="part-top"><small>${esc(x.cat)}</small><span class="part-fitted"><b class="mono">${x.price ? fmt(x.price) : "Ask for a quote"}</b><small>typical fitted</small></span></div>
         <h3>${esc(x.title)}</h3>
         ${x.text ? `<p>${esc(x.text)}</p>` : ""}
+        <div class="part-product" data-i="${i}" hidden></div>
         <div class="part-shops"><span class="muted small">Buy from</span>${shops(x.id, x.p, c, x.item).map(s => `<a class="btn sm" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)} ↗</a>`).join("")}</div>
       </div>
     </article>`).join("") : `<p class="part-none muted">No parts yet. Pick some in step 2 and they'll show here with prices and shops.</p>`;
@@ -172,18 +193,54 @@ function renderParts() {
   el("partTotal").innerHTML = `<div><span>${list.length} part${list.length === 1 ? "" : "s"}, fitted</span><b class="mono">${fmt(parts)}</b></div><div><span>${c.make} ${c.model}, ${c.used ? "used" : "new"} (approx.)</span><b class="mono">${fmt(c.price)}</b></div><div class="grand"><span>Total</span><b class="mono">${fmt(parts + c.price)}</b></div>`;
   partsShown = false; loadShots();
 }
-// Only take the pictures once step 3 is on screen (the 3D car is then out of sight, so the turning isn't seen).
+// Real products from eBay UK (through the local server, which keeps the eBay keys). null = not available.
+const products = new Map(); let ebayNote = "";
+function findProduct(words) {
+  if (!products.has(words)) {
+    products.set(words, fetch("api/parts?q=" + encodeURIComponent(words)).then(async r => {
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { if (j.error) ebayNote = j.error; products.delete(words); return null; }
+      return j.items || [];
+    }).catch(() => { products.delete(words); return null; }));
+  }
+  return products.get(words);
+}
+function showProduct(i, x, items, words) {
+  const box = el("partCards").querySelector(`.part-product[data-i="${i}"]`), pic = el("partCards").querySelector(`.part-pic[data-i="${i}"]`);
+  if (!box || !items.length) return false;
+  const it = items[0], more = `https://www.ebay.co.uk/sch/i.html?_nkw=${q(words)}`;
+  if (it.image) { pic.dataset.product = "1"; pic.innerHTML = `<img src="${esc(it.image)}" alt="${esc(it.title)}" referrerpolicy="no-referrer" loading="lazy"><span class="part-chip">eBay listing</span>`; }
+  box.hidden = false;
+  box.innerHTML = `<a class="part-item" href="${esc(it.url)}" target="_blank" rel="noopener"><span class="part-item-title">${esc(it.title)}</span>
+      <span class="part-item-price"><b class="mono">£${it.price.toLocaleString("en-GB",{minimumFractionDigits:2,maximumFractionDigits:2})}</b> ${it.condition ? `<small>${esc(it.condition)}</small>` : ""}</span></a>
+    <div class="part-item-links"><a class="btn sm primary" href="${esc(it.url)}" target="_blank" rel="noopener">View this part on eBay ↗</a>
+      ${items.length > 1 ? `<a class="btn sm" href="${esc(more)}" target="_blank" rel="noopener">More options ↗</a>` : ""}</div>`;
+  return true;
+}
+// Only fill in the pictures once step 3 is near the screen (the 3D car is then out of sight, so the turning isn't seen).
 let partsShown = false;
 async function loadShots() {
   if (partsShown || el("flowParts").getBoundingClientRect().top > innerHeight * 1.5) return;
-  partsShown = true;
-  const list = cards(), key = cardsKey;
+  partsShown = true; ebayNote = "";
+  const list = cards(), key = cardsKey, c = car();
+  // 1. Real parts first, all at once.
+  const done = await Promise.all(list.map(async (x, i) => {
+    const words = productQuery(x, c); if (!words) return false;
+    const items = await findProduct(words);
+    return key === cardsKey && items ? showProduct(i, x, items, words) : false;
+  }));
+  if (key !== cardsKey) return; // the build changed meanwhile
+  el("partNote").hidden = !ebayNote || ebayNote === "ebay_offline";
+  el("partNote").innerHTML = ebayNote === "no_ebay_key"
+    ? `<b>Want photos of the real parts?</b> Add your free eBay keys to .env (see docs/EBAY.md) and restart start.bat. Each card then shows a real listing that fits your car.`
+    : ebayNote ? `eBay didn't answer just now, so the parts are shown on the 3D car instead.` : "";
+  // 2. The 3D car from the right angle for anything without a real part (remaps, paint, or no eBay keys).
   for (const [i, x] of list.entries()) {
-    if (x.angle === undefined) continue;
+    if (done[i] || x.angle === undefined) continue;
     const url = await partShot(x.angle);
-    if (key !== cardsKey) return; // the build changed meanwhile
-    const box = el("partCards").querySelector(`.part-pic[data-i="${i}"]`); if (!box) continue;
-    box.innerHTML = url ? `<img src="${url}" alt="${esc(x.title)} on the 3D ${esc(car().model)}">` : `<span class="part-unseen">Open the site with start.bat to see it in 3D</span>`;
+    if (key !== cardsKey) return;
+    const box = el("partCards").querySelector(`.part-pic[data-i="${i}"]`); if (!box || box.dataset.product) continue;
+    box.innerHTML = url ? `<img src="${url}" alt="${esc(x.title)} on the 3D ${esc(car().model)}"><span class="part-chip">On your 3D car</span>` : `<span class="part-unseen">Open the site with start.bat to see it in 3D</span>`;
   }
 }
 addEventListener("scroll", () => { if (!partsShown) loadShots(); }, { passive: true });
