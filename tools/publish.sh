@@ -18,6 +18,12 @@ EMAIL=$(git -C "$SRC" config --get publish.email || true)
 PUB="${PUBLISH_DIR:-$SRC/../custom-cars-public}"
 [ -n "$REMOTE" ] && [ -n "$NAME" ] && [ -n "$EMAIL" ] || { echo "publish: not set up (see tools/publish.sh)"; exit 1; }
 
+# One publish at a time: quick commits back to back would otherwise clash in the shared folder.
+LOCK="$SRC/.git/publish.lock"
+for _ in $(seq 1 120); do mkdir "$LOCK" 2>/dev/null && break; sleep 1; done
+mkdir "$LOCK" 2>/dev/null || true   # a lock older than 2 minutes is left over from a crash; take it over
+trap 'rmdir "$LOCK" 2>/dev/null' EXIT
+
 # The clean copy lives in its own folder next to the project.
 if [ ! -d "$PUB/.git" ]; then
   git clone -q "$REMOTE" "$PUB" 2>/dev/null || { mkdir -p "$PUB"; git -C "$PUB" init -q -b main; git -C "$PUB" remote add origin "$REMOTE"; }
