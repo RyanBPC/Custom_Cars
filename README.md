@@ -6,6 +6,25 @@ You pick a car, choose your mods (or just type what you want in plain English) a
 
 ---
 
+## What It Looks Like
+
+![A modified red Golf GTI spinning in the 3D studio](docs/images/golf-spin.gif)
+
+A Golf GTI I built just by typing "gloss red paint, lower it 35mm with 19 inch bronze deep dish wheels, rear wing and a 4d gel plate saying GT1 RYN" into the advisor.
+
+| | |
+|---|---|
+| ![Home page](docs/images/home.jpg) | ![The advisor building the Golf, with a before and after slider](docs/images/golf-advisor.jpg) |
+| **Home page** | **Telling the advisor what I want (before and after)** |
+| ![A satin black widebody BMW 440i on a city street](docs/images/bmw-street.jpg) | ![A blue Fiesta from behind with a custom 4D number plate](docs/images/fiesta-plate.jpg) |
+| **BMW 440i widebody on a city street** | **Fiesta with my own 4D number plate** |
+| ![The virtual test drive](docs/images/test-drive.jpg) | ![The UK price list](docs/images/prices.jpg) |
+| **Virtual test drive** | **UK fitted prices** |
+
+These are straight from the site running on my laptop. The full 3D car models aren't in this repository though, because I couldn't confirm where they originally came from (more on that below).
+
+---
+
 ## What It Does
 
 - Lets you build your car in 3D: paint and wraps, wheels, lowering, spoilers, body kits, widebody, brakes, lights, tints and loads more
@@ -131,4 +150,4 @@ There's no doubt about it that this one is going to keep growing, and I'd love t
 
 This is by far the biggest project I've worked on and it's been genuinely fun to build. Anyone who is looking at my work, thank you for taking your time to check it out. Please leave me any feedback or ideas, since I'm always attempting to learn more!
 
-_Built with help from Claude (Anthropic's AI). 3D engine: three.js. Backgrounds: Poly Haven (CC0). Car names and figures belong to their manufacturers and are only used to identify the cars; this project isn't linked to any manufacturer._
+_Built with help from Claude (Anthropic's AI). 3D engine: three.js. Backgrounds: Poly Haven (CC0). 3D car models in the pictures (not included here): Volkswagen Golf 8 GTI by Mona x Supercars, BMW 4 Series F32 by Merc_TV and Ford Fiesta Mk5 by Ruletă, all listed on Sketchfab as CC BY 4.0. Car names and figures belong to their manufacturers and are only used to identify the cars; this project isn't linked to any manufacturer._
