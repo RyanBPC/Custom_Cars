@@ -59,4 +59,12 @@
   document.getElementById("buildGrid").addEventListener("click", e => { const c = e.target.closest("[data-build]"); if (c) openBuild(c.dataset.build); });
   // "Build yours" keeps whatever you're already building.
   document.getElementById("heroStart").addEventListener("click", () => goTab("build"));
+  // "Try saying..." examples under the hero: open Build and send the phrase through the chat parser,
+  // the same way the Price list and Journal Try buttons do.
+  document.querySelector("#home .try-box").addEventListener("click", e => {
+    const b = e.target.closest("[data-home-try]"); if (!b) return;
+    const ph = b.dataset.homeTry;
+    if (typeof hideAi3d === "function") hideAi3d();
+    goTab("build"); applyPlan(localPlan(ph), ph);
+  });
 })();
