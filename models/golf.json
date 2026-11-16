@@ -120,7 +120,7 @@
     "Object_14"
   ],
   "aero": "aero/golf",
-  "_badges": "The boot's VW logo is mirror chrome and looks like a black disc, so the site draws a clear one over it (js/three/badges3d.js).",
+  "_badges": "The boot's VW logo is mirror chrome and looks like a black disc, so the site draws a clear one over it, with the GTI lettering centred under it on the flat tailgate (y 0.65-0.73, measured from golf.glb), as on a real Mk8/8.5 GTI (js/three/badges3d.js). The front grille GTI badge is left out until its exact spot is checked against a photo.",
   "badges": [
     {
       "type": "vw",
@@ -135,6 +135,21 @@
         0
       ],
       "size": 0.118
+    },
+    {
+      "type": "text",
+      "text": "GTI",
+      "from": [
+        -3,
+        0.69,
+        0
+      ],
+      "dir": [
+        1,
+        0,
+        0
+      ],
+      "size": 0.11
     }
   ]
 }
