@@ -21,7 +21,6 @@
   // Tabs that aren't finished yet: a "Still being built" label by the heading (with what's missing)
   // and a small mark on the tab's menu link. Take a tab out of this list when it's done.
   const WIP = {
-    models: "Only the Golf has ready-made builds so far; BMW and Fiesta builds are on the way.",
     photo: "AI photos need the site's AI connection set up, so they may not work for everyone yet.",
     drive: "The road is a simple drawing for now."
   };
