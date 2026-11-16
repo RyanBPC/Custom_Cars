@@ -40,8 +40,9 @@ main:focus,h1[tabindex="-1"]:focus,h2[tabindex="-1"]:focus{outline:none}
 .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 .eyebrow{font-family:var(--f-display);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
 h1,h2,h3{text-wrap:balance;margin:0;line-height:1.15}
-h2{font-family:var(--f-body);font-stretch:85%;font-weight:750;font-size:clamp(26px,3.4vw,38px);letter-spacing:-.01em}
+h2,.sec-head h1{font-family:var(--f-body);font-stretch:85%;font-weight:750;font-size:clamp(26px,3.4vw,38px);letter-spacing:-.01em}
 h3{font-size:17px;font-weight:700}
+h2.sub{font-family:inherit;font-stretch:inherit;font-size:17px;font-weight:700;letter-spacing:normal}
 p{margin:0}
 .muted{color:var(--muted)}
 
@@ -291,7 +292,7 @@ details.post{background:var(--surface);border:1px solid var(--line);border-radiu
 details.post summary{cursor:pointer;list-style:none;display:flex;flex-direction:column;gap:8px}
 details.post summary::-webkit-details-marker{display:none}
 details.post summary .meta{font-size:12px;color:var(--muted);font-family:var(--f-mono)}
-details.post summary h3{font-size:18px}
+details.post summary h2{font-size:18px}
 details.post summary p{color:var(--muted);font-size:13.5px}
 details.post summary .more{font-size:12.5px;color:var(--accent)}
 details.post[open] summary .more{display:none}
@@ -521,7 +522,7 @@ nav.main{gap:2px}
 nav.main a,.navmore summary{font-size:14px;letter-spacing:.02em;padding:7px 14px;border-radius:999px}
 nav.main a[aria-current="page"],.navmore summary[aria-current="page"]{background:var(--grad-accent);color:var(--accent-ink);box-shadow:none;font-weight:600}
 .eyebrow{background:none;color:var(--muted);-webkit-background-clip:border-box;background-clip:border-box;font-size:12px;font-weight:600;letter-spacing:.22em}
-h2{font-stretch:100%;font-weight:600;letter-spacing:-.015em}
+h2,.sec-head h1{font-stretch:100%;font-weight:600;letter-spacing:-.015em}
 .studio-head h1,.hero-text h1{font-stretch:100%;font-weight:600;letter-spacing:-.02em}
 .studio-head h1 em,.hero-text h1 em{background:none;color:var(--accent);-webkit-background-clip:border-box;background-clip:border-box}
 section{padding-block:72px}
@@ -585,10 +586,10 @@ section{padding-block:72px}
 
 /* About */
 .about-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:32px;margin-bottom:56px}
-.about-grid h3{font-size:17px;font-weight:600;margin-bottom:10px}
+.about-grid h2{font-size:17px;font-weight:600;margin-bottom:10px}
 .about-grid p,.about-grid li{color:var(--muted);font-size:15px;line-height:1.7}
 .about-grid ol{margin:0;padding-left:20px}
-.about-more{font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+h2.about-more{font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
 .about-links{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
 .about-links a{display:flex;flex-direction:column;gap:4px;padding:20px;border:1px solid rgba(255,255,255,.07);border-radius:16px;background:var(--surface);color:var(--fg);text-decoration:none;transition:border-color .2s}
 .about-links a:hover{border-color:rgba(201,204,209,.5)}
@@ -616,8 +617,8 @@ nav.main .wip-mark{font-size:0;width:7px;height:7px;padding:0;margin-left:4px;ba
 .brand-tabs button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg);font-weight:600}
 .brand-tabs small{opacity:.65;margin-left:2px}
 .brand-group{margin:0 0 28px}
-.brand-group h3{font-size:20px;margin:0 0 12px;display:flex;align-items:baseline;gap:10px}
-.brand-group h3 small{font-size:13px;font-weight:400;color:var(--muted)}
+.brand-group h2{font-size:20px;margin:0 0 12px;display:flex;align-items:baseline;gap:10px}
+.brand-group h2 small{font-size:13px;font-weight:400;color:var(--muted)}
 .picker.brands{padding-bottom:4px;border-bottom:0}
 .picker.brands button{font-weight:600}
 .picker.brands + .picker{padding-top:6px}

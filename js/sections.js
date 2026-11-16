@@ -15,7 +15,7 @@ function renderGarage(){
   const tab=(id,label,n)=>`<button type="button" data-brand="${id}" aria-pressed="${garageBrand===id}">${label} <small>${n}</small></button>`;
   $("garageBrands").innerHTML=tab("all","All brands",CARS.length)+BRANDS.map(b=>tab(b,b,carsOf(b).length)).join("");
   $("garageGrid").innerHTML=BRANDS.filter(b=>garageBrand==="all"||b===garageBrand).map(b=>
-    `<section class="brand-group" aria-label="${b}"><h3>${b} <small>${carsOf(b).length} ${carsOf(b).length===1?"model":"models"}</small></h3><div class="grid">${carsOf(b).map(garageCard).join("")}</div></section>`).join("");
+    `<section class="brand-group" aria-label="${b}"><h2 class="sub">${b} <small>${carsOf(b).length} ${carsOf(b).length===1?"model":"models"}</small></h2><div class="grid">${carsOf(b).map(garageCard).join("")}</div></section>`).join("");
 }
 $("garageBrands").addEventListener("click",e=>{const b=e.target.closest("[data-brand]");if(b){garageBrand=b.dataset.brand;renderGarage();}});
 renderGarage();
@@ -48,7 +48,7 @@ $("priceTable").addEventListener("click",e=>{const b=e.target.closest("[data-try
 
 // Articles with a try phrase end with a button that fits that mod on the 3D car (same path as the price list).
 const postTry=p=>{if(!p.try)return"";try{if(!localPlan(p.try).apply.length)return"";}catch(e){return"";}return`<p><button class="btn sm try" type="button" data-try-phrase="${p.try}" aria-label="Try ${p.try} on the car">Try ${p.try} on the car</button></p>`;};
-$("posts").innerHTML=POSTS.map(p=>`<details class="post"><summary><span class="meta">${p.m}</span><h3>${p.t}</h3><p>${p.s}</p><span class="more">Read article →</span></summary><div class="content">${p.c}${postTry(p)}</div></details>`).join("");
+$("posts").innerHTML=POSTS.map(p=>`<details class="post"><summary><span class="meta">${p.m}</span><h2 class="sub">${p.t}</h2><p>${p.s}</p><span class="more">Read article →</span></summary><div class="content">${p.c}${postTry(p)}</div></details>`).join("");
 $("posts").addEventListener("click",e=>{const b=e.target.closest("[data-try-phrase]");if(!b)return;const ph=b.dataset.tryPhrase;
   if(typeof hideAi3d==="function") hideAi3d();
   goTab("build"); applyPlan(localPlan(ph),ph);});
