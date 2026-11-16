@@ -36,7 +36,7 @@ function sunStripText(mods) {
   return m ? m[1] : "GTI";
 }
 // Extra parts the 3D view can't show (it shows the ones marked in3d in EXTRA_PARTS).
-const in3d = name => EXTRA_PARTS.some(e => e.name === name && e.in3d);
+const in3d = name => name === "Styled number plates" || EXTRA_PARTS.some(e => e.name === name && e.in3d); // styled plates are drawn by the 3D plates
 function customNotIn3d() { return state.mods.custom ? state.mods.custom.items.filter(i => !in3d(i.name)) : []; }
 
 function spinMessage(text) { const m = $("spinMsg"); m.textContent = text || ""; m.hidden = !text; }
