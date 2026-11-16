@@ -59,6 +59,27 @@
   document.getElementById("buildGrid").addEventListener("click", e => { const c = e.target.closest("[data-build]"); if (c) openBuild(c.dataset.build); });
   // "Build yours" keeps whatever you're already building.
   document.getElementById("heroStart").addEventListener("click", () => goTab("build"));
+  // Welcome back: saved builds (Website #67) live under the build sheet on the Build page, so a returning
+  // visitor landing on Home gets a pointer to them. Same key and checks as loadMyBuilds() in studio.js.
+  const back = document.getElementById("heroBack");
+  function showBack() {
+    let n = 0;
+    try { const a = JSON.parse(localStorage.getItem("customizacions.mybuilds") || "[]");
+      if (Array.isArray(a)) n = a.filter(b => b && b.mods && typeof b.mods === "object" && CARS.some(c => c.id === b.car)).length; } catch (e) { n = 0; }
+    back.hidden = !n;
+    if (n) back.innerHTML = `Welcome back: you have ${n} saved build${n === 1 ? "" : "s"}. <a href="#build" id="heroBackLink">Open My builds</a>`;
+  }
+  showBack();
+  window.addEventListener("hashchange", () => { if (document.getElementById("home").offsetParent) showBack(); });
+  back.addEventListener("click", e => {
+    if (!e.target.closest("#heroBackLink")) return;
+    e.preventDefault(); goTab("build");
+    setTimeout(() => {
+      const box = document.getElementById("myBuilds"); if (!box || box.hidden) return;
+      box.scrollIntoView({ behavior: "smooth", block: "center" });
+      const first = box.querySelector("button"); if (first) first.focus({ preventScroll: true });
+    }, 120);
+  });
   // "Try saying..." examples under the hero: open Build and send the phrase through the chat parser,
   // the same way the Price list and Journal Try buttons do.
   document.querySelector("#home .try-box").addEventListener("click", e => {
