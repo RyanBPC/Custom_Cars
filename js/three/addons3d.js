@@ -352,6 +352,19 @@ Object.assign(PARTS, {
     return g;
   },
   "Tow strap": (f, rig) => { const y = f.frontBottomY + 0.08, x = or((fromFront(rig, y, -0.45) || {}).x, f.frontX); const t = mesh(new THREE.TorusGeometry(0.045, 0.006, 6, 24), redMat(), x + 0.02, y, -0.45); t.scale.set(1, 1.6, 0.35); t.rotation.y = Math.PI / 2; return t; },
+  // Detachable UK tow bar: a black swan-neck arm curving out from under the middle of the rear bumper to a 50mm ball, plus a 13-pin socket.
+  "Tow bar": (f, rig) => {
+    const m = mats(), g = new THREE.Group(), steel = namedMat("towSteel", () => new THREE.MeshStandardMaterial({ color: 0x8a8d91, metalness: 0.9, roughness: 0.35 }));
+    const ub = up(rig, f.rearX + 0.14, 0), ry = ub ? Math.min(ub.y, f.rearBottomY + 0.06) : f.rearBottomY, hb = fromBack(rig, f.rearBottomY + 0.08, 0), bx = hb ? hb.x : f.rearX;
+    const ballX = bx - 0.1, ballY = Math.max(ry + 0.07, 0.3);
+    g.add(tube([[bx + 0.16, ry - 0.025, 0], [bx + 0.02, ry - 0.05, 0], [bx - 0.07, ry - 0.03, 0], [ballX, ballY - 0.06, 0]], 0.017, m.black));
+    const collar = mesh(new THREE.CylinderGeometry(0.016, 0.02, 0.035, 16), m.black, ballX, ballY - 0.045, 0);
+    const ball = mesh(new THREE.SphereGeometry(0.025, 20, 14), steel, ballX, ballY, 0);
+    g.add(collar, ball, box(0.03, 0.03, 0.12, m.black, bx + 0.02, ry - 0.05, -0.05));
+    const socket = mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.04, 16), m.black, bx - 0.005, ry - 0.045, -0.12); socket.rotation.z = Math.PI / 2;
+    g.add(socket, box(0.006, 0.05, 0.05, m.black, bx - 0.027, ry - 0.04, -0.12));
+    return g;
+  },
   "Uprated intercooler": (f, rig) => {
     const mat = namedMat("cooler", () => {
       const c = document.createElement("canvas"); c.width = 64; c.height = 16; const g = c.getContext("2d"); g.fillStyle = "#9aa0a6"; g.fillRect(0, 0, 64, 16); g.fillStyle = "#4a4f55"; for (let x = 0; x < 64; x += 3) g.fillRect(x, 0, 1, 16);

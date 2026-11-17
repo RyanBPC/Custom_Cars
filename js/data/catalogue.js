@@ -79,7 +79,7 @@ const EXTRA_PARTS = [
  {re:/steering wheel/,name:"Sport steering wheel",in3d:true,price:450,text:""},
  {re:/(roof|bonnet|hood) scoop|air scoop/,name:"Air scoop",in3d:true,price:400,text:"an air scoop"},
  {re:/tow (hook|strap)/,name:"Tow strap",in3d:true,price:40,text:"a red tow strap on the front bumper"},
- {re:/\btow ?bars?\b/,name:"Tow bar",in3d:false,price:550,text:"a detachable tow bar (fitted with wiring)"},
+ {re:/\btow ?bars?\b/,name:"Tow bar",in3d:true,price:550,text:"a detachable tow bar (fitted with wiring)"},
  {re:/mud ?flaps?/,name:"Rally mud flaps",in3d:true,price:120,text:"rally-style mud flaps behind the wheels"},
  {re:/window visors?|wind deflectors?/,name:"Window visors",in3d:true,price:90,text:"smoked window visors above the side windows"},
  {re:/lift kit|lifted|raise it|(sit|ride|sits|rides) higher|off ?road look/,name:"Lift kit",in3d:true,price:900,text:"raised suspension with more ground clearance"},
