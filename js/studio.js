@@ -96,7 +96,7 @@ function renderMyBuilds(){
   list.forEach((b,i)=>{
     const c=CARS.find(x=>x.id===b.car), mods=sanitizeAll(b.mods,c), n=Object.keys(mods).length;
     const li=document.createElement("li"), d=document.createElement("div"), sm=document.createElement("small");
-    d.textContent=b.name; sm.textContent=`${c.make} ${c.model} · ${n} part${n===1?"":"s"} · ${fmt(c.price+buildCost(c,mods))}`; d.appendChild(sm);
+    d.textContent=b.name; const lost=Object.keys(b.mods).length-n; sm.textContent=`${c.make} ${c.model} · ${n} part${n===1?"":"s"}${lost>0?` (${lost} no longer available)`:""} · ${fmt(c.price+buildCost(c,mods))}`; d.appendChild(sm);
     const open=document.createElement("button"); open.type="button"; open.className="btn"; open.textContent="Open"; open.dataset.open=i; open.setAttribute("aria-label",`Open saved build ${b.name}`);
     const del=document.createElement("button"); del.type="button"; del.className="btn ghost"; del.textContent="Delete"; del.dataset.del=i; del.setAttribute("aria-label",`Delete saved build ${b.name}`);
     li.append(d,open,del); ul.appendChild(li);
@@ -130,7 +130,8 @@ $("myBuildsList").addEventListener("click",e=>{
     if(state.plateCar&&state.plateCar!==b.car) clearPlate();
     state.car=b.car; state.mods=sanitizeAll(b.mods,car());
     save(); renderStage(null,null); setSplit(50); renderInfo(); refreshDriveCar();
-    addAI(`Opened your saved build "${b.name}".`);
+    const gone=Object.keys(b.mods).filter(k=>!(k in state.mods)).map(k=>k.replace(/[-_]+/g," "));
+    addAI(`Opened your saved build "${b.name}".${gone.length?` ${gone.length} part${gone.length===1?" from this build isn't":"s from this build aren't"} available any more: ${gone.join(", ")}.`:""}`);
     if(kept) setTimeout(()=>offerUndo(kept),0);
   } else if(x){
     // Swap Open/Delete for "Delete? Yes / No" in this row.
