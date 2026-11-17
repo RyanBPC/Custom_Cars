@@ -5,15 +5,16 @@
   // A card's picture: the build's photo, or the drawn car if the photo hasn't been made.
   // Cards use a small 800 px copy (photos/builds/thumbs/) so the home page loads fast; the hero keeps the full photo.
   const thumb = b => `photos/builds/thumbs/${b.id}.jpg`;
-  const art = b => `<img src="${thumb(b)}" alt="" loading="lazy" width="800" height="450" data-full="${photo(b)}" data-car="${b.car}">`;
+  const drawn = carId => `<div class="drawn">${carSVG(CARS.find(c => c.id === carId), {}, { uid: "h" + Math.random().toString(36).slice(2, 7) })}</div>`;
+  // photo: false in builds.js = no photo made yet, so draw the car straight away instead of two failed loads.
+  const art = b => b.photo === false ? drawn(b.car)
+    : `<img src="${thumb(b)}" alt="" loading="lazy" width="800" height="450" data-full="${photo(b)}" data-car="${b.car}">`;
   window.addEventListener("error", e => {
     const img = e.target;
     if (!(img instanceof HTMLImageElement) || !img.closest("#buildGrid") || !img.dataset.car) return;
     // No small copy? Try the full photo once before falling back to the drawn car.
     if (img.dataset.full) { const full = img.dataset.full; delete img.dataset.full; img.src = full; return; }
-    const d = document.createElement("div"); d.className = "drawn";
-    d.innerHTML = carSVG(CARS.find(c => c.id === img.dataset.car), {}, { uid: "h" + Math.random().toString(36).slice(2, 7) });
-    img.replaceWith(d);
+    img.outerHTML = drawn(img.dataset.car);
   }, true);
 
   const own = `<button type="button" class="build-card own" data-build=""><div class="art"><span class="plus" aria-hidden="true">+</span></div>
