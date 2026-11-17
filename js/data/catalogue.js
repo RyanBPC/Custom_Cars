@@ -4,10 +4,21 @@
 // tyre stays about the same, so bigger rims get lower-profile tyres, like a real Golf.
 const TYRE_SIZE = { 15: "195/65 R15 91H", 16: "205/55 R16 91V", 17: "225/45 R17 94W", 18: "225/40 R18 92Y", 19: "235/35 R19 91Y", 20: "235/30 R20 88Y", 21: "245/25 R21 88Y" };
 const RIM_WIDTH = { 15: 6.5, 16: 7, 17: 7.5, 18: 8, 19: 8.5, 20: 9, 21: 9 };
-function wheelSpec(size, forged) {
+// A car's own factory tyre(s) at its stock rim size (cars.js "tyre": one size, or [front, rear] when staggered,
+// like the BMW 440i), else the Golf-based table above. Returns a string or a [front, rear] pair.
+function tyreFor(car, size) {
+  const n = Math.min(21, Math.max(15, Math.round(size)));
+  if (car && car.tyre && Math.round(size) === car.wheel) return car.tyre;
+  return TYRE_SIZE[n];
+}
+// For the 3D sidewall: look the car up by id (cars.js loads first).
+function tyreForId(id, size) { return tyreFor(typeof ALL_CARS !== "undefined" ? ALL_CARS.find(c => c.id === id) : null, size); }
+function wheelSpec(size, forged, car) {
   const n = Math.min(21, Math.max(15, Math.round(size)));
   const kg = 8 + (n - 15) - (forged ? 2 : 0); // rough real weights: ~10kg at 17in flow-formed, forged ~2kg lighter
-  return size + "×" + RIM_WIDTH[n] + "J, about " + kg + "kg each, " + TYRE_SIZE[n].replace(/ \d+[A-Z]$/, "") + " tyres";
+  const short = t => t.replace(/ \d+[A-Z]$/, ""), t = tyreFor(car, size);
+  const tyres = Array.isArray(t) ? short(t[0]) + " front and " + short(t[1]) + " rear tyres" : short(t) + " tyres";
+  return size + "×" + RIM_WIDTH[n] + "J, about " + kg + "kg each, " + tyres;
 }
 const COLOURS = [
  // Real UK factory colours come first so "estoril blue" is never read as plain blue. The third value is the factory finish.
@@ -165,7 +176,7 @@ function modInfo(id,p,car){
       : {what:T?"A larger hybrid turbo, fuel system upgrades and a custom map.":"A supercharger kit with injectors, fuel pump and custom map.",effect:"A step-change in power. Needs a strong clutch and regular servicing.",spec:T?"Hybrid turbo, uprated fuel pump, custom dyno map":"Centrifugal supercharger, injectors, dyno map"};
     case "intake": return {what:"Replaces the airbox with a less restrictive filter and pipework.",effect:"Small power gain and more induction noise under throttle.",spec:"Cotton or foam filter, heat-shielded"};
     case "exhaust": return {what:"Stainless pipes from the catalytic converter back, with valves you control.",effect:"Quiet in town, loud when you want it. Saves a few kilos.",spec:"T304 stainless, 76mm bore, valved, MOT-legal with cats kept"};
-    case "wheels": { const forged=p.style==="monoblock"; return {what:(forged?"Forged ":"Flow-formed ")+p.style+" wheels in "+p.finish+", with matched performance tyres.",effect:p.size>car.wheel?"Fills the arches and sharpens steering, at a small cost to ride comfort.":p.size<car.wheel?"Smaller wheels with taller tyres ride better and are cheaper to replace.":"Same size as stock, so ride stays the same with a fresh look.",spec:wheelSpec(p.size,forged)}; }
+    case "wheels": { const forged=p.style==="monoblock"; return {what:(forged?"Forged ":"Flow-formed ")+p.style+" wheels in "+p.finish+", with matched performance tyres.",effect:p.size>car.wheel?"Fills the arches and sharpens steering, at a small cost to ride comfort.":p.size<car.wheel?"Smaller wheels with taller tyres ride better and are cheaper to replace.":"Same size as stock, so ride stays the same with a fresh look.",spec:wheelSpec(p.size,forged,car)}; }
     case "drop": if(p.air) return {what:"Air struts and a compressor replacing the stock springs and dampers, so you can raise and lower the car from a switch or app.",effect:"Shown aired out, sitting about "+p.mm+"mm lower with the tyres tucked under the arches. Raise it for speed bumps and driveways; the ride stays comfortable. Tell your insurer.",spec:"Air struts, compressor, tank and management, fitted (UK ~£2,000-£3,000)"};
     if(p.springs) return {what:"Shorter, stiffer springs that replace the stock ones and work with your existing dampers.",effect:"The cheap way to lower a car: it sits about "+p.mm+"mm lower with a firmer ride. The drop is fixed, so you can't adjust the height later. Get a four-wheel alignment after fitting.",spec:"Lowering springs (e.g. Eibach or H&R), fitted with alignment (UK ~£200-£350)"};
     return {what:"Height and damping adjustable suspension replacing the stock springs and dampers.",effect:p.mm>40?"Mostly for looks: the car sits "+p.mm+"mm lower, but the ride gets much firmer, it may scrape on speed bumps and may need camber correction. Around 30mm handles best.":"Lower centre of gravity, less body roll and a firmer ride. The car sits "+p.mm+"mm lower.",spec:"Mono-tube, 32-way damping, "+p.mm+"mm drop"};

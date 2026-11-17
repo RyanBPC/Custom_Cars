@@ -53,9 +53,9 @@ function sidewallTexture(text, innerFrac) {
   return (labelCache[key] = tex);
 }
 // A thin lettered ring that sits just off the tyre's outer sidewall (tyre space: outer side is +Z).
-function sidewallLabel(rimR, outerR, width, inch) {
+function sidewallLabel(rimR, outerR, width, inch, own) {
   const side = outerR - rimR, inner = rimR + side * 0.36, outer = rimR + side * 0.84;
-  const text = TYRES[Math.round(inch)] || `${inch >= 19 ? 235 : 225}/${Math.max(25, Math.round(((outerR - rimR) / 0.235) * 100 / 5) * 5)} R${Math.round(inch)}`;
+  const text = own || TYRES[Math.round(inch)] || `${inch >= 19 ? 235 : 225}/${Math.max(25, Math.round(((outerR - rimR) / 0.235) * 100 / 5) * 5)} R${Math.round(inch)}`;
   const mat = new THREE.MeshStandardMaterial({ color: 0x3a3c40, roughness: 0.78, metalness: 0, map: sidewallTexture(text, inner / outer),
     transparent: true, alphaTest: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
   const ring = new THREE.Mesh(new THREE.RingGeometry(inner, outer, 96, 1), mat);
@@ -92,7 +92,7 @@ function removeFitted(w) {
    Returns a promise that resolves when the wheels are on (the caller redraws). */
 export async function fitWheels(rig, spec) {
   if (rig.standIn) return false;
-  const key = spec ? [spec.style, spec.inch, spec.colour, !!spec.chrome].join("|") : "";
+  const key = spec ? [spec.style, spec.inch, spec.colour, !!spec.chrome, rig.carId].join("|") : "";
   if (rig.wheelKey === key) return false;
   rig.wheelKey = key;
   if (!spec) { for (const w of rig.wheels) { removeFitted(w); showOriginal(w, true); } return true; }
@@ -102,6 +102,9 @@ export async function fitWheels(rig, spec) {
   // The rim's own materials, recoloured in the chosen finish (bolts and centre caps keep theirs).
   const finish = new THREE.MeshPhysicalMaterial({ color: spec.chrome ? 0xf2f2f2 : spec.colour, metalness: spec.chrome ? 1 : 0.75, roughness: spec.chrome ? 0.06 : 0.32, clearcoat: spec.chrome ? 0 : 0.6, clearcoatRoughness: 0.15 });
   const recolour = m => /bolt|cap|logo|silver/i.test(m.name) ? m : Object.assign(finish.clone(), { normalMap: m.normalMap || null, name: "Rim" });
+  // The car's own tyre size(s) at its stock rim size; staggered cars (BMW 440i) get front and rear sizes.
+  const own = typeof tyreForId === "function" ? tyreForId(rig.carId, spec.inch) : null;
+  const wi = rig.wheelInfo, isFront = w => !wi || wi.list[rig.wheels.indexOf(w)].x > (wi.frontX + wi.rearX) / 2; // same order as rig.wheels
   for (const w of rig.wheels) {
     removeFitted(w);
     const t = w.tyreInfo; if (!t) continue;
@@ -122,7 +125,7 @@ export async function fitWheels(rig, spec) {
     const tyreRimR = spec.inch * 0.0254 / 2 + 0.008;
     const tyre = new THREE.Mesh(makeTyre(tyreRimR, t.outerR, t.width), rubber);
     tyre.position.copy(t.centre); tyre.quaternion.copy(turn); tyre.castShadow = true; tyre.userData.wheelPart = tyre.userData.ownGeo = true;
-    tyre.add(sidewallLabel(tyreRimR, t.outerR, t.width, spec.inch)); // size lettering on the outer sidewall
+    tyre.add(sidewallLabel(tyreRimR, t.outerR, t.width, spec.inch, Array.isArray(own) ? own[isFront(w) ? 0 : 1] : own)); // size lettering on the outer sidewall
     g.add(rim, tyre);
     w.group.add(g); w.fitted = g;
   }
