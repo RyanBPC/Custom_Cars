@@ -94,7 +94,7 @@ const EXTRA_PARTS = [
  {re:/(bonnet|hood) pins?/,name:"Bonnet pins",in3d:true,price:90,text:"chrome bonnet pins"},
  {re:/angel eyes|halo lights?|halo rings?/,name:"Halo headlights",in3d:true,price:350,text:"glowing halo rings in the headlights"},
  {re:/led headlights?|\bhids?\b|xenon|brighter (head)?lights/,name:"LED headlight upgrade",in3d:true,price:400,text:"bright white LED headlights"},
- {re:/\b(?:led|dynamic|sequential)\s+(?:tail|rear)\s?lights?\b/,name:"LED tail lights",in3d:false,price:300,text:"LED tail lights with a dark smoked look"},
+ {re:/\b(?:led|dynamic|sequential)\s+(?:tail|rear)\s?lights?\b/,name:"LED tail lights",in3d:true,price:300,text:"LED tail lights with a dark smoked look"},
  {re:/sequential indicators?|dynamic indicators?/,name:"Sequential indicators",in3d:true,price:200,text:"sweeping sequential indicators"},
  {re:/(evil|angry) (eyes|look)|eyelids|eyebrows/,name:"Headlight eyelids",in3d:true,price:60,text:"gloss-black eyelid covers over the top of the headlights"},
  {re:/private plate|personal(ised)? plate|custom (number )?plate|show plate/,name:"Private number plate",in3d:true,price:250,text:""},

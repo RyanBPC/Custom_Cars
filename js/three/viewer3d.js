@@ -443,19 +443,23 @@ let userLights = false, nightLights = false;
 function syncLights() { setLightsOn(userLights || nightLights); }
 function applyLights(p, b) {
   const smoked = !!(b && b.smoked), led = !!(b && b.addons && b.addons.extras.includes("LED headlight upgrade"));
+  const ledTail = hasLedTails(b);
   const set = (list, colour, strength) => list.forEach(m => {
     const day = m.userData.day || (m.userData.day = { e: m.emissive.clone(), i: m.emissiveIntensity });
-    if (!lightsOn) { m.emissive.copy(day.e); m.emissiveIntensity = p.standIn ? (smoked ? 0.15 : 0.6) : day.i; return; }
+    if (!lightsOn) { m.emissive.copy(day.e); m.emissiveIntensity = p.standIn ? (smoked ? 0.15 : ledTail && list === p.lensRear ? 0.3 : 0.6) : day.i; return; }
     const see = m.transparent ? Math.max(m.opacity, 0.2) : 1;
     m.emissive.set(colour); m.emissiveIntensity = Math.min(8, strength * (smoked ? 0.35 : 1) / see);
   });
   set(p.lensFront, led ? 0xdde8ff : 0xfff0d8, 2);
-  set(p.lensRear, 0xff1414, 1.5);
+  // LED tail lights: a darker lens by day, but a brighter, crisper red when lit.
+  set(p.lensRear, ledTail ? 0xff1a22 : 0xff1414, ledTail ? 2.4 : 1.5);
   // The beams: light on the road ahead and a red wash behind (off by day; dimmer through smoked lenses).
   if (!p.beams) return;
   p.beams.front.forEach(s => { s.color.set(led ? 0xe6eeff : 0xfff0d8); s.intensity = lightsOn ? 22 * (smoked ? 0.4 : 1) : 0; });
-  p.beams.rear.forEach(l => { l.intensity = lightsOn ? 1.6 * (smoked ? 0.5 : 1) : 0; });
+  p.beams.rear.forEach(l => { l.intensity = lightsOn ? (ledTail ? 2.1 : 1.6) * (smoked ? 0.5 : 1) : 0; });
 }
+// The "LED tail lights" extra: a lighter smoked tail lens (smoked lights stay darker) that glows brighter.
+function hasLedTails(b) { return !!(b && b.addons && b.addons.extras.includes("LED tail lights")); }
 /* Gives a car two headlight beams (spot lights aimed a few metres ahead and slightly down) and a small red
    light low behind it, placed from where its lenses are. They sit on the body so they drop with it, and stay
    in the scene at zero strength when off, so switching them never makes the 3D rebuild its shaders. Cars
@@ -505,7 +509,7 @@ function applyBase(p, b) {
     p.rims.forEach(m => m.color.set(b.rimColour));
     p.glassRear.forEach(m => { m.opacity = b.tint ? TINT_OPACITY[b.tint] || 0.85 : 0.55; m.color.set(b.tint ? 0x07090b : 0x2a3640); });
     p.lensFront.forEach(m => { m.color.set(b.smoked ? 0x3a4048 : 0xf2f6ff); m.emissiveIntensity = b.smoked ? 0.15 : 0.6; });
-    p.lensRear.forEach(m => { m.color.set(b.smoked ? 0x3a0d12 : 0xc0161f); m.emissiveIntensity = b.smoked ? 0.15 : 0.6; });
+    p.lensRear.forEach(m => { m.color.set(b.smoked ? 0x3a0d12 : hasLedTails(b) ? 0x6a1016 : 0xc0161f); m.emissiveIntensity = b.smoked ? 0.15 : hasLedTails(b) ? 0.3 : 0.6; });
     p.calipers.forEach(m => m.color.set(b.caliper));
     return;
   }
@@ -524,7 +528,7 @@ function applyBase(p, b) {
     m.needsUpdate = true;
   });
   p.lensFront.forEach((m, i) => m.color.copy(st.lensFront[i]).multiplyScalar(b.smoked ? 0.3 : 1));
-  p.lensRear.forEach((m, i) => m.color.copy(st.lensRear[i]).multiplyScalar(b.smoked ? 0.3 : 1));
+  p.lensRear.forEach((m, i) => m.color.copy(st.lensRear[i]).multiplyScalar(b.smoked ? 0.3 : hasLedTails(b) ? 0.55 : 1));
 }
 
 
