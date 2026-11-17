@@ -254,7 +254,10 @@ function planParts(text){
   // Fog, spot and rally lights are their own parts (the light bar covers spot/rally), so they don't fit smoked lenses too.
   const tL=t.replace(/\b(?:(?:selective\s+)?yellow\s+|amber\s+)?(?:fog|spot|rally|driving)\s?(?:lights?|lamps?)\b/g," ");
   if(/\bfog\s?(?:lights?|lamps?)\b/.test(t)&&!/\bsmoked?\b/.test(tL)) notes.push(`Fog lights aren't in the studio yet, so the ${c.model} keeps its standard ones. Yellow fog bulbs are a cheap retro look (about £20-£40 a pair).`);
-  if(/\bsmoked?\b|\b(head|tail) ?lights?\b|\blights\b|\blenses\b|dark(er)? lights|tinted lights/.test(tL)&&!/light ?bar|underglow|angel|halo|led |dynamic|hid|xenon|brighter|sequential|eyelid|interior light|ambient/.test(t)&&!remove.includes("lights")) add("lights",{});
+  // Clear / "euro" lenses are see-through, the opposite of smoked, so they don't fit smoked lights (Car #46).
+  const clearL=/\b(?:clear|euro|crystal)\s+(?:(?:head|tail|rear|front|side)\s?)?(?:lights?|lenses?|lamps?|indicators?)\b/.test(t)&&!/\bsmoked?\b|dark(?:er)? lights|tinted lights/.test(tL);
+  if(clearL) notes.push(`Clear (euro) lenses aren't in the studio yet, so the ${c.model} keeps its standard lights. Say "smoked lights" if you want them darker instead.`);
+  if(!clearL&&/\bsmoked?\b|\b(head|tail) ?lights?\b|\blights\b|\blenses\b|dark(er)? lights|tinted lights/.test(tL)&&!/light ?bar|underglow|angel|halo|led |dynamic|hid|xenon|brighter|sequential|eyelid|interior light|ambient/.test(t)&&!remove.includes("lights")) add("lights",{});
   // A colour right before a part ("gloss black mirror caps", "black roof", "red calipers") belongs to that part, not the paint.
   const colNames=COLOURS.map(x=>x[0]).sort((x,y)=>y.length-x.length).map(n=>n.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|");
   const tw=t.replace(new RegExp(String.raw`\b(?:(?:gloss|glossy|matte?|satin|piano)\s+)?(?:`+colNames+String.raw`)\s+(?:wing\s+)?(?:mirror caps?|mirrors?|roof|wheels?|rims?|alloys?|calipers?|brakes?|stripes?|badges?|(?:kidney\s+|front\s+)?grilles?|kidneys?)\b`,"g")," ");
