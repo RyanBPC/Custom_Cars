@@ -102,20 +102,28 @@ function renderMyBuilds(){
     li.append(d,open,del); ul.appendChild(li);
   });
 }
+/* Save and Delete ask on the page itself (no browser pop-ups, which some phones block). */
+function closeSaveRow(focusBtn){$("saveRow").hidden=true; if(focusBtn) $("saveBuildBtn").focus();}
 $("saveBuildBtn").addEventListener("click",()=>{
-  const name=window.prompt("Name this build so you can open it again later:",defaultBuildName());
-  if(name===null) return;
-  const nm=(name.trim()||defaultBuildName()).slice(0,60);
+  const row=$("saveRow"), inp=$("saveName");
+  if(!row.hidden){closeSaveRow(false); return;}
+  inp.value=defaultBuildName(); row.hidden=false; inp.focus(); inp.select();
+});
+$("saveCancel").addEventListener("click",()=>closeSaveRow(true));
+$("saveRow").addEventListener("keydown",e=>{if(e.key==="Escape"){e.preventDefault(); closeSaveRow(true);}});
+$("saveRow").addEventListener("submit",e=>{
+  e.preventDefault();
+  const nm=($("saveName").value.trim()||defaultBuildName()).slice(0,60);
   const list=loadMyBuilds().filter(b=>b.name!==nm); // same name replaces the old one
   list.unshift({name:nm,car:state.car,mods:JSON.parse(JSON.stringify(state.mods)),date:new Date().toISOString()});
   const dropped=list.length>MY_MAX;
   if(!storeMyBuilds(list)){addAI("Sorry, this browser won't let me save builds. Use \"Copy build link\" instead.");return;}
-  renderMyBuilds();
+  closeSaveRow(true); renderMyBuilds();
   const b=$("saveBuildBtn"); b.textContent="Saved ✓"; setTimeout(()=>{b.textContent="Save build";},2500);
   addAI(`Saved "${nm}" under My builds, below the build sheet.${dropped?" Your oldest saved build was removed to make room (12 is the most).":""}`);
 });
 $("myBuildsList").addEventListener("click",e=>{
-  const o=e.target.closest("[data-open]"), x=e.target.closest("[data-del]"), list=loadMyBuilds();
+  const o=e.target.closest("[data-open]"), x=e.target.closest("[data-del]"), yes=e.target.closest("[data-delyes]"), no=e.target.closest("[data-delno]"), list=loadMyBuilds();
   if(o){
     const b=list[+o.dataset.open]; if(!b) return;
     const kept=Object.keys(state.mods).length?{car:state.car,mods:JSON.parse(JSON.stringify(state.mods))}:null;
@@ -125,11 +133,25 @@ $("myBuildsList").addEventListener("click",e=>{
     addAI(`Opened your saved build "${b.name}".`);
     if(kept) setTimeout(()=>offerUndo(kept),0);
   } else if(x){
+    // Swap Open/Delete for "Delete? Yes / No" in this row.
     const i=+x.dataset.del, b=list[i]; if(!b) return;
-    if(!window.confirm(`Delete your saved build "${b.name}"? This can't be undone.`)) return;
+    const li=x.closest("li"); li.querySelectorAll("button").forEach(bt=>bt.remove());
+    const q=document.createElement("span"); q.className="ask-del"; q.textContent="Delete?";
+    const y=document.createElement("button"); y.type="button"; y.className="btn"; y.textContent="Yes"; y.dataset.delyes=i; y.setAttribute("aria-label",`Yes, delete ${b.name}. This can't be undone`);
+    const n=document.createElement("button"); n.type="button"; n.className="btn ghost"; n.textContent="No"; n.dataset.delno=i; n.setAttribute("aria-label",`No, keep ${b.name}`);
+    const wrap=document.createElement("span"); wrap.style.display="flex"; wrap.style.gap="6px"; wrap.style.alignItems="center"; wrap.style.gridColumn="2 / 4";
+    wrap.append(q,y,n); li.appendChild(wrap); n.focus();
+  } else if(yes){
+    const i=+yes.dataset.delyes; if(!list[i]) return;
     list.splice(i,1); storeMyBuilds(list); renderMyBuilds();
     const first=$("myBuildsList").querySelector("button"); (first||$("saveBuildBtn")).focus();
+  } else if(no){
+    const i=+no.dataset.delno; renderMyBuilds();
+    const back=$("myBuildsList").querySelector(`[data-del="${i}"]`); (back||$("saveBuildBtn")).focus();
   }
+});
+$("myBuildsList").addEventListener("keydown",e=>{
+  if(e.key==="Escape"&&e.target.closest("[data-delno],[data-delyes]")){const i=e.target.dataset.delno??e.target.dataset.delyes; renderMyBuilds(); const back=$("myBuildsList").querySelector(`[data-del="${i}"]`); if(back) back.focus();}
 });
 renderMyBuilds();
 

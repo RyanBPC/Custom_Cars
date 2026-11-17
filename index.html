@@ -282,6 +282,12 @@ if (location.protocol === "file:") {
               <button class="btn" id="saveBuildBtn" type="button">Save build</button>
               <button class="btn ghost" id="resetBtn" type="button">Reset to stock</button>
             </div>
+            <form class="saverow" id="saveRow" hidden>
+              <label for="saveName">Name this build</label>
+              <input id="saveName" type="text" maxlength="60" autocomplete="off">
+              <button class="btn primary" type="submit">Save</button>
+              <button class="btn ghost" id="saveCancel" type="button">Cancel</button>
+            </form>
             <p class="disclose">External links. Custom Cars has no affiliation with these sites. Prices are estimates for parts and fitting at UK specialists.</p>
             <div class="mybuilds" id="myBuilds" hidden>
               <h4>My builds <small>saved in this browser</small></h4>
