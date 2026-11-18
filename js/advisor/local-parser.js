@@ -159,6 +159,8 @@ function planParts(text){
   // Air suspension ("air ride", "bagged", "on air") is shown aired out at the lowest setting.
   // "Air Lift" is the air ride brand, so it reads as air ride, not a lift kit.
   t=t.replace(/\bair ?lift(?: performance)?\b/g," air ride ");
+  // "Bags of power" is British for "lots of power", not air bags.
+  t=t.replace(/\bbags of (power|torque)\b/g," more $1 ").replace(/\bbags of\b/g," ");
   // With air ride already on the car, "raise it up" / "air it up" means pump it up for driving, not a lift kit.
   const airOn=!(reset||(switchCar&&switchCar!==state.car))&&state.mods.drop&&state.mods.drop.air;
   const AIRUP_RE=/\b(?:raise|lift|pump|air)\s+(?:it|the car|her)\s+up\b|\b(?:raise|lift)\s+it\b(?!\s*\d)|\bair (?:it )?up\b|\b(?:ride|sit) higher\b/g;
