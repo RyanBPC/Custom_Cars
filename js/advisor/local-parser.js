@@ -174,8 +174,11 @@ function planParts(text){
   const REM_PHRASES=[["widebody kit","widebody"],["wide body kit","widebody"],["wide body","widebody"],["brake kit","brakes"],["body kit","bodykit"],["bodykit","bodykit"],["aero kit","bodykit"],["air ride","drop"],["airride","drop"],["air suspension","drop"],["bags","drop"],["bagged","drop"]];
   const remWords=[];
   // Saying what you don't want ("no spoiler", "without stripes", "don't add a wing") counts as a removal, so that part is never fitted.
-  for(const rem of t.matchAll(/\b(remove|take off|delete|get rid of|lose|no more|no|without|except(?: for)?|apart from|but not|other than|minus|(?:don'?t|do not) (?:add|want|fit|put on|put|need|give it))\s+(the\s+|a\s+|an\s+|any\s+)?([^,;.]+)/g)){
-    let w=rem[3].split(/\b(add|fit|put|give|make|then|but|with)\b/)[0];
+  // "and black wheels" / "and 19 inch rims" describes wheels being asked for, so it isn't part of the removal; "and the wheels" still is.
+  const WHEEL_ASK_RE=new RegExp(String.raw`\band\s+(?:(?:some|new)\s+)*(?:(?:(?:gloss|glossy|matte?|satin)\s+)?(?:chrome|`+COLOURS.map(x=>x[0].replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|")+String.raw`|1[7-9]|2[01])(?:\s*(?:-?\s?inch(?:es)?\b|in\b|"|”))?\s+(?:(?!and\b)[a-z]+\s+){0,2}(?:wheels?|rims?|alloys?)\b|(?:1[7-9]|2[01])s\b)`,"g");
+  // "chrome delete" names a part, so its "delete" doesn't take off whatever comes next.
+  for(const rem of t.matchAll(/\b(remove|take off|(?<!\bchrome\s+)delete|get rid of|lose|no more|no|without|except(?: for)?|apart from|but not|other than|minus|(?:don'?t|do not) (?:add|want|fit|put on|put|need|give it))\s+(the\s+|a\s+|an\s+|any\s+)?([^,;.]+)/g)){
+    let w=rem[3].split(/\b(add|fit|put|give|make|then|but|with)\b/)[0].replace(WHEEL_ASK_RE," ");
     // Match whole part names first, so "big brake kit" doesn't also remove the aero "kit".
     for(const [ph,id] of REM_PHRASES) if(w.includes(ph)){if(!remove.includes(id))remove.push(id);w=w.split(ph).join(" ");}
     for(const k in REM_MAP) if(w.includes(k)&&!remove.includes(REM_MAP[k])) remove.push(REM_MAP[k]);
