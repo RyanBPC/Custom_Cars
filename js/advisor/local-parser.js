@@ -176,11 +176,16 @@ function planParts(text){
   const REM_PHRASES=[["widebody kit","widebody"],["wide body kit","widebody"],["wide body","widebody"],["brake kit","brakes"],["body kit","bodykit"],["bodykit","bodykit"],["aero kit","bodykit"],["air ride","drop"],["airride","drop"],["air suspension","drop"],["bags","drop"],["bagged","drop"]];
   const remWords=[];
   // Saying what you don't want ("no spoiler", "without stripes", "don't add a wing") counts as a removal, so that part is never fitted.
-  // "and black wheels" / "and 19 inch rims" describes wheels being asked for, so it isn't part of the removal; "and the wheels" still is.
-  const WHEEL_ASK_RE=new RegExp(String.raw`\band\s+(?:(?:some|new)\s+)*(?:(?:(?:gloss|glossy|matte?|satin)\s+)?(?:chrome|`+COLOURS.map(x=>x[0].replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|")+String.raw`|1[7-9]|2[01])(?:\s*(?:-?\s?inch(?:es)?\b|in\b|"|”))?\s+(?:(?!and\b)[a-z]+\s+){0,2}(?:wheels?|rims?|alloys?)\b|(?:1[7-9]|2[01])s\b)`,"g");
+  // "and red calipers" / "and 19 inch rims" / "and a stage 1 remap" / "and tint the windows" describe something being asked for, so they aren't part of the removal.
+  // A bare or "the" part ("and stripes", "and the wheels") still is. Each match runs to the next "and", so "no wing and red calipers and no stripes" still drops the stripes.
+  const COLOUR_WORDS=COLOURS.map(x=>x[0].replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|");
+  const ASK_PARTS=String.raw`(?:calipers?|brakes?|stripes?|(?:head|tail|fog)?\s?lights?|lenses|mirrors?|caps?|spoiler|wing|wrap|exhaust|tips|grilles?|splitter|lip|bonnet|hood|roof|tint|windows?)`;
+  const PART_ASK_RE=new RegExp(String.raw`\band\s+(?:(?:some|new|an?)\s+)*(?:(?:(?:(?:gloss|glossy|matte?|satin)\s+)?(?:chrome|`+COLOUR_WORDS+String.raw`|1[7-9]|2[01])(?:\s*(?:-?\s?inch(?:es)?\b|in\b|"|”))?\s+(?:(?!and\b)[a-z]+\s+){0,2}(?:wheels?|rims?|alloys?)\b|(?:1[7-9]|2[01])s\b)`
+    +String.raw`|(?:(?:gloss|glossy|matte?|satin|bright|deep|dark|light)\s+)?(?:chrome|carbon(?:\s+fib(?:re|er))?|smoked?|tinted|big|bigger|louder|`+COLOUR_WORDS+String.raw`)\s+(?:(?!and\b)[a-z]+\s+){0,2}`+ASK_PARTS+String.raw`\b`
+    +String.raw`|stage\s*[1-3]\b|\d+\s*%\s*(?:tint|windows?)\b|limo\s+tint\b|lowering\s+springs?\b|(?:tint|wrap|remap|tune|lower)\s+(?:it|the|my)\b|tint\s+windows?\b|drop\s+it\b)(?:(?!\band\b)[\s\S])*`,"g");
   // "chrome delete" names a part, so its "delete" doesn't take off whatever comes next.
   for(const rem of t.matchAll(/\b(remove|take off|(?<!\bchrome\s+)delete|get rid of|lose|no more|no|without|except(?: for)?|apart from|but not|other than|minus|(?:don'?t|do not) (?:add|want|fit|put on|put|need|give it))\s+(the\s+|a\s+|an\s+|any\s+)?([^,;.]+)/g)){
-    let w=rem[3].split(/\b(add|fit|put|give|make|then|but|with)\b/)[0].replace(WHEEL_ASK_RE," ");
+    let w=rem[3].split(/\b(add|fit|put|give|make|then|but|with)\b/)[0].replace(PART_ASK_RE," ");
     // Match whole part names first, so "big brake kit" doesn't also remove the aero "kit".
     for(const [ph,id] of REM_PHRASES) if(w.includes(ph)){if(!remove.includes(id))remove.push(id);w=w.split(ph).join(" ");}
     const remPart=w.replace(QUAD_TIPS_RE," ");
