@@ -17,13 +17,32 @@
     img.outerHTML = drawn(img.dataset.car);
   }, true);
 
-  const own = `<button type="button" class="build-card own" data-build=""><div class="art"><span class="plus" aria-hidden="true">+</span></div>
-    <div class="body"><b>Build your own</b><span>Start from a stock Golf GTI and choose every part.</span><span class="btn primary sm build-this">Start from stock</span></div></button>`;
-  document.getElementById("buildGrid").innerHTML = own + BUILDS.map(b => {
+  // Short names for the Models filter and the "Build your own" card.
+  const SHORT = { golf: "Golf GTI", bmw440i: "BMW 440i", fiesta: "Fiesta" };
+  const shortName = id => SHORT[id] || CARS.find(c => c.id === id).model;
+  const own = `<button type="button" class="build-card own" data-build="" data-car="golf"><div class="art"><span class="plus" aria-hidden="true">+</span></div>
+    <div class="body"><b>Build your own</b><span id="ownCarText">Start from a stock ${shortName("golf")} and choose every part.</span><span class="btn primary sm build-this">Start from stock</span></div></button>`;
+  const grid = document.getElementById("buildGrid");
+  grid.innerHTML = own + BUILDS.map(b => {
     const c = CARS.find(x => x.id === b.car);
-    return `<button type="button" class="build-card" data-build="${b.id}"><div class="art">${art(b)}</div>
+    return `<button type="button" class="build-card" data-build="${b.id}" data-car="${b.car}"><div class="art">${art(b)}</div>
       <div class="body"><b>${b.name}</b><span>${c.make} ${c.model}</span><ul class="tags">${b.tags.map(t => `<li>${t}</li>`).join("")}</ul><span class="btn primary sm build-this">Build this</span></div></button>`;
   }).join("");
+
+  // Models filter: All / one button per car that has builds. "Build your own" stays and follows the chosen car.
+  const filter = document.getElementById("buildFilter");
+  const carIds = [...new Set(BUILDS.map(b => b.car))];
+  const chip = (id, label, n) => `<button type="button" data-filter="${id}" aria-pressed="${id ? "false" : "true"}">${label} <small>${n}</small></button>`;
+  filter.innerHTML = chip("", "All cars", BUILDS.length) + carIds.map(id => chip(id, shortName(id), BUILDS.filter(b => b.car === id).length)).join("");
+  filter.addEventListener("click", e => {
+    const btn = e.target.closest("[data-filter]"); if (!btn) return;
+    const pick = btn.dataset.filter;
+    filter.querySelectorAll("[data-filter]").forEach(x => x.setAttribute("aria-pressed", String(x === btn)));
+    grid.querySelectorAll(".build-card:not(.own)").forEach(card => { card.hidden = !!pick && card.dataset.car !== pick; });
+    const ownCar = pick || "golf";
+    grid.querySelector(".build-card.own").dataset.car = ownCar;
+    document.getElementById("ownCarText").textContent = `Start from a stock ${shortName(ownCar)} and choose every part.`;
+  });
 
   const hero = BUILDS.find(b => b.id === HERO_BUILD);
   const heroImg = document.getElementById("heroImg");
@@ -35,9 +54,9 @@
   if (!heroImg.src.endsWith(heroSrc)) heroImg.src = heroSrc;
   else if (heroImg.complete && !heroImg.naturalWidth) heroImg.onerror();
 
-  function openBuild(id) {
+  function openBuild(id, ownCar) {
     const b = BUILDS.find(x => x.id === id);
-    const carId = b ? b.car : "golf";
+    const carId = b ? b.car : ownCar || "golf";
     if (state.car !== carId || Object.keys(state.mods).length) switchCar(carId, false);
     if (typeof hideAi3d === "function") hideAi3d();
     if (b) { applyPlan(localPlan(b.text), b.text); addAI(`This is the ${b.name}. Change anything you like: just tell me.`); }
@@ -57,7 +76,7 @@
       setTimeout(() => { if (!near(v.angle(), deg) && near(v.angle(), 43) && !v.inside()) v.setAngle(deg); }, 1500);
     })();
   }
-  document.getElementById("buildGrid").addEventListener("click", e => { const c = e.target.closest("[data-build]"); if (c) openBuild(c.dataset.build); });
+  document.getElementById("buildGrid").addEventListener("click", e => { const c = e.target.closest("[data-build]"); if (c) openBuild(c.dataset.build, c.dataset.car); });
   // "Build yours" keeps whatever you're already building.
   document.getElementById("heroStart").addEventListener("click", () => goTab("build"));
   // Welcome back: saved builds (Website #67) live under the build sheet on the Build page, so a returning
