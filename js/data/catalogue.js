@@ -5,11 +5,20 @@
 const TYRE_SIZE = { 15: "195/65 R15 91H", 16: "205/55 R16 91V", 17: "225/45 R17 94W", 18: "225/40 R18 92Y", 19: "235/35 R19 91Y", 20: "235/30 R20 88Y", 21: "245/25 R21 88Y" };
 const RIM_WIDTH = { 15: 6.5, 16: 7, 17: 7.5, 18: 8, 19: 8.5, 20: 9, 21: 9 };
 // A car's own factory tyre(s) at its stock rim size (cars.js "tyre": one size, or [front, rear] when staggered,
-// like the BMW 440i), else the Golf-based table above. Returns a string or a [front, rear] pair.
+// like the BMW 440i), then its own upgrade sizes (cars.js "tyres"), else the Golf-based table above.
+// Returns a string or a [front, rear] pair.
 function tyreFor(car, size) {
   const n = Math.min(21, Math.max(15, Math.round(size)));
   if (car && car.tyre && Math.round(size) === car.wheel) return car.tyre;
-  return TYRE_SIZE[n];
+  return (car && car.tyres && car.tyres[n]) || TYRE_SIZE[n];
+}
+// Outside diameter in mm of a tyre like "205/40 R17 84W".
+function tyreDiameter(t) { const m = /^(\d+)\/(\d+) R(\d+)/.exec(t); return m ? m[3] * 25.4 + 2 * m[1] * m[2] / 100 : 0; }
+// How much taller (%) a car's upgrade tyre is than its stock one. Some small cars have no real tyre low enough for big rims.
+function tyreGrowth(car, size) {
+  if (!car || !car.tyre || !car.tyres) return 0;
+  const first = t => Array.isArray(t) ? t[0] : t, stock = tyreDiameter(first(car.tyre)), now = tyreDiameter(first(tyreFor(car, size)));
+  return stock && now ? Math.round((now / stock - 1) * 100) : 0;
 }
 // For the 3D sidewall: look the car up by id (cars.js loads first).
 function tyreForId(id, size) { return tyreFor(typeof ALL_CARS !== "undefined" ? ALL_CARS.find(c => c.id === id) : null, size); }
@@ -18,7 +27,8 @@ function wheelSpec(size, forged, car) {
   const kg = 8 + (n - 15) - (forged ? 2 : 0); // rough real weights: ~10kg at 17in flow-formed, forged ~2kg lighter
   const short = t => t.replace(/ \d+[A-Z]$/, ""), t = tyreFor(car, size);
   const tyres = Array.isArray(t) ? short(t[0]) + " front and " + short(t[1]) + " rear tyres" : short(t) + " tyres";
-  return size + "×" + RIM_WIDTH[n] + "J, about " + kg + "kg each, " + tyres;
+  const taller = tyreGrowth(car, size);
+  return size + "×" + RIM_WIDTH[n] + "J, about " + kg + "kg each, " + tyres + (taller > 5 ? " (about " + taller + "% taller than standard, so the arches would need work)" : "");
 }
 const COLOURS = [
  // Real UK factory colours come first so "estoril blue" is never read as plain blue. The third value is the factory finish.
