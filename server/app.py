@@ -32,7 +32,7 @@ PHOTOS = ROOT / "photos"
 RENDERS = ROOT / "renders"
 USAGE_FILE = RENDERS / "usage.json"
 
-CAR_IDS = {"golf", "civic", "yaris", "gr86", "supra", "m3", "m2", "rs3", "a45", "mustang", "c911", "mx5"}
+CAR_IDS = {"golf", "civic", "yaris", "gr86", "supra", "bmw440i", "fiesta", "m3", "m2", "rs3", "a45", "mustang", "c911", "mx5"}  # matches ALL_CARS in js/data/cars.js
 ANGLES = {"front", "side"}
 ENV_IDS = {"photo", "street-day", "street-night", "forest-day", "forest-night"}  # matches ENVIRONMENTS in js/photo/prompt.js
 IMAGE_TYPES = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
