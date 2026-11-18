@@ -57,6 +57,8 @@
   function openBuild(id, ownCar) {
     const b = BUILDS.find(x => x.id === id);
     const carId = b ? b.car : ownCar || "golf";
+    // A plate we looked up belongs to its car, so it doesn't follow you onto a different one.
+    if (state.plateCar && state.plateCar !== carId) clearPlate();
     if (state.car !== carId || Object.keys(state.mods).length) switchCar(carId, false);
     if (typeof hideAi3d === "function") hideAi3d();
     if (b) { applyPlan(localPlan(b.text), b.text); addAI(`This is the ${b.name}. Change anything you like: just tell me.`); }
