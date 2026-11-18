@@ -87,7 +87,7 @@ const EXTRA_PARTS = [
  {re:/bull ?bar|nudge bar/,name:"Bull bar",in3d:true,price:450,text:"a black bull bar on the front"},
  {re:/snorkel/,name:"Snorkel",in3d:true,price:350,text:"a raised air-intake snorkel on the front pillar"},
  {re:/side ?exit exhaust|side pipes?/,name:"Side-exit exhaust",in3d:true,price:1800,text:"side-exit exhaust tips just ahead of the rear wheels"},
- {re:/quad (tips|exhaust)|four (tips|pipes)/,name:"Quad exhaust tips",in3d:true,price:400,text:"four large exhaust tips at the back"},
+ {re:/quad (tips|exhaust)|four (exhaust )?(tips|pipes)/,name:"Quad exhaust tips",in3d:true,price:400,text:"four large exhaust tips at the back"},
  {re:/intercooler/,name:"Uprated intercooler",in3d:true,price:900,text:"a large front-mounted intercooler visible behind the grille"},
  {re:/louv(re|er)s?/,name:"Rear window louvres",in3d:true,price:350,text:"black louvres over the rear window"},
  {re:/carbon roof/,name:"Carbon roof",in3d:true,price:2200,text:"an exposed carbon-fibre roof"},

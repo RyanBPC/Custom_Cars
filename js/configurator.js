@@ -40,7 +40,7 @@
     }
     const p = planFor(text);
     if (extra && isOn(text)) {
-      const last = p.apply[p.apply.length - 1]; // the option's own part (quad tips: the tips, not the exhaust)
+      const last = p.apply[p.apply.length - 1]; // the option's own part
       const plan = last.id === "custom" ? customPlan(customs().filter(c => !last.params.items.some(i => i.name === c.name))) : { remove: [last.id] };
       plan.reply = `Taken off: ${label.toLowerCase()}.`;
       return { said: `Remove the ${label.toLowerCase()}`, plan };

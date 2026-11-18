@@ -170,6 +170,8 @@ function planParts(text){
   const air=/\bair ?ride\b|\bbagged\b|\bbags\b|\bon air\b|\bair suspension\b/.test(t);
   // "except/apart from/but not" also count, so "everything except a wing" is a track build with no wing.
   // Handle every removal clause ("remove the wing and the wheels"). A clause ends where the user starts asking for something new.
+  // Quad tips are their own part: the word "exhaust" in "quad exhaust tips" doesn't mean the £1,600 louder exhaust.
+  const QUAD_TIPS_RE=/\b(?:quad|four)\s+exhausts?(?:\s+(?:tips|pipes))?\b/g;
   const REM_MAP={wing:"spoiler",spoiler:"spoiler",wheel:"wheels",rim:"wheels",alloy:"wheels",kit:"bodykit",splitter:"bodykit",wide:"widebody",arch:"widebody",flare:"widebody",exhaust:"exhaust",tint:"tint",stripe:"stripes",wrap:"wrap",coilover:"drop",spring:"drop",suspension:"drop",remap:"tune",tune:"tune",brake:"brakes",caliper:"brakes",lights:"lights",smoke:"lights",intake:"intake"};
   const REM_PHRASES=[["widebody kit","widebody"],["wide body kit","widebody"],["wide body","widebody"],["brake kit","brakes"],["body kit","bodykit"],["bodykit","bodykit"],["aero kit","bodykit"],["air ride","drop"],["airride","drop"],["air suspension","drop"],["bags","drop"],["bagged","drop"]];
   const remWords=[];
@@ -181,7 +183,8 @@ function planParts(text){
     let w=rem[3].split(/\b(add|fit|put|give|make|then|but|with)\b/)[0].replace(WHEEL_ASK_RE," ");
     // Match whole part names first, so "big brake kit" doesn't also remove the aero "kit".
     for(const [ph,id] of REM_PHRASES) if(w.includes(ph)){if(!remove.includes(id))remove.push(id);w=w.split(ph).join(" ");}
-    for(const k in REM_MAP) if(w.includes(k)&&!remove.includes(REM_MAP[k])) remove.push(REM_MAP[k]);
+    const remPart=w.replace(QUAD_TIPS_RE," ");
+    for(const k in REM_MAP) if(remPart.includes(k)&&!remove.includes(REM_MAP[k])) remove.push(REM_MAP[k]);
     remWords.push(w);
   }
   const removing=remove.length>0;
@@ -229,7 +232,7 @@ function planParts(text){
   // "No pops and bangs" asks for them to stay off, so it adds nothing.
   const NOPOPS_RE=/\b(?:no|without|remove|lose|get rid of|turn off|switch off)\s+(?:the\s+)?(?:pops|bangs|crackles?)(?:\s+(?:and|n|&)\s+bangs)?\b/g;
   if(NOPOPS_RE.test(t)){t=t.replace(NOPOPS_RE," ");notes.push("No pops and bangs: they're a remap setting, and a tuner can switch them off.");}
-  if(/exhaust|louder|\bloud\b|noisier|pops|bangs|crackle|burble|growl|straight pipe|sounds? (better|meaner|angrier|nastier|sportier)|better sound/.test(t)&&!remove.includes("exhaust")) add("exhaust",{});
+  if(/exhaust|louder|\bloud\b|noisier|pops|bangs|crackle|burble|growl|straight pipe|sounds? (better|meaner|angrier|nastier|sportier)|better sound/.test(t.replace(QUAD_TIPS_RE," "))&&!remove.includes("exhaust")) add("exhaust",{});
   if(/intake|induction|air filter|cold air/.test(t)) add("intake",{});
   // Pops and bangs are a remap setting (an overrun map), not just an exhaust part.
   const pops=/\bpops\b|\bbangs\b|\bcrackles?\b|\boverrun\b|\bburble (?:map|tune)\b/.test(t)&&!remove.includes("exhaust");
