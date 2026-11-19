@@ -349,6 +349,11 @@ const SPEED_Q=/\bhow (?:fast|quick)\b|\bhow (?:much|many) (?:power|bhp|hp|horse 
 const LEGAL_Q=/\b(?:road ?legal|legal|illegal|mot|insurance|insurer|insure)\b/;
 const ASKING=/\?|^\s*(?:is|are|will|would|does|do|can|could|should|am|what|how|whats|what's)\b/;
 const INFO_Q=/^\s*(?:what(?:'s| is| are| does| do)|whats|how (?:does|do)|tell me about|explain)\b/;
+/* Advice questions ("should i get a remap", "is a stage 2 remap worth it", "would coilovers suit it", "does a remap void warranty")
+   get the same what-it-is answer as INFO_Q; nothing is fitted until the user says "add it". */
+const ADVICE_Q=/^\s*(?:should i|shall i|is (?:it|an?|the|getting)\b.*\bworth|are .*\bworth|(?:would|will|could)\b.*\b(?:suit|look good|ruin|affect|void|hurt|wreck|be worth)|do(?:es)?\b.*\b(?:ruin|affect|void|suit|hurt|wreck)|(?:what|which)\b.*\bsuits?)\b/;
+const WARRANTY_Q=/\bwarrant(?:y|ee)\b/;
+const WARRANTY_NOTE="Warranty: if your car is still under the maker's warranty, a remap or suspension change can let the dealer refuse claims on related parts (engine, gearbox, suspension). Looks-only parts like wraps, wheels or tint usually don't affect it. Ask your dealer before you buy.";
 function questionReply(low){
   const none={switchCar:null,reset:false,apply:[],remove:[],notes:{}};
   const car=CARS.find(x=>x.id===state.car), mods=state.mods||{}, n=Object.keys(mods).length;
@@ -367,16 +372,20 @@ function questionReply(low){
     if(n&&!mods.tint) tips.push("Nothing else on this build is illegal on its own if it's fitted well.");
     return {reply:(n?"For your build: ":`As standard your ${car.model} is fully road legal. If you add parts: `)+tips.join(" "),...none};
   }
-  if(!INFO_Q.test(low)) return null;
-  const part=low.replace(/[?]/g," ").replace(/\b(?:what|whats|what's|how|tell|me|about|explain|is|are|does|do|mean|means|meaning|a|an|the|it|they|them|that|this|on|my|car|for|to|work|works|good|actually|exactly|please|pls)\b/g," ").replace(/\s+/g," ").trim();
-  if(!part) return null;
+  const warranty=WARRANTY_Q.test(low)&&ASKING.test(low), advice=ADVICE_Q.test(low)||warranty;
+  if(!INFO_Q.test(low)&&!advice) return null;
+  const warn=warranty?" "+WARRANTY_NOTE:"", warnOnly=warranty?{reply:WARRANTY_NOTE,...none}:null;
+  let part=low.replace(/[?]/g," ").replace(/\b(?:what|whats|what's|how|tell|me|about|explain|is|are|does|do|mean|means|meaning|a|an|the|it|they|them|that|this|on|my|car|for|to|work|works|good|actually|exactly|please|pls)\b/g," ");
+  if(advice) part=part.replace(/\b(?:should|shall|would|will|could|i|we|get|getting|buy|add|fit|have|go|worth|really|suit|suits|look|looks|ruin|ruins|affect|affects|void|voids|hurt|hurts|wreck|wrecks|warranty|warrantee|ride|handling|which|best|mods?|modding|modifications?|any|of|be|with|its|or|not)\b/g," ");
+  part=part.replace(/\s+/g," ").trim();
+  if(!part) return warnOnly;
   const p=planParts(part), a=(p.apply||[]).find(x=>x.id!=="custom");
-  if(!a) return null;
+  if(!a) return warnOnly;
   const q=sanitize(a.id,a.params,car), info=modInfo(a.id,q,car);
-  if(!info||!info.what) return null;
+  if(!info||!info.what) return warnOnly;
   const on=JSON.stringify(mods[a.id])===JSON.stringify(q);
   if(!on) priceAsked=part;
-  return {reply:`${modLabel(a.id,q)}: ${info.what} ${info.effect||""} About £${Math.round(modPrice(a.id,q,car)).toLocaleString("en-GB")} fitted on the ${car.model}.${on?" It's already on your car.":' Say "add it" to try it.'}`.replace(/\s+/g," "),priceQuestion:true,...none};
+  return {reply:(`${modLabel(a.id,q)}: ${info.what} ${info.effect||""} About £${Math.round(modPrice(a.id,q,car)).toLocaleString("en-GB")} fitted on the ${car.model}.${on?" It's already on your car.":' Say "add it" to try it.'}`+warn).replace(/\s+/g," "),priceQuestion:true,...none};
 }
 function localPlan(text){
   // priceAsked is cleared by applyPlan (chat.js) on the next real message, so behind-the-scenes checks can't wipe it.
