@@ -89,6 +89,11 @@ function planParts(text){
   const QUIET_RE=/\b(?:quiet(?:er)?|silent|less (?:loud|noisy)|toned?[- ]down)\s+(?:the\s+)?exhausts?\b|\bexhausts?\s+(?:a (?:bit|little|lot)\s+)?(?:quieter|less (?:loud|noisy))\b|\b(?:tone|turn)\s+(?:the\s+)?exhausts?\s+down\b|\bmake\s+(?:it|the car|her|him)\s+(?:a (?:bit|little|lot)\s+)?(?:quieter|less (?:loud|noisy))\b|\bquieter\s+please\b|\b(?:it'?s|its|it is|exhaust is|way)?\s*too (?:loud|noisy)\b/g;
   // "Take the wheels off" / "take my spoiler off" means remove them, the same as "take off the wheels".
   t=t.replace(/\btake\s+(?:the\s+|my\s+|that\s+|those\s+)?([a-z][a-z ]{1,30}?)\s+off\b/g,(m,w)=>/^(?:it|them|everything|all)$/.test(w)?m:" remove the "+w+" ");
+  // "Not too loud" / "nothing too noisy" is a limit, not a complaint: blank it so it can't read as "quieter" (Car #106).
+  const NOT_LOUD_RE=/\b(?:not|nothing|isn'?t|aren'?t|won'?t be|don'?t want it)\s+(?:too|that|so|overly|crazy|stupidly)\s+(?:loud|noisy)\b/g;
+  const notLoud=NOT_LOUD_RE.test(t); if(notLoud) t=t.replace(NOT_LOUD_RE," ");
+  // "Spoiler not too big" / "nothing too big on the wing" means a small one, not the GT wing.
+  if(/spoiler|\bwing\b|duck ?tail/.test(t)) t=t.replace(/\b(?:not|nothing|isn'?t|don'?t want (?:it|anything))\s+(?:too|that|so|overly|crazy)\s+(?:big|large|huge|tall|much|over the top)\b/g," subtle ");
   const quiet=QUIET_RE.test(t); if(quiet) t=t.replace(QUIET_RE," standard exhaust ");
   // "Carbon (kidney) grilles": the studio's grille part is gloss black, so fit that and say carbon costs a bit more.
   const CARBON_GRILLE_RE=/\bcarbon(?:[- ]fib(?:re|er))?\s+(?:front\s+|kidney\s+)?(?:grilles?|kidneys?)\b/g;
@@ -102,6 +107,7 @@ function planParts(text){
   // UK slang is read before the removal rule, so the "delete"/"remove" in these doesn't take parts off.
   const notes=[...hiddenNote];
   if(quiet) notes.push("The standard exhaust is the quietest: every aftermarket exhaust is louder.");
+  if(notLoud&&!quiet) notes.push("For a sportier sound that isn't too loud, the valved cat-back is the one: louder than standard, but keep the valves shut for a quiet cruise, and it stays under the MOT noise limit.");
   if(carbonGrille) notes.push("The studio shows the gloss black grille; real carbon fibre grilles look similar and cost a bit more (about £250).");
   // A decat fails the MOT, so it's never fitted; suggest a legal cat-back exhaust instead.
   const DECAT_RE=/\bde-?cat(?:ted)?\b|\bcat(?:alytic converter)? delete\b|\b(?:remove|delete|take off|take out|get rid of|lose)\s+(?:the\s+)?(?:cat|catalytic converter)\b(?!-)/g;
