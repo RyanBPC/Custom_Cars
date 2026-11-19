@@ -364,6 +364,32 @@ function questionReply(low){
     return {reply:r+` The Studio's numbers panel shows the full list.${x.hp===b.hp?' Say "add a remap" for more power.':""}`,...none};
   }
   if(LEGAL_Q.test(low)&&ASKING.test(low)){
+    // "Is underglow legal?" / "are smoked lights legal": answer for the part named, not the general build.
+    const asked=low.replace(/[?!.,]/g," ").replace(/\b(?:is|are|will|would|does|do|can|could|should|am|what|whats|what's|how|about|it|its|a|an|the|my|this|that|these|those|road|legal|illegal|mot|insurance|insurer|insure|affect|pass|fail|uk|in|on|car|cars|get|getting|have|having|fit|fitting|fitted|to|be|of|with|for|me|i|still|and|they|them|really|actually|allowed|please|pls)\b/g," ").replace(/\s+/g," ").trim();
+    const RULE={
+      underglow:"Underglow is legal to fit, but on the road it mustn't show red to the front, white to the back, or any blue or flashing light; the safe way is to only switch it on when parked.",
+      lightbar:"A light bar is legal to fit, but it must stay off on public roads (it's for off-road use).",
+      plates:"3D and 4D raised plates are legal if they're made to the British Standard (BS AU 145e) with the standard font and spacing; tinted, ghost or re-spaced plates aren't.",
+      spoiler:"A spoiler or wing is legal if it's fixed firmly and has no sharp edges sticking out past the car.",
+      lights:"Smoked lights are only legal if they're still bright enough and the right colour (white front, red rear, orange indicators); dark smoked tail lights often fail the MOT.",
+      tint:"Front side windows must let through at least 70% of light, and the windscreen 75%, so dark front tint can fail the MOT and get you a fine. Rear windows can be any darkness.",
+      exhaust:"A louder exhaust is legal if it keeps its catalytic converter and isn't too loud; a decat or very loud system can fail the MOT's noise and emissions checks.",
+      decat:"A decat (taking out the catalytic converter) fails the MOT emissions test and isn't road legal.",
+      drop:"Lowered cars are legal, but the tyres mustn't rub and the headlights may need re-aiming.",
+      tune:"A remap is legal, but it must be declared to your insurer.",
+      wheels:"Bigger wheels are legal if the tyres don't rub or stick out past the arches.",
+      body:"Body kits and wide arches are legal if the tyres stay covered and there are no sharp edges.",
+      wrap:"A wrap or respray is legal; for a full colour change, tell the DVLA (on your V5C) and your insurer."};
+    const keys=[];
+    if(/\bde-?cat(?:ted)?\b|\bcat(?:alytic converter)? delete\b/.test(low)) keys.push("decat");
+    else if(asked){
+      const p=planParts(asked);
+      for(const a of p.apply||[]){
+        if(a.id==="custom"){for(const i of a.params.items||[]){const k=i.name==="LED underglow"?"underglow":i.name==="LED light bar"?"lightbar":i.name==="Styled number plates"?"plates":null; if(k) keys.push(k);}}
+        else{const k=a.id==="widebody"||a.id==="bodykit"?"body":a.id; if(RULE[k]) keys.push(k);}
+      }
+    }
+    if(keys.length) return {reply:[...new Set(keys)].map(k=>RULE[k]).join(" ")+" Tell your insurer about every mod, or a claim can be refused.",...none};
     const tips=["Tell your insurer about every mod, or a claim can be refused."];
     if(mods.tint) tips.push("Front side windows must let through at least 70% of light, and the windscreen 75%, so dark front tint can fail the MOT and get you a fine.");
     if(mods.exhaust||/exhaust|loud/.test(low)) tips.push("A loud or decat exhaust can fail the MOT's noise and emissions checks.");
