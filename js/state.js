@@ -9,6 +9,8 @@ try{const old=localStorage.getItem("modvista.build");if(old!==null){if(localStor
 try{const s=JSON.parse(localStorage.getItem("customizacions.build")||"null");if(s&&CARS.some(c=>c.id===s.car)){state={car:s.car,mods:{},plate:s.plate||"",plateCar:CARS.some(c=>c.id===s.plateCar)?s.plateCar:null};}}catch(e){}
 function save(){try{localStorage.setItem("customizacions.build",JSON.stringify(state));}catch(e){}}
 const car=()=>CARS.find(c=>c.id===state.car);
+// How many parts a build has: each extra part (underglow, roll cage...) counts on its own, not as one "custom" part.
+function partCount(mods){mods=mods||{};return Object.keys(mods).reduce((n,id)=>n+(id==="custom"?((mods.custom&&Array.isArray(mods.custom.items))?mods.custom.items.length:0):1),0);}
 
 function nearest(arr,v){return arr.reduce((a,b)=>Math.abs(b-v)<Math.abs(a-v)?b:a);}
 function toColour(v,fallback){

@@ -356,7 +356,7 @@ const WARRANTY_Q=/\bwarrant(?:y|ee)\b/;
 const WARRANTY_NOTE="Warranty: if your car is still under the maker's warranty, a remap or suspension change can let the dealer refuse claims on related parts (engine, gearbox, suspension). Looks-only parts like wraps, wheels or tint usually don't affect it. Ask your dealer before you buy.";
 function questionReply(low){
   const none={switchCar:null,reset:false,apply:[],remove:[],notes:{}};
-  const car=CARS.find(x=>x.id===state.car), mods=state.mods||{}, n=Object.keys(mods).length;
+  const car=CARS.find(x=>x.id===state.car), mods=state.mods||{}, n=partCount(mods);
   if(SPEED_Q.test(low)&&ASKING.test(low)){
     const x=perf(car,mods), b=perf(car,{});
     const r=n&&x.hp!==b.hp?`Your ${car.model} now makes about ${x.hp} bhp and ${x.nm} Nm (standard is ${b.hp} bhp), with 0-62 mph in about ${x.t62}s (standard ${b.t62}s).`
@@ -417,7 +417,7 @@ function localPlan(text){
   }
   if(p.switchCar&&!sameCar&&!totalAsked){const say=(c.make==="Volkswagen"?c.model:c.make+" "+c.model.split(" ")[0]).toLowerCase();
     return {reply:`A ${c.used?"used":"new"} ${c.make} ${c.model} is about ${money(c.price)}, before any parts. Say "${say}" to build one.`,switchCar:null,reset:false,apply:[],remove:[],notes:{}};}
-  const cur=CARS.find(x=>x.id===state.car), bc=buildCost(cur,state.mods), n=Object.keys(state.mods).length;
+  const cur=CARS.find(x=>x.id===state.car), bc=buildCost(cur,state.mods), n=partCount(state.mods);
   if(!n) return {reply:`Your ${cur.model} is still standard: about ${money(cur.price)} ${cur.used?"used":"new"}, with no parts added yet. Ask "how much is a remap" (or any part) to see its price.`,switchCar:null,reset:false,apply:[],remove:[],notes:{}};
   return {reply:`Your build: the ${cur.model} is about ${money(cur.price)} ${cur.used?"used":"new"}, plus ${money(bc)} for ${n} part${n>1?"s":""} with fitting, so about ${money(cur.price+bc)} in total. The Price list page shows what each part costs.`,switchCar:null,reset:false,apply:[],remove:[],notes:{}};
 }

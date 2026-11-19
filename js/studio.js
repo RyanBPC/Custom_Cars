@@ -58,7 +58,7 @@ function renderInfo(){
     return `<div class="bar"><span>${l}</span><div class="track" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${b}" aria-label="${l}: ${b} with your build, ${a} stock">${track}</div><span class="mono">${b}${d?` <small class="${d>0?"up":"down"}">${d>0?"+":"−"}${Math.abs(d)}</small>`:""}</span></div>`;
   }).join("");
   const ids=Object.keys(state.mods).sort((a,b)=>MODS[a].order-MODS[b].order);
-  $("modCount").textContent=ids.length+(ids.length===1?" part":" parts");
+  const pc=partCount(state.mods); $("modCount").textContent=pc+(pc===1?" part":" parts");
   $("fitted").innerHTML=ids.length?ids.map(id=>`<li><div>${modLabel(id,state.mods[id])}<small>${MODS[id].cat}</small></div><span class="mono">${fmt(modPrice(id,state.mods[id],c))}</span><button class="x" type="button" data-remove="${id}" aria-label="Remove ${MODS[id].name}">×</button></li>`).join(""):`<li class="empty">Stock. Ask the advisor for your first upgrade.</li>`;
   const bc=buildCost(c,state.mods);
   $("totals").innerHTML=`<div><span>Car, ${c.used?"used":"new"} (approx.)</span><span class="mono">${fmt(c.price)}</span></div><div><span>Parts and fitting</span><span class="mono">${fmt(bc)}</span></div><div class="grand"><span>Total</span><span class="mono">${fmt(c.price+bc)}</span></div>`;
@@ -94,9 +94,9 @@ function renderMyBuilds(){
   const list=loadMyBuilds(), box=$("myBuilds"), ul=$("myBuildsList");
   box.hidden=!list.length; ul.innerHTML="";
   list.forEach((b,i)=>{
-    const c=CARS.find(x=>x.id===b.car), mods=sanitizeAll(b.mods,c), n=Object.keys(mods).length;
+    const c=CARS.find(x=>x.id===b.car), mods=sanitizeAll(b.mods,c), kn=Object.keys(mods).length, n=partCount(mods);
     const li=document.createElement("li"), d=document.createElement("div"), sm=document.createElement("small");
-    d.textContent=b.name; const lost=Object.keys(b.mods).length-n; sm.textContent=`${c.make} ${c.model} · ${n} part${n===1?"":"s"}${lost>0?` (${lost} no longer available)`:""} · ${fmt(c.price+buildCost(c,mods))}`; d.appendChild(sm);
+    d.textContent=b.name; const lost=Object.keys(b.mods).length-kn; sm.textContent=`${c.make} ${c.model} · ${n} part${n===1?"":"s"}${lost>0?` (${lost} no longer available)`:""} · ${fmt(c.price+buildCost(c,mods))}`; d.appendChild(sm);
     const open=document.createElement("button"); open.type="button"; open.className="btn"; open.textContent="Open"; open.dataset.open=i; open.setAttribute("aria-label",`Open saved build ${b.name}`);
     const del=document.createElement("button"); del.type="button"; del.className="btn ghost"; del.textContent="Delete"; del.dataset.del=i; del.setAttribute("aria-label",`Delete saved build ${b.name}`);
     li.append(d,open,del); ul.appendChild(li);
@@ -171,8 +171,8 @@ function switchCar(id,announce){
 }
 // Advisor message with a "Bring it back" button that restores the build switchCar replaced.
 function offerUndo(kept){
-  const k=CARS.find(c=>c.id===kept.car), n=Object.keys(kept.mods).length;
-  const d=addAI(`Your previous ${k.make} ${k.model} build (${n} part${n>1?"s":""}) is kept, in case you want it back.`);
+  const k=CARS.find(c=>c.id===kept.car), n=partCount(kept.mods);
+  const d=addAI(`Your previous ${k.make} ${k.model} build (${n} part${n===1?"":"s"}) is kept, in case you want it back.`);
   const b=document.createElement("button"); b.type="button"; b.className="btn undo-build"; b.textContent="Bring it back";
   b.addEventListener("click",()=>{
     if(state.plateCar&&state.plateCar!==kept.car) clearPlate();

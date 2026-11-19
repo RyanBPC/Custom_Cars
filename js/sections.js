@@ -36,7 +36,7 @@ const onCar=name=>{const ph=TRY_PHRASE[name];if(!ph)return false;const ap=stockP
       return !(a.params&&a.params.stage!=null)||+m.stage===+a.params.stage;});});
   return need.length>0&&need.every(f=>f());};
 function renderPrices(){
-  const c=car(),n=Object.keys(state.mods).length;
+  const c=car(),n=partCount(state.mods);
   $("priceBuild").innerHTML=n?`Your build so far on the ${c.make} ${c.model}: <b>${fmt(buildCost(c,state.mods))}</b> in parts and fitting (${n} ${n===1?"part":"parts"}). <a href="#build">See it in the Build tab →</a>`:`Nothing fitted yet. Press "Try it on the car" on any row to see it on the 3D car.`;
   $("priceTable").innerHTML=`<thead><tr><th>Upgrade</th><th>What you get</th><th>Fitted price</th></tr></thead><tbody>`+PRICE_ROWS.map(([cat,rows])=>`<tr class="cat"><th colspan="3" scope="colgroup">${cat}</th></tr>`+rows.map(r=>{const on=onCar(r[0]);return `<tr${on?' class="fitted"':""}><td>${r[0]}${on?'<span class="oncar">On your car</span>':tryBtn(r[0])}</td><td class="muted">${r[1]}</td><td class="p">${r[2]}</td></tr>`;}).join("")).join("")+`</tbody>`;
 }
