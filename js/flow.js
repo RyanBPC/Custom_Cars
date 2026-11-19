@@ -233,6 +233,8 @@ async function loadShots() {
   el("partNote").hidden = !ebayNote || ebayNote === "ebay_offline";
   el("partNote").innerHTML = ebayNote === "no_ebay_key"
     ? `<b>Want photos of the real parts?</b> Add your free eBay keys to .env (see docs/EBAY.md) and restart start.bat. Each card then shows a real listing that fits your car.`
+    : ebayNote === "ebay_keys"
+    ? `<b>eBay didn't accept your keys.</b> Check EBAY_CLIENT_ID and EBAY_CLIENT_SECRET in .env (see docs/EBAY.md), then restart start.bat. Until then the parts are shown on the 3D car.`
     : ebayNote ? `eBay didn't answer just now, so the parts are shown on the 3D car instead.` : "";
   // 2. The 3D car from the right angle for anything without a real part (remaps, paint, or no eBay keys).
   for (const [i, x] of list.entries()) {

@@ -105,6 +105,8 @@ def ebay_get_token():
                 tok = json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             print(f"eBay sign-in failed (HTTP {e.code}): {e.read().decode('utf-8', 'replace')[:300]}")
+            if e.code >= 500:
+                raise ApiError(502, "ebay_failed", "eBay's sign-in is having problems. Try again in a minute.")
             raise ApiError(502, "ebay_keys", "eBay didn't accept the keys in .env. Check EBAY_CLIENT_ID and EBAY_CLIENT_SECRET (production keys).")
         ebay_token["value"] = tok["access_token"]
         ebay_token["expires"] = time.time() + int(tok.get("expires_in", 7200))
@@ -139,6 +141,10 @@ def ebay_search(words, limit=3):
         raise ApiError(502, "ebay_failed", "eBay didn't answer the search. Try again in a minute.")
     except urllib.error.URLError as e:
         raise ApiError(502, "ebay_offline", f"Couldn't reach eBay ({e.reason}). Check the internet connection.")
+    except (TimeoutError, OSError, ValueError) as e:
+        # A slow reply (read timeout), a dropped connection or a garbled answer: say so instead of crashing the request.
+        print(f"eBay search didn't finish: {e!r}")
+        raise ApiError(502, "ebay_offline", "eBay was too slow to answer. Check the internet connection and try again.")
     items = []
     for it in found:
         price, img = it.get("price") or {}, (it.get("image") or it.get("thumbnailImages", [{}])[0] or {}).get("imageUrl", "")
