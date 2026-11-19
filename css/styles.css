@@ -736,5 +736,6 @@ nav.main .wip-mark{font-size:0;width:7px;height:7px;padding:0;margin-left:4px;ba
 .part-item-price b{font-size:17px}
 .part-item-price small{color:var(--muted);font-size:12px}
 .part-item-links{display:flex;flex-wrap:wrap;gap:6px}
+.part-item-note{margin:-4px 0 0;line-height:1.4}
 .part-note{padding:12px 16px;margin:0 0 16px;font-size:14px;color:var(--muted)}
 .part-note b{color:var(--fg)}

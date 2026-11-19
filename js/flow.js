@@ -190,7 +190,7 @@ function renderParts() {
     </article>`).join("") : `<p class="part-none muted">No parts yet. Pick some in step 2 and they'll show here with prices and shops.</p>`;
   const parts = buildCost(c, state.mods);
   el("partTotal").hidden = !list.length;
-  el("partTotal").innerHTML = `<div><span>${list.length} part${list.length === 1 ? "" : "s"}, fitted</span><b class="mono">${fmt(parts)}</b></div><div><span>${c.make} ${c.model}, ${c.used ? "used" : "new"} (approx.)</span><b class="mono">${fmt(c.price)}</b></div><div class="grand"><span>Total</span><b class="mono">${fmt(parts + c.price)}</b></div>`;
+  el("partTotal").innerHTML = `<div><span>${list.length} part${list.length === 1 ? "" : "s"}, typical fitted prices (not the eBay prices)</span><b class="mono">${fmt(parts)}</b></div><div><span>${c.make} ${c.model}, ${c.used ? "used" : "new"} (approx.)</span><b class="mono">${fmt(c.price)}</b></div><div class="grand"><span>Total</span><b class="mono">${fmt(parts + c.price)}</b></div>`;
   partsShown = false; loadShots();
 }
 // Real products from eBay UK (through the local server, which keeps the eBay keys). null = not available.
@@ -212,7 +212,8 @@ function showProduct(i, x, items, words) {
   if (it.image) { pic.dataset.product = "1"; pic.innerHTML = `<img src="${esc(it.image)}" alt="${esc(it.title)}" referrerpolicy="no-referrer" loading="lazy"><span class="part-chip">eBay listing</span>`; }
   box.hidden = false;
   box.innerHTML = `<a class="part-item" href="${esc(it.url)}" target="_blank" rel="noopener"><span class="part-item-title">${esc(it.title)}</span>
-      <span class="part-item-price"><b class="mono">£${it.price.toLocaleString("en-GB",{minimumFractionDigits:2,maximumFractionDigits:2})}</b> ${it.condition ? `<small>${esc(it.condition)}</small>` : ""}</span></a>
+      <span class="part-item-price"><b class="mono">£${it.price.toLocaleString("en-GB",{minimumFractionDigits:2,maximumFractionDigits:2})}</b> <small>part only, on eBay${it.condition ? `, ${esc(it.condition.toLowerCase())}` : ""}</small></span></a>
+    <p class="part-item-note muted small">Fitting not included. Check the listing says it fits your car before buying.</p>
     <div class="part-item-links"><a class="btn sm primary" href="${esc(it.url)}" target="_blank" rel="noopener">View this part on eBay ↗</a>
       ${items.length > 1 ? `<a class="btn sm" href="${esc(more)}" target="_blank" rel="noopener">More options ↗</a>` : ""}</div>`;
   return true;
