@@ -86,10 +86,13 @@ function planParts(text){
   // "Stock wheels", "standard exhaust", "put the wheels back to stock" take that part off (back to the factory one), so they're read before the reset rule.
   const STOCK_PART={wheel:"wheels",wheels:"wheels",rim:"wheels",rims:"wheels",alloy:"wheels",alloys:"wheels",exhaust:"exhaust",suspension:"suspension",height:"suspension","ride height":"suspension",brake:"brakes",brakes:"brakes",calipers:"brakes",lights:"lights",headlights:"lights",taillights:"lights","tail lights":"lights",windows:"tint",glass:"tint",spoiler:"spoiler",bumpers:"body kit",paint:"wrap",colour:"wrap",color:"wrap"};
   // "Quieter exhaust" / "make the exhaust quieter" means back to the standard exhaust, the quietest one.
-  const QUIET_RE=/\b(?:quiet(?:er)?|silent|less (?:loud|noisy)|toned?[- ]down)\s+(?:the\s+)?exhausts?\b|\bexhausts?\s+(?:a (?:bit|little|lot)\s+)?(?:quieter|less (?:loud|noisy))\b|\b(?:tone|turn)\s+(?:the\s+)?exhausts?\s+down\b/g;
+  const QUIET_RE=/\b(?:quiet(?:er)?|silent|less (?:loud|noisy)|toned?[- ]down)\s+(?:the\s+)?exhausts?\b|\bexhausts?\s+(?:a (?:bit|little|lot)\s+)?(?:quieter|less (?:loud|noisy))\b|\b(?:tone|turn)\s+(?:the\s+)?exhausts?\s+down\b|\bmake\s+(?:it|the car|her|him)\s+(?:a (?:bit|little|lot)\s+)?(?:quieter|less (?:loud|noisy))\b|\bquieter\s+please\b|\b(?:it'?s|its|it is|exhaust is|way)?\s*too (?:loud|noisy)\b/g;
   // "Take the wheels off" / "take my spoiler off" means remove them, the same as "take off the wheels".
   t=t.replace(/\btake\s+(?:the\s+|my\s+|that\s+|those\s+)?([a-z][a-z ]{1,30}?)\s+off\b/g,(m,w)=>/^(?:it|them|everything|all)$/.test(w)?m:" remove the "+w+" ");
   const quiet=QUIET_RE.test(t); if(quiet) t=t.replace(QUIET_RE," standard exhaust ");
+  // "Carbon (kidney) grilles": the studio's grille part is gloss black, so fit that and say carbon costs a bit more.
+  const CARBON_GRILLE_RE=/\bcarbon(?:[- ]fib(?:re|er))?\s+(?:front\s+|kidney\s+)?(?:grilles?|kidneys?)\b/g;
+  const carbonGrille=CARBON_GRILLE_RE.test(t); if(carbonGrille) t=t.replace(CARBON_GRILLE_RE," gloss black grille ");
   const SP=String.raw`(ride height|tail lights|\d{2}s|`+Object.keys(STOCK_PART).filter(k=>!k.includes(" ")).join("|")+")";
   const stockNames=[];
   const toStock=w=>{const k=/^\d{2}s$/.test(w)?"wheels":STOCK_PART[w]; if(!stockNames.includes(k)) stockNames.push(k); return " remove the "+k+" , ";};
@@ -99,6 +102,7 @@ function planParts(text){
   // UK slang is read before the removal rule, so the "delete"/"remove" in these doesn't take parts off.
   const notes=[...hiddenNote];
   if(quiet) notes.push("The standard exhaust is the quietest: every aftermarket exhaust is louder.");
+  if(carbonGrille) notes.push("The studio shows the gloss black grille; real carbon fibre grilles look similar and cost a bit more (about £250).");
   // A decat fails the MOT, so it's never fitted; suggest a legal cat-back exhaust instead.
   const DECAT_RE=/\bde-?cat(?:ted)?\b|\bcat(?:alytic converter)? delete\b|\b(?:remove|delete|take off|take out|get rid of|lose)\s+(?:the\s+)?(?:cat|catalytic converter)\b(?!-)/g;
   const decat=DECAT_RE.test(t);
