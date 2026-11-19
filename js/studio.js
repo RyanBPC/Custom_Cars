@@ -214,6 +214,6 @@ function lookupPlate(v){
   state.plate=pretty; $("plate").value=pretty;
   const hit=DEMO_PLATES[raw];
   state.plateCar=hit||null;
-  if(hit){switchCar(hit,false);msg.textContent=`Found ${pretty}: ${car().make} ${car().model}. (Demo data. Live DVLA lookup arrives in phase 2.)`;addAI(`I found ${pretty}. It's a ${car().make} ${car().model} with a ${car().engine}. What do you want to do to it?`);}
-  else {msg.textContent=`${pretty} saved. Demo mode can't look up real plates yet, so pick your model from the list above.`;renderInfo();save();}
+  if(hit){switchCar(hit,false);msg.textContent=`Found ${pretty}: ${car().make} ${car().model} (one of the three example plates).`;addAI(`I found ${pretty}. It's a ${car().make} ${car().model} with a ${car().engine}. What do you want to do to it?`);}
+  else {msg.textContent=`We can't look up real plates yet, so pick your car above. ${pretty} will still show on the 3D car.`;renderInfo();save();}
 }
