@@ -181,13 +181,31 @@ async function savePicture(btn) {
   try {
     const shot = await v.snapshot(); if (!shot || !shot.blob) throw new Error("no picture");
     const c = car(), ext = shot.blob.type === "image/jpeg" ? "jpg" : "png";
+    const blob = await captionPicture(shot.blob, c).catch(e => { console.warn("Picture caption skipped:", e); return shot.blob; });
     const name = `${c.make} ${c.model} my build`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    const a = document.createElement("a"), url = URL.createObjectURL(shot.blob);
+    const a = document.createElement("a"), url = URL.createObjectURL(blob);
     a.href = url; a.download = `${name}.${ext}`; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
     $("spinLive").textContent = shot.sharp ? "Saved the photo-quality picture" : "Saved picture";
   } catch (e) { console.warn("Save picture failed:", e); $("spinLive").textContent = "Sorry, the picture couldn't be saved"; }
   btn.disabled = false;
+}
+
+// Adds a slim dark strip along the bottom of a saved picture saying what the build is,
+// e.g. "Volkswagen Golf GTI · 6 parts · about £8,400 fitted", so a picture sent to a friend explains itself.
+async function captionPicture(blob, c) {
+  const img = await createImageBitmap(blob), w = img.width, h = img.height;
+  const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+  const g = cv.getContext("2d"); g.drawImage(img, 0, 0);
+  const n = partCount(state.mods), strip = Math.max(28, Math.round(h * 0.05)), pad = Math.round(strip * 0.6);
+  const left = `${c.make} ${c.model} · ` + (n ? `${n} ${n === 1 ? "part" : "parts"} · about ${fmt(buildCost(c, state.mods))} fitted` : "stock");
+  g.fillStyle = "rgba(10,11,13,0.82)"; g.fillRect(0, h - strip, w, strip);
+  g.textBaseline = "middle"; const y = h - strip / 2;
+  g.font = `600 ${Math.round(strip * 0.42)}px system-ui, sans-serif`; g.fillStyle = "#f2f2f2"; g.textAlign = "left";
+  g.fillText(left, pad, y, w * 0.62);
+  g.font = `${Math.round(strip * 0.34)}px system-ui, sans-serif`; g.fillStyle = "#a8acb3"; g.textAlign = "right";
+  g.fillText("Custom Cars Build Studio · 3D preview", w - pad, y, w * 0.33);
+  return await new Promise((ok, bad) => cv.toBlob(b => b ? ok(b) : bad(new Error("no blob")), blob.type || "image/png", 0.92));
 }
 
 // Interior: sit in a seat and look around; the button steps back out.
