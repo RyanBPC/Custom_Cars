@@ -2,7 +2,7 @@
 "use strict";
 /* ---------- test drive ---------- */
 const road=$("road"), cvs=$("roadCanvas"), cx2=cvs.getContext("2d");
-let dMode="build", drv={running:false,v:0,gear:1,rpm:0,thr:false,shift:0,dist:0,t0:null,done:false,last:0,wheelA:0};
+let dMode="build", drv={running:false,v:0,gear:1,rpm:0,thr:false,shift:0,dist:0,t0:null,done:false,last:0,wheelA:0,times:{}};
 /* Share of top speed each gear reaches at the redline, by number of gears (6 if a car doesn't say). */
 const GEAR_TOP={5:[.3,.48,.66,.84,1],6:[.26,.4,.55,.7,.85,1],7:[.23,.35,.48,.61,.74,.87,1],8:[.2,.31,.42,.53,.64,.76,.88,1]};
 const gearsOf=c=>GEAR_TOP[c.gears]||GEAR_TOP[6];
@@ -33,8 +33,22 @@ function refreshDriveCar(){
   if(drv.running) engine.start(car(),dMods());
   // A different car means a different gearbox: start the run again so the gear and 0-62 timer fit it.
   if(drv.car&&drv.car!==car()) resetRun();
+  // Keep the last 0-62 of each setup so stock and your build can be compared; a new car clears both,
+  // a changed build clears only the build's time.
+  const bk=JSON.stringify(state.mods||{});
+  if(drv.car&&drv.car!==car()) drv.times={}; else if(drv.bk!==undefined&&drv.bk!==bk) drv.times.build=null;
+  drv.bk=bk; showTimes();
   drv.car=car();
   drv.gear=Math.min(drv.gear||1,gearsOf(car()).length);
+}
+/* Both remembered times under the run result, e.g. "Stock 5.90s · Your build 5.23s: 0.67s quicker". */
+function showTimes(){
+  const el=$("runBoth"); if(!el) return;
+  const s=drv.times.stock, b=drv.times.build, f=t=>`<b class="mono">${t.toFixed(2)}s</b>`;
+  if(s==null&&b==null){el.textContent="";return;}
+  let h=`Stock ${s!=null?f(s):"<span class=\"muted\">not timed yet</span>"} · Your build ${b!=null?f(b):"<span class=\"muted\">not timed yet</span>"}`;
+  if(s!=null&&b!=null){const d=s-b; h+=Math.abs(d)<.005?": the same":`: ${Math.abs(d).toFixed(2)}s ${d>0?"quicker":"slower"}`;}
+  el.innerHTML=h;
 }
 function setDMode(m){dMode=m;$("dStock").setAttribute("aria-pressed",m==="stock");$("dBuild").setAttribute("aria-pressed",m==="build");refreshDriveCar();resetRun();}
 $("dStock").addEventListener("click",()=>setDMode("stock"));
@@ -130,7 +144,7 @@ function driveLoop(now){
     if(driveStep(drv,c,P,m,cal,drv.thr,dt)) c.box==="dsg"?engine.burst(.035,1100,.06):engine.burst(.05,900,.05); // DSG: shorter, sharper pop
     engine.set(drv.rpm,drv.thr&&drv.shift<=0?1:0);
     const mph=drv.v*2.237;
-    if(drv.t0!==null&&!drv.done&&mph>=62){drv.done=true;const t=(now-drv.t0)/1000;$("runResult").innerHTML=`Virtual 0–62 mph: <b class="mono">${t.toFixed(2)}s</b> <span class="muted">(${dMode==="build"?"your build; estimated":"stock; manufacturer claims"} ${perf(c,dMods()).t62.toFixed(1)}s)</span>`;}
+    if(drv.t0!==null&&!drv.done&&mph>=62){drv.done=true;const t=(now-drv.t0)/1000;$("runResult").innerHTML=`Virtual 0–62 mph: <b class="mono">${t.toFixed(2)}s</b> <span class="muted">(${dMode==="build"?"your build; estimated":"stock; manufacturer claims"} ${perf(c,dMods()).t62.toFixed(1)}s)</span>`;drv.times[dMode]=t;showTimes();}
     if(drv.v<.3&&!drv.thr) drv.t0=null;
     $("mph").textContent=Math.round(mph);$("gear").textContent=drv.v<.2&&!drv.thr?"N":drv.gear;$("rpmTxt").textContent=Math.round(drv.rpm/50)*50;$("rpmBar").style.width=(drv.rpm/red*100)+"%";
   }
