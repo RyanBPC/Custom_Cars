@@ -108,7 +108,7 @@ function drawRoad(){
 /* One physics step, shared by the live drive and the off-screen calibration run. */
 const MPH=0.44704, driveCalCache={};
 function driveStep(s,c,P,m,cal,thr,dt){
-  const red=c.redline, mu={FWD:.72,RWD:.85,AWD:1.05}[c.drive];
+  const red=c.redline, mu={FWD:.72,RWD:.85,AWD:1.05}[c.drive]*(cal.muK||1);
   let F=0, shifted=false;
   if(s.shift>0) s.shift-=dt;
   else if(thr) F=Math.min(P/Math.max(s.v,2.5),mu*m*9.81);
@@ -134,10 +134,27 @@ function driveCal(c){
   for(let i=0;i<30;i++){const mid=(lo+hi)/2;if(t62(mk(mid))>c.t62)lo=mid;else hi=mid;}
   return driveCalCache[c.id]=mk((lo+hi)/2);
 }
+/* Car #115: tune a build the same way, so the road run lands on the Build page's 0-62 (perf() is the
+   source of truth). Extra grip from the build (lowering, wider wheels...) helps the launch a little,
+   and if power alone can't reach the estimate (traction-limited), launch grip makes up the rest. */
+const driveBuildCache={};
+function driveBuildCal(c,mods){
+  const base=driveCal(c), key=c.id+"|"+JSON.stringify(mods||{});
+  if(!mods||!Object.keys(mods).length) return base;
+  if(driveBuildCache[key]) return driveBuildCache[key];
+  const p=perf(c,mods), st=perf(c,{}), m=p.kg+80, aim=p.t62;
+  const run=cal=>{const s={v:0,gear:1,shift:0,rpm:0},P=p.hp*745.7*.8*cal.k;let t=0;
+    while(s.v<62/2.237&&t<60){driveStep(s,c,P,m,cal,true,1/60);t+=1/60;}return t;};
+  const at=(kb,muK)=>({...base,k:base.k*kb,muK});
+  let muK=1+Math.max(0,p.grip-st.grip)*.004, lo=.3, hi=3;
+  if(run(at(hi,muK))>aim){let a=muK,b=2;for(let i=0;i<20;i++){const mid=(a+b)/2;if(run(at(hi,mid))>aim)a=mid;else b=mid;}muK=b;}
+  for(let i=0;i<24;i++){const mid=(lo+hi)/2;if(run(at(mid,muK))>aim)lo=mid;else hi=mid;}
+  return driveBuildCache[key]=at((lo+hi)/2,muK);
+}
 function driveLoop(now){
   if(!driveVisible&&!drv.running){drv.last=now;requestAnimationFrame(driveLoop);return;}
   const dt=Math.min(.05,(now-(drv.last||now))/1000); drv.last=now;
-  const c=car(), p=perf(c,dMods()), m=p.kg+80, cal=driveCal(c);
+  const c=car(), p=perf(c,dMods()), m=p.kg+80, cal=driveBuildCal(c,dMods());
   const red=c.redline, P=p.hp*745.7*.8*cal.k;
   if(drv.running){
     if(drv.thr&&drv.t0===null&&drv.v<.5){drv.t0=now;drv.done=false;$("runResult").textContent="";}
