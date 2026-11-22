@@ -352,6 +352,8 @@ const ADD_IT=/^\s*(?:yes|yeah|yep|yup|go on|ok(?:ay)?|sure|go for it|do it|let'?
 const SPEED_Q=/\bhow (?:fast|quick)\b|\bhow (?:much|many) (?:power|bhp|hp|horse ?power|torque)\b|\bwhat(?:'s| is|s) (?:the |its |my )?(?:power|bhp|0-62|0 to 62|top speed)\b/;
 /* "0-60 time", "what is 0-62", "whats the top speed", "vmax": a speed question even without "how" or "?" (Car #110). */
 const SPEED_TOPIC=/(?:^|\s)0 ?(?:-|to) ?6[02](?:mph)?\b|\bzero to (?:sixty|60|62)\b|\btop ?speed\b|\bv ?max\b/;
+/* "is it fast", "is my car quick", "is the golf slow": a speed question, nothing is fitted (Car #128). */
+const SPEED_IS=/^\s*(?:is|isn'?t|is not) (?:it|she|this|my car|the car|this car|my \w+|the \w+)(?: \w+)? (?:fast|quick|slow|rapid|nippy|powerful)\b/;
 const SPEED_WANT=/\b(?:make|add|fit|give|increase|more|raise|improve|boost|faster|quicker|better|higher|remove|delimit|derestrict|unlimit)\b/;
 const LEGAL_Q=/\b(?:road ?legal|legal|illegal|mot|insurance|insurer|insure)\b/;
 const ASKING=/\?|^\s*(?:is|are|will|would|does|do|can|could|should|am|what|how|whats|what's)\b/;
@@ -364,7 +366,7 @@ const WARRANTY_NOTE="Warranty: if your car is still under the maker's warranty, 
 function questionReply(low){
   const none={switchCar:null,reset:false,apply:[],remove:[],notes:{}};
   const car=CARS.find(x=>x.id===state.car), mods=state.mods||{}, n=partCount(mods);
-  if((SPEED_Q.test(low)||SPEED_TOPIC.test(low))&&(ASKING.test(low)||(SPEED_TOPIC.test(low)&&!SPEED_WANT.test(low)))){
+  if(SPEED_IS.test(low)||(SPEED_Q.test(low)||SPEED_TOPIC.test(low))&&(ASKING.test(low)||(SPEED_TOPIC.test(low)&&!SPEED_WANT.test(low)))){
     const x=perf(car,mods), b=perf(car,{});
     const top=car.topSpeed?` Top speed is ${car.topSpeed} mph${car.limited?", limited":""}${car.limited&&x.hp!==b.hp?" (a remap keeps the limiter)":!car.limited&&x.hp>b.hp?" as standard; more power adds a little":""}.`:"";
     const r=n&&x.hp!==b.hp?`Your ${car.model} now makes about ${x.hp} bhp and ${x.nm} Nm (standard is ${b.hp} bhp), with 0-62 mph in about ${x.t62}s (standard ${b.t62}s).`
@@ -453,10 +455,16 @@ function extraReply(p,part,mods,car){
   if(off.length) priceAsked=part;
   return {reply:(list+law+(off.length?` Say "add it" to fit ${off.length>1?"them":"it"}.`:"")).replace(/\s+/g," "),priceQuestion:true,switchCar:null,reset:false,apply:[],remove:[],notes:{}};
 }
+/* "What mods add value", "will mods affect resale value", "keep its value": a plain answer, nothing fitted (Car #128).
+   "good value" / "value for money" are price questions, not this. */
+const VALUE_Q=/\bresale\b|\b(?:add|adds|keep|keeps|hold|holds|affect|affects|lower|lowers|ruin|ruins|hurt|hurts|increase|increases|boost|raise|lose|loses|kill|kills)\b.*\bvalue\b/;
+const VALUE_NOT=/\b(?:good|best|great|better|cheap) value\b|\bvalue for money\b/;
+const VALUE_REPLY="Most mods don't add value: when you sell, dealers and buyers usually pay less for a modified car, and some won't buy one at all. To keep its value, keep the original parts so you can put them back, and pick parts that come off cleanly, like a wrap, wheels or window tint. A remap or body changes are the hardest to sell on. Either way, tell your insurer about every mod.";
 function localPlan(text){
   // priceAsked is cleared by applyPlan (chat.js) on the next real message, so behind-the-scenes checks can't wipe it.
   const low=" "+fixTypos(String(text).toLowerCase())+" ";
   if(priceAsked&&ADD_IT.test(low)){const asked=priceAsked; priceAsked=null; return planParts(asked);}
+  if(VALUE_Q.test(low)&&!VALUE_NOT.test(low)) return {reply:VALUE_REPLY,switchCar:null,reset:false,apply:[],remove:[],notes:{}};
   if(!PRICE_Q.test(low)&&!adviceAsked(low)){const q=questionReply(low); if(q) return q;}
   if(!PRICE_Q.test(low)||adviceAsked(low)) return planParts(text);
   const money=v=>"£"+Math.round(v).toLocaleString("en-GB");
