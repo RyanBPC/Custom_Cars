@@ -383,11 +383,28 @@ function questionReply(low){
       tune:"A remap is legal, but it must be declared to your insurer.",
       wheels:"Bigger wheels are legal if the tyres don't rub or stick out past the arches.",
       body:"Body kits and wide arches are legal if the tyres stay covered and there are no sharp edges.",
-      wrap:"A wrap or respray is legal; for a full colour change, tell the DVLA (on your V5C) and your insurer."};
+      wrap:"A wrap or respray is legal; for a full colour change, tell the DVLA (on your V5C) and your insurer.",
+      // Car #114: extra parts named by the user, matched on their words (no part is fitted).
+      cage:"A roll cage is legal on the road, but pad any bars your head could hit, and tell your insurer.",
+      bullbar:"Only EU-approved, pedestrian-safe bull bars are legal on newer cars; old metal ones aren't.",
+      lift:"A lift kit is legal if the tyres stay inside the arches and the lights still line up; tell your insurer.",
+      spacers:"Wheel spacers are legal if they're fitted properly and the tyres don't stick out past the arches.",
+      camber:"Negative camber is legal, but the uneven tyre wear it causes can fail the MOT.",
+      towbar:"A tow bar is legal if it's type-approved for your car; check the towing limit on your V5C.",
+      canards:"Canards are legal if they're fixed firmly and have no sharp edges.",
+      seats:"Bucket seats and harnesses are legal, but keep working seatbelts for every seat you use.",
+      rearseats:"Taking the rear seats out is legal, but tell the DVLA if the number of seats changes, and your insurer."};
     const keys=[];
-    if(/\bde-?cat(?:ted)?\b|\bcat(?:alytic converter)? delete\b/.test(low)) keys.push("decat");
-    else if(asked){
-      const p=planParts(asked);
+    const TEXT_RULES=[[/\broll ?cages?\b/,"cage"],[/\bbull ?bars?\b|\bnudge ?bars?\b/,"bullbar"],[/\blift(?:ed)? kits?\b|\blift(?:ed|ing)? (?:it|the car)\b/,"lift"],
+      [/\b(?:wheel )?spacers?\b/,"spacers"],[/\bcamber\b/,"camber"],[/\btow ?(?:bars?|hitch|ball)\b/,"towbar"],[/\bcanards?\b|\bdive ?planes?\b/,"canards"],
+      [/\bbucket seats?\b|\bharness(?:es)?\b|\bracing seats?\b/,"seats"],[/\b(?:remov\w*|delet\w*|tak\w* out|no)\b.*\brear seats?\b|\brear seats? (?:out|delete|removed?)\b/,"rearseats"],
+      [/\bwraps?\b|\bwrapp(?:ed|ing)\b/,"wrap"]];
+    let rest=asked;
+    if(/\bde-?cat(?:ted)?\b|\bcat(?:alytic converter)? delete\b|\bstraight ?pipes?d?\b/.test(low)){keys.push("decat"); rest=rest.replace(/\bstraight ?pipes?d?\b/g," ");}
+    for(const [re,k] of TEXT_RULES) if(re.test(low)){keys.push(k); rest=rest.replace(new RegExp(re.source,"g")," ");}
+    rest=rest.replace(/\s+/g," ").trim();
+    if(!keys.includes("decat")&&rest){
+      const p=planParts(rest);
       for(const a of p.apply||[]){
         if(a.id==="custom"){for(const i of a.params.items||[]){const k=i.name==="LED underglow"?"underglow":i.name==="LED light bar"?"lightbar":i.name==="Styled number plates"?"plates":null; if(k) keys.push(k);}}
         else{const k=a.id==="widebody"||a.id==="bodykit"?"body":a.id; if(RULE[k]) keys.push(k);}
