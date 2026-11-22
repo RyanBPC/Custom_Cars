@@ -13,11 +13,14 @@ el("flowSteps").addEventListener("click", e => {
 });
 // Light up the step on screen (the one whose top passed the middle of the window last).
 function markStep() {
+  if (!el("flowCar").getClientRects().length) return; // Build page not on show: nothing to measure
   let cur = stepIds[0];
   for (const id of stepIds) if (el(id).getBoundingClientRect().top < innerHeight * 0.45) cur = id;
   el("flowSteps").querySelectorAll("[data-step]").forEach(b => b.dataset.step === cur ? b.setAttribute("aria-current", "step") : b.removeAttribute("aria-current"));
 }
 addEventListener("scroll", () => requestAnimationFrame(markStep), { passive: true });
+// Opening the Build page from another page: measure once it's shown (after the router's own hashchange).
+addEventListener("hashchange", () => requestAnimationFrame(() => requestAnimationFrame(markStep)));
 
 /* ---------- step 1: your own photo (kept in this browser only) ---------- */
 const PHOTO_KEY = "customcars.myphoto", RESULT_KEY = "customcars.myresults";
