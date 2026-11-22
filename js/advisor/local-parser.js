@@ -349,7 +349,10 @@ const PRICE_Q=/\bhow much\b(?!\s+(?:power|bhp|hp|horse ?power|torque|faster|quic
 const ADD_IT=/^\s*(?:yes|yeah|yep|yup|go on|ok(?:ay)?|sure|go for it|do it|let'?s do it|add (?:it|that|them|those)(?: on| to (?:it|the car))?|fit (?:it|that|them|those)|i'?ll (?:take|have) (?:it|that|them))\b[\s!.,]*(?:then|please|pls|thanks)?[\s!.]*$/;
 /* Plain questions ("what is a remap", "how fast is it now", "is it road legal") get an answer, nothing is fitted.
    "add it" straight after a "what is" question fits that part (same as a price question). */
-const SPEED_Q=/\bhow (?:fast|quick)\b|\bhow (?:much|many) (?:power|bhp|hp|horse ?power|torque)\b|\bwhat(?:'s| is) (?:the |its |my )?(?:power|bhp|0-62|0 to 62|top speed)\b/;
+const SPEED_Q=/\bhow (?:fast|quick)\b|\bhow (?:much|many) (?:power|bhp|hp|horse ?power|torque)\b|\bwhat(?:'s| is|s) (?:the |its |my )?(?:power|bhp|0-62|0 to 62|top speed)\b/;
+/* "0-60 time", "what is 0-62", "whats the top speed", "vmax": a speed question even without "how" or "?" (Car #110). */
+const SPEED_TOPIC=/(?:^|\s)0 ?(?:-|to) ?6[02](?:mph)?\b|\bzero to (?:sixty|60|62)\b|\btop ?speed\b|\bv ?max\b/;
+const SPEED_WANT=/\b(?:make|add|fit|give|increase|more|raise|improve|boost|faster|quicker|better|higher|remove|delimit|derestrict|unlimit)\b/;
 const LEGAL_Q=/\b(?:road ?legal|legal|illegal|mot|insurance|insurer|insure)\b/;
 const ASKING=/\?|^\s*(?:is|are|will|would|does|do|can|could|should|am|what|how|whats|what's)\b/;
 const INFO_Q=/^\s*(?:what(?:'s| is| are| does| do)|whats|how (?:does|do)|tell me about|explain)\b/;
@@ -361,11 +364,12 @@ const WARRANTY_NOTE="Warranty: if your car is still under the maker's warranty, 
 function questionReply(low){
   const none={switchCar:null,reset:false,apply:[],remove:[],notes:{}};
   const car=CARS.find(x=>x.id===state.car), mods=state.mods||{}, n=partCount(mods);
-  if(SPEED_Q.test(low)&&ASKING.test(low)){
+  if((SPEED_Q.test(low)||SPEED_TOPIC.test(low))&&(ASKING.test(low)||(SPEED_TOPIC.test(low)&&!SPEED_WANT.test(low)))){
     const x=perf(car,mods), b=perf(car,{});
+    const top=car.topSpeed?` Top speed is ${car.topSpeed} mph${car.limited?", limited":""}${car.limited&&x.hp!==b.hp?" (a remap keeps the limiter)":!car.limited&&x.hp>b.hp?" as standard; more power adds a little":""}.`:"";
     const r=n&&x.hp!==b.hp?`Your ${car.model} now makes about ${x.hp} bhp and ${x.nm} Nm (standard is ${b.hp} bhp), with 0-62 mph in about ${x.t62}s (standard ${b.t62}s).`
       :`Your ${car.model} makes ${x.hp} bhp and ${x.nm} Nm, with 0-62 mph in ${x.t62}s${n?". Your parts so far don't add power":" as standard"}.`;
-    return {reply:r+` The Studio's numbers panel shows the full list.${x.hp===b.hp?' Say "add a remap" for more power.':""}`,...none};
+    return {reply:r+top+` The Studio's numbers panel shows the full list.${x.hp===b.hp?' Say "add a remap" for more power.':""}`,...none};
   }
   if(LEGAL_Q.test(low)&&ASKING.test(low)){
     // "Is underglow legal?" / "are smoked lights legal": answer for the part named, not the general build.
