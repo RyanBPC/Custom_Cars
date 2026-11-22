@@ -43,11 +43,20 @@ const extraRows=()=>{const have=new Set(PRICE_ROWS.flatMap(([,rs])=>rs.map(r=>r[
   return EXTRA_PARTS.filter(e=>!have.has(e.name)).sort((a,b)=>a.name.localeCompare(b.name)).map(e=>{const t=(EXTRA_SAY[e.name]||e.text||"").replace(/,? visible through the windows/,""); // drop the AI-photo wording
     if(!(e.name in TRY_PHRASE)){const ph=e.name.toLowerCase();const ok=stockPlan(ph).some(a=>a.id==="custom"&&((a.params&&a.params.items)||[]).some(it=>it.name===e.name));TRY_PHRASE[e.name]=ok?ph:"";}
     return [e.name,t?t[0].toUpperCase()+t.slice(1):"","£"+e.price.toLocaleString("en-GB")];});};
+// Split the extra parts into a few small groups so a beginner can find the lights or the interior parts. First match wins.
+const EXTRA_GROUPS=[["Extra parts: inside the car",/seat|steering|harness|shifter|sound system|interior|roll cage/i],
+  ["Extra parts: practical and legal",/tow|plate|dash cam|roof rack|mud flap|visor|bull bar|protection film|ceramic/i],
+  ["Extra parts: lights",/light|underglow|indicator|eyelid|halo/i],
+  ["Extra parts: engine, wheels and handling",/intercooler|exhaust|tips|spacer|lift kit|tyres|camber|snorkel|wheel finish/i],
+  ["Extra parts: outside",/bonnet|vent|canard|sun strip|decal|grille|mirror|scoop|louvre|roof|wrap|numbers/i]];
+const extraGroups=()=>{const rows=extraRows(),out=EXTRA_GROUPS.map(([g])=>[g,[]]),other=[];
+  rows.forEach(r=>{const i=EXTRA_GROUPS.findIndex(([,re])=>re.test(r[0]));(i<0?other:out[i][1]).push(r);});
+  if(other.length)out.push(["Other extras",other]);return out.filter(([,rs])=>rs.length);};
 function renderPrices(){
   const c=car(),n=partCount(state.mods);
   $("priceBuild").innerHTML=n?`Your build so far on the ${c.make} ${c.model}: <b>${fmt(buildCost(c,state.mods))}</b> in parts and fitting (${n} ${n===1?"part":"parts"}). <a href="#build">See it in the Build tab →</a>`:`Nothing fitted yet. Press "Try it on the car" on any row to see it on the 3D car.`;
   const row=r=>{const on=onCar(r[0]);return `<tr${on?' class="fitted"':""}><td>${r[0]}${on?'<span class="oncar">On your car</span>':tryBtn(r[0])}</td><td class="muted">${r[1]}</td><td class="p">${r[2]}</td></tr>`;};
-  $("priceTable").innerHTML=`<thead><tr><th>Upgrade</th><th>What you get</th><th>Fitted price</th></tr></thead><tbody>`+PRICE_ROWS.concat([["Extra parts",extraRows()]]).map(([cat,rows])=>`<tr class="cat"><th colspan="3" scope="colgroup">${cat}</th></tr>`+rows.map(row).join("")).join("")+`</tbody>`;
+  $("priceTable").innerHTML=`<thead><tr><th>Upgrade</th><th>What you get</th><th>Fitted price</th></tr></thead><tbody>`+PRICE_ROWS.concat(extraGroups()).map(([cat,rows])=>`<tr class="cat"><th colspan="3" scope="colgroup">${cat}</th></tr>`+rows.map(row).join("")).join("")+`</tbody>`;
 }
 renderPrices();
 window.addEventListener("hashchange",()=>{if(location.hash==="#prices")renderPrices();});
