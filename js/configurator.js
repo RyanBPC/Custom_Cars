@@ -9,7 +9,9 @@
     { name: "Wheels", pick: "wheels", opts: [["Factory", null], ["18″ black mesh", "18 inch black mesh wheels"], ["19″ silver multi-spoke", "19 inch silver multi-spoke wheels"], ["19″ gunmetal forged", "19 inch gunmetal forged wheels"], ["19″ bronze deep dish", "19 inch bronze deep dish wheels"], ["20″ turbofan", "20 inch chrome turbofan wheels"]] },
     { name: "Ride height", pick: "drop", opts: [["Factory", null], ["−20mm", "lower it 20mm"], ["−35mm", "lower it 35mm"], ["Slammed −50mm", "slammed"], ["Air ride", "air ride"]] },
     { name: "Aero", pick: "spoiler", opts: [["No spoiler", null], ["Lip", "lip spoiler"], ["Ducktail", "ducktail spoiler"], ["GT wing", "gt wing"]], extras: [["Body kit", "body kit"], ["Widebody", "widebody"]] },
-    { name: "Styling", extras: [["20% tint", "20% tint"], ["Smoked lights", "smoked lights"], ["Racing stripes", "racing stripes"], ["Carbon mirror caps", "carbon mirror caps"], ["Underglow", "underglow"], ["Big brakes", "big brakes"]] },
+    { name: "Styling", extras: [["20% tint", "20% tint"], ["Smoked lights", "smoked lights"], ["Racing stripes", "racing stripes"], ["Carbon mirror caps", "carbon mirror caps"], ["Big brakes", "big brakes"]] },
+    // Underglow: off or a colour (the LED colour on the road under the car).
+    { name: "Underglow", glow: true, opts: [["Off", null], ["Blue", "blue underglow"], ["White", "white underglow"], ["Purple", "purple underglow"], ["Pink", "pink underglow"], ["Green", "green underglow"], ["Red", "red underglow"], ["Orange", "orange underglow"]] },
     { name: "Interior", extras: [["Ambient lighting", "ambient lighting"]], link: ["Sit inside →", "#interior"] },
     { name: "Number plates", extras: [["No front plate", "no front plate"], ["No rear plate", "no rear plate"]], plateBox: true },
     { name: "Performance", pick: "tune", opts: [["Stock", null], ["Stage 1", "stage 1 tune"], ["Stage 2", "stage 2 tune"]], extras: [["Louder exhaust", "louder exhaust"], ["Quad tips", "quad exhaust tips"]] }
@@ -49,9 +51,11 @@
     return { said: text, plan: p };
   }
 
+  const glowItem = () => customs().find(c => c.name === "LED underglow");
+  const colourOf = text => { const c = COLOURS.find(x => text.startsWith(x[0] + " ")); return c ? c[1] : null; };
   function chip(g, gi, o, oi, extra) {
-    const on = o[1] ? isOn(o[1]) : !state.mods[g.pick];
-    let sw = "";
+    const on = g.glow ? (o[1] ? !!glowItem() && glowColour(state.mods) === colourOf(o[1]) : !glowItem()) : o[1] ? isOn(o[1]) : !state.mods[g.pick];
+    let sw = g.glow && o[1] ? `<i class="sw flat" style="background:${colourOf(o[1])}"></i>` : "";
     if (g.swatch) {
       const p = o[1] && planFor(o[1]).apply[0], col = p ? p.params.colour : car().colour;
       sw = `<i class="sw${p && !["gloss", "metallic", "pearl"].includes(p.params.finish) ? " flat" : ""}" style="background:${col}"></i>`;
@@ -100,6 +104,7 @@
     if (b) {
       const g = GROUPS[b.dataset.g], extra = b.dataset.x === "1", o = (extra ? g.extras : g.opts)[b.dataset.o];
       if (!extra && b.getAttribute("aria-pressed") === "true") return; // already chosen
+      if (g.glow && !o[1]) { const plan = customPlan(customs().filter(c => c.name !== "LED underglow")); plan.reply = "Taken off: underglow."; addUser("Remove the underglow"); applyPlan(plan, "underglow off"); return; }
       const { said, plan } = plans(g, o, extra);
       addUser(said); applyPlan(plan, said);
       return;

@@ -40,6 +40,14 @@ function glowMat(hex) {
   return m.glow[hex] || (m.glow[hex] = new THREE.MeshBasicMaterial({ color: hex, map: m.glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
 }
 
+// LED light is bright and saturated, so a paint-like colour ("purple" #5b2d86) is lifted to its LED version.
+// Whites and greys become a cool white.
+function ledColour(hex) {
+  const c = new THREE.Color(hex), hsl = {}; c.getHSL(hsl);
+  if (hsl.s < 0.15) return new THREE.Color(0xe6f2ff);
+  return new THREE.Color().setHSL(hsl.h, Math.max(hsl.s, 0.9), 0.55);
+}
+
 /* ---------- small shape helpers ---------- */
 function mesh(geo, mat, x = 0, y = 0, z = 0) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; m.userData.addon = true; return m; }
 const box = (w, h, d, mat, x, y, z) => mesh(new THREE.BoxGeometry(w, h, d), mat, x, y, z);
@@ -148,8 +156,25 @@ const PARTS = {
     return sides(k => { const g = new THREE.Group(); const t = mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.1, 24, 1, true), m.chrome); t.rotation.x = Math.PI / 2; g.add(t, mesh(new THREE.CircleGeometry(0.044, 24), m.soot, 0, 0, 0.03 * k)); g.position.set(rig.wheelInfo.rearX + rig.wheelInfo.r + 0.2, f.sillY - 0.01, k * (f.sideZ + 0.03)); return g; });
   },
   "LED underglow": (f, rig, spec) => {
-    const p = mesh(new THREE.PlaneGeometry(f.frontX - f.rearX + 0.6, 2 * f.sideZ + 0.9), glowMat(spec.glow || "#22c8ff"), (f.frontX + f.rearX) / 2, 0.015, 0);
-    p.rotation.x = -Math.PI / 2; p.castShadow = false; p.renderOrder = 2; p.userData.ground = true; // on the ground, not on the body
+    // LED strips round the underside light the road in the car's own shape: even under the car, fading
+    // softly about half a metre out on every side (not one bright spot in the middle).
+    const len = f.frontX - f.rearX, wid = 2 * f.sideZ, pad = 0.7, PL = len + 2 * pad, PW = wid + 2 * pad;
+    const key = "under|" + PL.toFixed(2) + "|" + PW.toFixed(2), m = mats();
+    if (!m[key]) {
+      const W = 512, H = Math.round(512 * PW / PL), c = document.createElement("canvas"); c.width = W; c.height = H;
+      const g = c.getContext("2d"), img = g.createImageData(W, H), a = len / 2 - 0.15, b = wid / 2 - 0.08, r = 0.3, sig = 0.26;
+      for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
+        const x = Math.abs((px + 0.5) / W * PL - PL / 2), z = Math.abs((py + 0.5) / H * PW - PW / 2);
+        const qx = Math.max(0, x - (a - r)), qz = Math.max(0, z - (b - r)), d = Math.hypot(qx, qz) - r; // distance outside the car's rounded outline
+        const v = d <= 0 ? 0.9 : 0.9 * Math.exp(-(d * d) / (2 * sig * sig)), i = (py * W + px) * 4;
+        img.data[i] = img.data[i + 1] = img.data[i + 2] = 255; img.data[i + 3] = Math.round(255 * v);
+      }
+      g.putImageData(img, 0, 0);
+      m[key] = new THREE.CanvasTexture(c);
+    }
+    const mat = new THREE.MeshBasicMaterial({ color: ledColour(spec.glow || "#22c8ff"), map: m[key], transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+    const p = mesh(new THREE.PlaneGeometry(PL, PW), mat, (f.frontX + f.rearX) / 2, 0.012, 0);
+    p.rotation.x = -Math.PI / 2; p.castShadow = false; p.renderOrder = 2; p.userData.ground = true; p.userData.ownMaterials = true; // on the ground, not on the body
     return p;
   },
   "Front canards": (f, rig) => {
