@@ -30,15 +30,24 @@ const tryBtn=name=>canTry(name)?`<button class="btn sm try" type="button" data-t
 // The parser skips parts you already have, so ask it as if the car were stock (cached per car).
 const stockPlans={};
 const stockPlan=ph=>{const k=state.car+"|"+ph;if(!(k in stockPlans)){const m=state.mods;state.mods={};try{stockPlans[k]=localPlan(ph).apply;}catch(e){stockPlans[k]=[];}finally{state.mods=m;}}return stockPlans[k];};
-const onCar=name=>{const ph=TRY_PHRASE[name];if(!ph)return false;const ap=stockPlan(ph);
+const onCar=name=>{if(extraOnly(name))return ((state.mods.custom||{}).items||[]).some(x=>x.name===name);const ph=TRY_PHRASE[name];if(!ph)return false;const ap=stockPlan(ph);
   const need=[];ap.forEach(a=>{if(a.id==="custom"){(a.params&&a.params.items||[]).forEach(it=>{if(EXTRA_PARTS.some(x=>x.name===it.name))need.push(()=>((state.mods.custom||{}).items||[]).some(x=>x.name===it.name));});}
     else need.push(()=>{const m=state.mods[a.id];if(!m)return false;if(a.id==="wheels")return (m.style==="monoblock")===(a.params.style==="monoblock"); // forged vs flow-formed row
       return !(a.params&&a.params.stage!=null)||+m.stage===+a.params.stage;});});
   return need.length>0&&need.every(f=>f());};
+// Extra parts (EXTRA_PARTS) get their own group, leaving out ones the rows above already cover.
+// Their Try button sends the part's own name to the chat, and only shows when that really fits the part.
+const EXTRA_SAY={"Windscreen sun strip":"A dark strip across the top of the windscreen with white lettering","Sport steering wheel":"A thicker, flat-bottomed sports steering wheel","Private number plate":"Your own registration on the plates (the DVLA charges extra for the number)","Sound system upgrade":"Better speakers and a subwoofer","Short shifter":"Shorter, quicker gear changes","Dash cam":"Front camera that records the road","Custom graphic wrap":"Your own printed design, like flames or camo","LED ambient interior lighting":"Coloured LED strips inside the cabin"};
+const extraOnly=name=>!PRICE_ROWS.some(([,rs])=>rs.some(r=>r[0]===name))&&EXTRA_PARTS.some(e=>e.name===name);
+const extraRows=()=>{const have=new Set(PRICE_ROWS.flatMap(([,rs])=>rs.map(r=>r[0])).concat(["Chrome delete and black badges"]));
+  return EXTRA_PARTS.filter(e=>!have.has(e.name)).sort((a,b)=>a.name.localeCompare(b.name)).map(e=>{const t=(EXTRA_SAY[e.name]||e.text||"").replace(/,? visible through the windows/,""); // drop the AI-photo wording
+    if(!(e.name in TRY_PHRASE)){const ph=e.name.toLowerCase();const ok=stockPlan(ph).some(a=>a.id==="custom"&&((a.params&&a.params.items)||[]).some(it=>it.name===e.name));TRY_PHRASE[e.name]=ok?ph:"";}
+    return [e.name,t?t[0].toUpperCase()+t.slice(1):"","£"+e.price.toLocaleString("en-GB")];});};
 function renderPrices(){
   const c=car(),n=partCount(state.mods);
   $("priceBuild").innerHTML=n?`Your build so far on the ${c.make} ${c.model}: <b>${fmt(buildCost(c,state.mods))}</b> in parts and fitting (${n} ${n===1?"part":"parts"}). <a href="#build">See it in the Build tab →</a>`:`Nothing fitted yet. Press "Try it on the car" on any row to see it on the 3D car.`;
-  $("priceTable").innerHTML=`<thead><tr><th>Upgrade</th><th>What you get</th><th>Fitted price</th></tr></thead><tbody>`+PRICE_ROWS.map(([cat,rows])=>`<tr class="cat"><th colspan="3" scope="colgroup">${cat}</th></tr>`+rows.map(r=>{const on=onCar(r[0]);return `<tr${on?' class="fitted"':""}><td>${r[0]}${on?'<span class="oncar">On your car</span>':tryBtn(r[0])}</td><td class="muted">${r[1]}</td><td class="p">${r[2]}</td></tr>`;}).join("")).join("")+`</tbody>`;
+  const row=r=>{const on=onCar(r[0]);return `<tr${on?' class="fitted"':""}><td>${r[0]}${on?'<span class="oncar">On your car</span>':tryBtn(r[0])}</td><td class="muted">${r[1]}</td><td class="p">${r[2]}</td></tr>`;};
+  $("priceTable").innerHTML=`<thead><tr><th>Upgrade</th><th>What you get</th><th>Fitted price</th></tr></thead><tbody>`+PRICE_ROWS.concat([["Extra parts",extraRows()]]).map(([cat,rows])=>`<tr class="cat"><th colspan="3" scope="colgroup">${cat}</th></tr>`+rows.map(row).join("")).join("")+`</tbody>`;
 }
 renderPrices();
 window.addEventListener("hashchange",()=>{if(location.hash==="#prices")renderPrices();});
