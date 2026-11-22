@@ -22,11 +22,24 @@
   const shortName = id => SHORT[id] || CARS.find(c => c.id === id).model;
   const own = `<button type="button" class="build-card own" data-build="" data-car="golf"><div class="art"><span class="plus" aria-hidden="true">+</span></div>
     <div class="body"><b>Build your own</b><span id="ownCarText">Start from a stock ${shortName("golf")} and choose every part.</span><span class="btn primary sm build-this">Start from stock</span></div></button>`;
+  // Rough fitted price of a build, worked out from its own text the same way "Build this" fits it,
+  // on a throwaway copy (the real car, parts and chat are put back untouched).
+  function buildPrice(b) {
+    const c = CARS.find(x => x.id === b.car), keep = { car: state.car, mods: state.mods };
+    try {
+      state.car = b.car; state.mods = {};
+      const plan = localPlan(b.text) || {}, mods = {};
+      (Array.isArray(plan.apply) ? plan.apply : []).forEach(a => { if (a && MODS[a.id]) mods[a.id] = sanitize(a.id, a.params, c); });
+      return buildCost(c, sanitizeAll(mods, c));
+    } catch (e) { return 0; }
+    finally { state.car = keep.car; state.mods = keep.mods; }
+  }
+  const priceLine = b => { const v = buildPrice(b); return v > 0 ? `<span class="price">About £${(Math.round(v / 100) * 100).toLocaleString("en-GB")} fitted</span>` : ""; };
   const grid = document.getElementById("buildGrid");
   grid.innerHTML = own + BUILDS.map(b => {
     const c = CARS.find(x => x.id === b.car);
     return `<button type="button" class="build-card" data-build="${b.id}" data-car="${b.car}"><div class="art">${art(b)}</div>
-      <div class="body"><b>${b.name}</b><span>${c.make} ${c.model}</span><ul class="tags">${b.tags.map(t => `<li>${t}</li>`).join("")}</ul><span class="btn primary sm build-this">Build this</span></div></button>`;
+      <div class="body"><b>${b.name}</b><span>${c.make} ${c.model}</span>${priceLine(b)}<ul class="tags">${b.tags.map(t => `<li>${t}</li>`).join("")}</ul><span class="btn primary sm build-this">Build this</span></div></button>`;
   }).join("");
 
   // Models filter: All / one button per car that has builds. "Build your own" stays and follows the chosen car.

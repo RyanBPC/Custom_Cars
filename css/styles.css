@@ -509,6 +509,7 @@ footer{border-top-color:rgba(255,255,255,.06);font-size:13px}
 .build-card .body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:2px}
 .build-card .body b{font-size:18px}
 .build-card .body span{color:var(--muted);font-size:14px}
+.build-card .body .price{display:block;margin-top:4px;font-size:13px;color:var(--fg);opacity:.8}
 .build-card .tags{list-style:none;display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0;padding:0}
 .build-card .tags li{font-size:12px;padding:3px 8px;border-radius:99px;border:1px solid var(--line);color:var(--fg)}
 .build-card.own{border-style:dashed}
