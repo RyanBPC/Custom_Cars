@@ -358,7 +358,7 @@ const ASKING=/\?|^\s*(?:is|are|will|would|does|do|can|could|should|am|what|how|w
 const INFO_Q=/^\s*(?:what(?:'s| is| are| does| do)|whats|how (?:does|do)|tell me about|explain)\b/;
 /* Advice questions ("should i get a remap", "is a stage 2 remap worth it", "would coilovers suit it", "does a remap void warranty")
    get the same what-it-is answer as INFO_Q; nothing is fitted until the user says "add it". */
-const ADVICE_Q=/^\s*(?:should i|shall i|is (?:it|an?|the|getting)\b.*\bworth|are .*\bworth|(?:would|will|could)\b.*\b(?:suit|look good|ruin|affect|void|hurt|wreck|be worth)|do(?:es)?\b.*\b(?:ruin|affect|void|suit|hurt|wreck)|(?:what|which)\b.*\bsuits?)\b/;
+const ADVICE_Q=/^\s*(?:should i|shall i|is\b.*\bworth|are .*\bworth|(?:would|will|could)\b.*\b(?:suit|look good|ruin|affect|void|hurt|wreck|be worth)|do(?:es)?\b.*\b(?:ruin|affect|void|suit|hurt|wreck)|(?:what|which)\b.*\bsuits?)\b/;
 const WARRANTY_Q=/\bwarrant(?:y|ee)\b/;
 const WARRANTY_NOTE="Warranty: if your car is still under the maker's warranty, a remap or suspension change can let the dealer refuse claims on related parts (engine, gearbox, suspension). Looks-only parts like wraps, wheels or tint usually don't affect it. Ask your dealer before you buy.";
 function questionReply(low){
@@ -433,12 +433,25 @@ function questionReply(low){
   part=part.replace(/\s+/g," ").trim();
   if(!part) return warnOnly;
   const p=planParts(part), a=(p.apply||[]).find(x=>x.id!=="custom");
-  if(!a) return warnOnly;
+  if(!a) return extraReply(p,part,mods,car)||warnOnly;
   const q=sanitize(a.id,a.params,car), info=modInfo(a.id,q,car);
   if(!info||!info.what) return warnOnly;
   const on=JSON.stringify(mods[a.id])===JSON.stringify(q);
   if(!on) priceAsked=part;
   return {reply:(`${modLabel(a.id,q)}: ${info.what} ${info.effect||""} About £${Math.round(modPrice(a.id,q,car)).toLocaleString("en-GB")} fitted on the ${car.model}.${on?" It's already on your car.":' Say "add it" to try it.'}`+warn).replace(/\s+/g," "),priceQuestion:true,...none};
+}
+/* Extra parts asked about ("is underglow worth it", "should i get bucket seats", "what is a roll cage"): explain and price them,
+   fit nothing until "add it" (Car #126). Uses the Price list wording (EXTRA_SAY in sections.js) when it's loaded. */
+function extraReply(p,part,mods,car){
+  const c=(p.apply||[]).find(x=>x.id==="custom"), items=((c&&c.params&&c.params.items)||[]).filter(i=>i.price);
+  if(!items.length) return null;
+  const have=(mods.custom&&mods.custom.items)||[], say=typeof EXTRA_SAY!=="undefined"?EXTRA_SAY:{};
+  const off=items.filter(i=>!have.some(x=>x.name===i.name));
+  const list=items.map(i=>{const d=String(say[i.name]||i.text||"").replace(/,? visible through the windows/,"").trim(), on=!off.includes(i);
+    return `${i.name}: ${d?d[0].toUpperCase()+d.slice(1)+". ":""}About £${Math.round(i.price).toLocaleString("en-GB")} fitted.${on?" It's already on your car.":""}`;}).join(" ");
+  const law=items.some(i=>i.name==="LED underglow")?" UK law: on the road it mustn't show red to the front, white to the back, or any blue or flashing light; the safe way is to only switch it on when parked.":"";
+  if(off.length) priceAsked=part;
+  return {reply:(list+law+(off.length?` Say "add it" to fit ${off.length>1?"them":"it"}.`:"")).replace(/\s+/g," "),priceQuestion:true,switchCar:null,reset:false,apply:[],remove:[],notes:{}};
 }
 function localPlan(text){
   // priceAsked is cleared by applyPlan (chat.js) on the next real message, so behind-the-scenes checks can't wipe it.
