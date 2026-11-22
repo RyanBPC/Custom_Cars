@@ -115,6 +115,9 @@ function applyPlan(plan,text){
   let reply=String(plan.reply||"Done.").slice(0,900);
   if(changed.length&&after.hp!==before.hp&&!carChanged) reply+=` Power is now ${after.hp}bhp (${after.hp>before.hp?"+":""}${after.hp-before.hp}).`;
   const d=addAI(reply,changed.sort((a,b)=>MODS[a].order-MODS[b].order).map(id=>modCard(id,plan.notes)));
+  // Legal and insurance answers point to the Journal guide that explains the rule in full.
+  const guide=plan.guide&&typeof POSTS!=="undefined"&&POSTS.find(g=>g.id===plan.guide);
+  if(guide){const a=document.createElement("a");a.className="guide-link";a.href="#journal/"+guide.id;a.textContent="Read the guide: "+guide.t+" →";const p=document.createElement("p");p.appendChild(a);d.insertBefore(p,d.querySelector(".modcards"));}
   if(changed.length||carChanged){
     // Only the newest change can be undone, so older Undo buttons go.
     dropUndoBtn(); lastChange={before:before0,after:snapBuild()};

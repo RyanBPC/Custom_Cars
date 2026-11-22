@@ -38,9 +38,14 @@
   const SITE = "Custom Cars";
   const TITLES = { home: "Custom Cars Build Studio", models: "Models", build: "Build", photo: "Photo Studio", interior: "Interior", about: "About", garage: "Garage", drive: "Test drive", prices: "Price list", journal: "Journal" };
   let current = null;
+  // "#journal/mot" opens the Journal page with that guide open (links from the advisor's answers).
+  let sub = null;
 
   const tabOf = () => {
     let t = location.hash.slice(1);
+    sub = null;
+    const slash = t.indexOf("/");
+    if (slash > 0) { sub = t.slice(slash + 1); t = t.slice(0, slash); }
     if (ALIAS[t]) { t = ALIAS[t]; history.replaceState(null, "", "#" + t); }
     return PAGES[t] ? t : "home";
   };
@@ -141,7 +146,18 @@
   const skip = document.querySelector(".skip-link"), main = document.getElementById("content");
   if (skip && main) skip.addEventListener("click", e => { e.preventDefault(); main.focus(); main.scrollIntoView(); });
 
-  window.addEventListener("hashchange", () => show(tabOf(), true));
+  // Open and scroll to one Journal guide ("#journal/mot"), closing the others.
+  function openGuide() {
+    if (!sub) return;
+    const g = document.getElementById("guide-" + sub);
+    if (!g || g.tagName !== "DETAILS") return;
+    document.querySelectorAll("#posts details[open]").forEach(d => { if (d !== g) d.open = false; });
+    g.open = true;
+    g.scrollIntoView({ block: "start" });
+    const s = g.querySelector("summary"); if (s) s.focus({ preventScroll: true });
+  }
+
+  window.addEventListener("hashchange", () => { show(tabOf(), true); openGuide(); });
   // The 3D view arrives after the page: put it in the tab's mode once it's ready.
   window.addEventListener("viewer3d-ready", () => setTimeout(() => setViewer(current), 0));
 
@@ -162,6 +178,7 @@
   });
 
   show(tabOf(), false);
+  if (sub) window.addEventListener("load", () => setTimeout(openGuide, 0), { once: true });
   // The page names are also section ids, so the browser jumps down to them on first load: start at the top instead.
   if (location.hash) { window.scrollTo(0, 0); window.addEventListener("load", () => window.scrollTo(0, 0), { once: true }); }
 })();

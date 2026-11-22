@@ -414,14 +414,16 @@ function questionReply(low){
         else{const k=a.id==="widebody"||a.id==="bodykit"?"body":a.id; if(RULE[k]) keys.push(k);}
       }
     }
-    if(keys.length) return {reply:[...new Set(keys)].map(k=>RULE[k]).join(" ")+" Tell your insurer about every mod, or a claim can be refused.",...none};
+    // Which Journal guide explains this rule in full (Journal ids in js/data/content.js); anything else -> the MOT guide.
+    const GUIDE={tint:"tint",underglow:"underglow",wheels:"wheels",spacers:"wheels",wrap:"wrap",tune:"insurance"};
+    if(keys.length) return {reply:[...new Set(keys)].map(k=>RULE[k]).join(" ")+" Tell your insurer about every mod, or a claim can be refused.",guide:GUIDE[keys[0]]||"mot",...none};
     const tips=["Tell your insurer about every mod, or a claim can be refused."];
     if(mods.tint) tips.push("Front side windows must let through at least 70% of light, and the windscreen 75%, so dark front tint can fail the MOT and get you a fine.");
     if(mods.exhaust||/exhaust|loud/.test(low)) tips.push("A loud or decat exhaust can fail the MOT's noise and emissions checks.");
     if(mods.drop) tips.push("Lowered cars are legal, but the tyres mustn't rub and the headlights may need re-aiming.");
     if(mods.tune) tips.push("A remap is legal, but it must be declared to your insurer.");
     if(n&&!mods.tint) tips.push("Nothing else on this build is illegal on its own if it's fitted well.");
-    return {reply:(n?"For your build: ":`As standard your ${car.model} is fully road legal. If you add parts: `)+tips.join(" "),...none};
+    return {reply:(n?"For your build: ":`As standard your ${car.model} is fully road legal. If you add parts: `)+tips.join(" "),guide:/\binsur/.test(low)?"insurance":/\btint/.test(low)?"tint":"mot",...none};
   }
   const warranty=WARRANTY_Q.test(low)&&ASKING.test(low), advice=ADVICE_Q.test(low)||warranty;
   if(!INFO_Q.test(low)&&!advice) return null;

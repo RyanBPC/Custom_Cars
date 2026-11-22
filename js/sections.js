@@ -57,7 +57,7 @@ $("priceTable").addEventListener("click",e=>{const b=e.target.closest("[data-try
 
 // Articles with a try phrase end with a button that fits that mod on the 3D car (same path as the price list).
 const postTry=p=>{if(!p.try)return"";try{if(!localPlan(p.try).apply.length)return"";}catch(e){return"";}return`<p><button class="btn sm try" type="button" data-try-phrase="${p.try}" aria-label="Try ${p.try} on the car">Try ${p.try} on the car</button></p>`;};
-$("posts").innerHTML=POSTS.map(p=>`<details class="post"><summary><span class="meta">${p.m}</span><h2 class="sub">${p.t}</h2><p>${p.s}</p><span class="more">Read article →</span></summary><div class="content">${p.c}${postTry(p)}</div></details>`).join("");
+$("posts").innerHTML=POSTS.map(p=>`<details class="post"${p.id?` id="guide-${p.id}"`:""}><summary><span class="meta">${p.m}</span><h2 class="sub">${p.t}</h2><p>${p.s}</p><span class="more">Read article →</span></summary><div class="content">${p.c}${postTry(p)}</div></details>`).join("");
 $("posts").addEventListener("click",e=>{const b=e.target.closest("[data-try-phrase]");if(!b)return;const ph=b.dataset.tryPhrase;
   if(typeof hideAi3d==="function") hideAi3d();
   goTab("build"); applyPlan(localPlan(ph),ph);});
