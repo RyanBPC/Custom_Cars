@@ -77,8 +77,13 @@ $("resetBtn").addEventListener("click",()=>{const prev={...state.mods};const ch=
 // Copy a link that opens this exact build (falls back to showing the link if copying isn't allowed).
 $("shareBtn").addEventListener("click",async()=>{
   const b=$("shareBtn"),link=buildLink();
-  try{await navigator.clipboard.writeText(link);b.textContent="Link copied ✓";setTimeout(()=>{b.textContent="Copy build link";},2500);}
-  catch(e){window.prompt("Copy this link to keep or share your build:",link);}
+  // On this computer's own address a friend can't open the link, so don't suggest sharing it.
+  const local=/^(127\.0\.0\.1|localhost|\[::1\])$/.test(location.hostname);
+  try{
+    await navigator.clipboard.writeText(link);b.textContent="Link copied ✓";setTimeout(()=>{b.textContent="Copy build link";},2500);
+    if(local) addAI("Link copied. It reopens this build on this computer while the site is running. To show a friend, use Save picture.");
+  }
+  catch(e){window.prompt(local?"Copy this link to reopen your build on this computer:":"Copy this link to keep or share your build:",link);}
 });
 
 /* ---------- My builds: named builds kept in this browser (visits still start stock) ---------- */
