@@ -71,7 +71,7 @@ const TUNE_GAIN = {t:{1:[.20,.25],2:[.33,.35],3:[.60,.55]}, n:{1:[.04,.04],2:[.0
 // "chrome wheels", "chrome turbofan wheels", "chrome 20 inch rims" (but not "chrome wrap and wheels").
 const CHROME_WHEELS_RE = /\bchrome\s+(?:(?!and\b|with\b|plus\b|wrap\b|paint\b|respray\b)[a-z0-9"”-]+\s+){0,3}(?:wheels?|rims?|alloys?)\b/;
 const EXTRA_PARTS = [
- {re:/under ?glow|neon underbody|underbody lights?/,name:"LED underglow",in3d:true,price:250,text:"LED underglow lighting under the car"},
+ {re:/under ?glow|\bneons?\b(?!\s+(?:green|yellow|pink|orange|lime|red|blue|purple)\b(?!\s+(?:lights?|lighting|underglow)))|underbody lights?/,name:"LED underglow",in3d:true,price:250,text:"LED underglow lighting under the car"},
  {re:/carbon (fibre |fiber )?(bonnet|hood)/,name:"Carbon-fibre bonnet",in3d:true,price:1400,text:"an exposed carbon-fibre bonnet"},
  {re:/(bonnet|hood) vents?|vented (bonnet|hood)/,name:"Bonnet vents",in3d:true,price:350,text:"a vented bonnet with two heat-extraction vents"},
  {re:/canards?|dive planes?/,name:"Front canards",in3d:true,price:180,text:"carbon canards on the front bumper corners"},
@@ -103,7 +103,8 @@ const EXTRA_PARTS = [
  {re:/carbon roof/,name:"Carbon roof",in3d:true,price:2200,text:"an exposed carbon-fibre roof"},
  {re:/(bonnet|hood) pins?/,name:"Bonnet pins",in3d:true,price:90,text:"chrome bonnet pins"},
  {re:/angel eyes|halo lights?|halo rings?/,name:"Halo headlights",in3d:true,price:350,text:"glowing halo rings in the headlights"},
- {re:/led headlights?|\bhids?\b|xenon|brighter (head)?lights/,name:"LED headlight upgrade",in3d:true,price:400,text:"bright white LED headlights"},
+ {re:/led headlights?|\bhids?\b|xenon|brighter (head)?lights|matrix (?:led )?(?:head)?lights?|daytime running lights?|\bdrls?\b/,name:"LED headlight upgrade",in3d:true,price:400,text:"bright white LED headlights"},
+ {re:/puddle lights?|(?:door )?projector lights?|door (?:logo )?lights?/,name:"Puddle lights",in3d:false,price:40,text:"logo puddle lights shining on the ground under the doors"},
  {re:/\b(?:led|dynamic|sequential)\s+(?:tail|rear)\s?lights?\b/,name:"LED tail lights",in3d:true,price:300,text:"LED tail lights with a dark smoked look"},
  {re:/sequential indicators?|dynamic indicators?/,name:"Sequential indicators",in3d:true,price:200,text:"sweeping sequential indicators"},
  {re:/(evil|angry) (eyes|look)|eyelids|eyebrows/,name:"Headlight eyelids",in3d:true,price:60,text:"gloss-black eyelid covers over the top of the headlights"},

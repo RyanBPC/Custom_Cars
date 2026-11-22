@@ -280,7 +280,11 @@ function planParts(text){
   // Clear / "euro" lenses are see-through, the opposite of smoked, so they don't fit smoked lights (Car #46).
   const clearL=/\b(?:clear|euro|crystal)\s+(?:(?:head|tail|rear|front|side)\s?)?(?:lights?|lenses?|lamps?|indicators?)\b/.test(t)&&!/\bsmoked?\b|dark(?:er)? lights|tinted lights/.test(tL);
   if(clearL) notes.push(`Clear (euro) lenses aren't in the studio yet, so the ${c.model} keeps its standard lights. Say "smoked lights" if you want them darker instead.`);
-  if(!clearL&&/\bsmoked?\b|\b(head|tail) ?lights?\b|\blights\b|\blenses\b|dark(er)? lights|tinted lights/.test(tL)&&!/light ?bar|underglow|angel|halo|led |dynamic|hid|xenon|brighter|sequential|eyelid|interior light|ambient/.test(t)&&!remove.includes("lights")) add("lights",{});
+  // Matrix headlights and DRLs are factory parts, so the LED headlight upgrade stands in (Car #113).
+  if(/matrix (?:led )?(?:head)?lights?|daytime running lights?|\bdrls?\b/.test(t)) notes.push(`Matrix headlights and daytime running lights come from the factory, so I've fitted the LED headlight upgrade, the closest look for the ${c.model}.`);
+  // Neons (underglow), puddle lights and DRLs are their own parts, so they don't fit smoked lenses too (Car #113).
+  const tL2=tL.replace(/\b(?:neon(?:\s+[a-z]+)?\s+lights?|neons?|puddle lights?|(?:door )?projector lights?|door (?:logo )?lights?|matrix (?:led )?(?:head)?lights?|daytime running lights?|drls?)\b/g," ");
+  if(!clearL&&/\bsmoked?\b|\b(head|tail) ?lights?\b|\blights\b|\blenses\b|dark(er)? lights|tinted lights/.test(tL2)&&!/light ?bar|underglow|angel|halo|led |dynamic|hid|xenon|brighter|sequential|eyelid|interior light|ambient/.test(t)&&!remove.includes("lights")) add("lights",{});
   // A colour right before a part ("gloss black mirror caps", "black roof", "red calipers") belongs to that part, not the paint.
   const colNames=COLOURS.map(x=>x[0]).sort((x,y)=>y.length-x.length).map(n=>n.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|");
   const tw=t.replace(new RegExp(String.raw`\b(?:(?:gloss|glossy|matte?|satin|piano)\s+)?(?:`+colNames+String.raw`)\s+(?:wing\s+)?(?:mirror caps?|mirrors?|roof|wheels?|rims?|alloys?|calipers?|brakes?|stripes?|badges?|(?:kidney\s+|front\s+)?grilles?|kidneys?)\b`,"g")," ");
