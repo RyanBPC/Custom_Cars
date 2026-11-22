@@ -180,6 +180,9 @@ table.specs td.v{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 .saverow label{width:100%;font-size:13px;color:var(--muted)}
 .saverow input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:14px}
 .saverow input:focus{outline:none;border-color:var(--accent)}
+.saveclash{width:100%;display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:2px 0 0;font-size:13px}
+.saveclash[hidden]{display:none}
+.saveclash span{width:100%}
 .mybuilds .ask-del{font-size:12.5px;color:var(--muted)}
 
 /* chat */

@@ -116,17 +116,34 @@ $("saveBuildBtn").addEventListener("click",()=>{
 });
 $("saveCancel").addEventListener("click",()=>closeSaveRow(true));
 $("saveRow").addEventListener("keydown",e=>{if(e.key==="Escape"){e.preventDefault(); closeSaveRow(true);}});
+function hideSaveClash(){$("saveClash").hidden=true;}
+function freeBuildName(nm,list){
+  for(let i=2;;i++){const suf=` (${i})`, c=nm.slice(0,60-suf.length)+suf; if(!list.some(b=>b.name===c)) return c;}
+}
+$("saveName").addEventListener("input",hideSaveClash);
+$("saveBuildBtn").addEventListener("click",hideSaveClash);
+$("saveCancel").addEventListener("click",hideSaveClash);
+$("saveReplace").addEventListener("click",()=>{hideSaveClash(); saveBuildAs(currentSaveName());});
+$("saveBoth").addEventListener("click",()=>{hideSaveClash(); const nm=currentSaveName(); saveBuildAs(freeBuildName(nm,loadMyBuilds()));});
+function currentSaveName(){return ($("saveName").value.trim()||defaultBuildName()).slice(0,60);}
 $("saveRow").addEventListener("submit",e=>{
   e.preventDefault();
-  const nm=($("saveName").value.trim()||defaultBuildName()).slice(0,60);
-  const list=loadMyBuilds().filter(b=>b.name!==nm); // same name replaces the old one
+  const nm=currentSaveName();
+  if(loadMyBuilds().some(b=>b.name===nm)){ // ask on the page before replacing an older build
+    $("saveClashMsg").textContent=`You already have a build called "${nm}". Replace it?`;
+    $("saveClash").hidden=false; $("saveReplace").focus(); return;
+  }
+  saveBuildAs(nm);
+});
+function saveBuildAs(nm){
+  const list=loadMyBuilds().filter(b=>b.name!==nm); // Replace: same name swaps out the old one
   list.unshift({name:nm,car:state.car,mods:JSON.parse(JSON.stringify(state.mods)),date:new Date().toISOString()});
   const dropped=list.length>MY_MAX;
   if(!storeMyBuilds(list)){addAI("Sorry, this browser won't let me save builds. Use \"Copy build link\" instead.");return;}
   closeSaveRow(true); renderMyBuilds();
   const b=$("saveBuildBtn"); b.textContent="Saved ✓"; setTimeout(()=>{b.textContent="Save build";},2500);
   addAI(`Saved "${nm}" under My builds, below the build sheet.${dropped?" Your oldest saved build was removed to make room (12 is the most).":""}`);
-});
+}
 $("myBuildsList").addEventListener("click",e=>{
   const o=e.target.closest("[data-open]"), x=e.target.closest("[data-del]"), yes=e.target.closest("[data-delyes]"), no=e.target.closest("[data-delno]"), list=loadMyBuilds();
   if(o){
