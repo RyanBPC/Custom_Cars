@@ -591,9 +591,13 @@ const top = n => n.y > 0.35 && Math.abs(n.z) < 0.6, sideOf = k => n => n.z * k >
 
 const SKINS = {
   stripes: (f, rig, s) => {
-    const W = 0.25, L0 = f.rearX - 0.05, L = f.frontX - f.rearX + 0.1, col = s.stripes;
-    const tex = picture(512, 8, (g, w, h) => { g.fillStyle = col; for (const zc of [-0.12, 0.12]) g.fillRect((zc - 0.065 + W) / (2 * W) * w, 0, 0.13 / (2 * W) * w, h); });
-    return skin(rig, (c, n) => c.y > 0.3 && Math.abs(n.z) < 0.55, (x, y, z) => [(z + W) / (2 * W), (x - L0) / L], tex);
+    // Two stripes nose to tail: over the front bumper, bonnet, roof, tailgate or boot and rear bumper.
+    // The picture is long (along the car), so its see-through border is only a few mm at each end;
+    // the stripes run a little past both ends, so they wrap right round the bumpers.
+    const W = 0.25, L0 = f.rearX - 0.15, L = f.frontX - f.rearX + 0.3, col = s.stripes;
+    const tex = picture(256, 1024, (g, w, h) => { g.fillStyle = col; for (const zc of [-0.12, 0.12]) g.fillRect((zc - 0.065 + W) / (2 * W) * w, 0, 0.13 / (2 * W) * w, h); });
+    // Upward and end-facing panels (bonnet, roof, tailgate, bumpers), not the sides. Low bits under the bumpers are left plain.
+    return skin(rig, (c, n) => c.y > 0.28 && Math.abs(n.z) < 0.55 && (n.y > -0.2 || Math.abs(n.x) > 0.6), (x, y, z) => [(z + W) / (2 * W), (x - L0) / L], tex);
   },
   bonnet: (f, rig, s, black) => {
     const b = f.bonnet, tex = picture(1024, Math.round(1024 * 2 * b.halfW / (b.x1 - b.x0)), (g, w, h) => black ? (g.fillStyle = "#0c0d0f", g.fillRect(0, 0, w, h)) : weave(g, w, h, 150));

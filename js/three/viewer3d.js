@@ -452,11 +452,11 @@ function applyLights(p, b) {
   });
   set(p.lensFront, led ? 0xdde8ff : 0xfff0d8, 2);
   // LED tail lights: a darker lens by day, but a brighter, crisper red when lit.
-  set(p.lensRear, ledTail ? 0xff1a22 : 0xff1414, ledTail ? 2.4 : 1.5);
+  set(p.lensRear, ledTail ? 0xff1a22 : 0xff1414, ledTail ? 3.2 : 2.4);
   // The beams: light on the road ahead and a red wash behind (off by day; dimmer through smoked lenses).
   if (!p.beams) return;
   p.beams.front.forEach(s => { s.color.set(led ? 0xe6eeff : 0xfff0d8); s.intensity = lightsOn ? 22 * (smoked ? 0.4 : 1) : 0; });
-  p.beams.rear.forEach(l => { l.intensity = lightsOn ? (ledTail ? 2.1 : 1.6) * (smoked ? 0.5 : 1) : 0; });
+  p.beams.rear.forEach(l => { l.intensity = lightsOn ? (ledTail ? 0.16 : 0.12) * (smoked ? 0.5 : 1) : 0; });
 }
 // The "LED tail lights" extra: a lighter smoked tail lens (smoked lights stay darker) that glows brighter.
 function hasLedTails(b) { return !!(b && b.addons && b.addons.extras.includes("LED tail lights")); }
@@ -469,7 +469,7 @@ function addBeams(rig) {
   const boxOf = mats => { const b = new THREE.Box3(); g.traverse(o => { if (o.isMesh && mats.includes(o.material)) b.expandByObject(o); }); return b; };
   const car = new THREE.Box3().setFromObject(g), size = car.getSize(new THREE.Vector3());
   const along = size.x >= size.z ? "x" : "z", across = along === "x" ? "z" : "x";
-  const front = boxOf(rig.lensFront), rear = boxOf(rig.lensRear);
+  const front = boxOf(rig.lensFront);
   rig.beams = { front: [], rear: [] };
   const local = v => rig.body.worldToLocal(v.clone());
   if (!front.isEmpty()) {
@@ -483,12 +483,29 @@ function addBeams(rig) {
       rig.body.add(s, s.target); rig.beams.front.push(s);
     }
   }
-  if (!rear.isEmpty()) {
-    const c = rear.getCenter(new THREE.Vector3()), dir = Math.sign(c[along] - car.getCenter(new THREE.Vector3())[along]) || -1;
-    const at = c.clone(); at[along] += dir * 0.4; at.y = Math.max(0.3, c.y - 0.2);
-    const l = new THREE.PointLight(0xff1a14, 0, 4, 2); l.name = "Tail_Glow"; l.castShadow = false;
-    l.position.copy(local(at)); rig.body.add(l); rig.beams.rear.push(l);
+  // Tail lights: one small red glow just behind each lamp unit (found from the lens's own points on each
+  // side of the car), so the red lands on the bumper and road right by the lights, not mid-tailgate.
+  for (const lamp of rearLamps(rig)) {
+    const l = new THREE.PointLight(0xff1a14, 0, 1.1, 2); l.name = "Tail_Glow"; l.castShadow = false;
+    l.position.set(lamp.x - 0.12, lamp.y - 0.04, lamp.z); rig.body.add(l); rig.beams.rear.push(l);
   }
+}
+// Where each rear lamp is, in the body's own space: the middle of the lens points on each side of the car,
+// weighted towards the outer half (where the bright part of most tail lights is). Car front is +x.
+function rearLamps(rig) {
+  const inv = rig.body.matrixWorld.clone().invert(), p = new THREE.Vector3(), sides = { 1: [], [-1]: [] };
+  rig.group.traverse(o => {
+    if (!o.isMesh || !rig.lensRear.includes(o.material)) return;
+    const P = o.geometry.attributes.position, M = o.matrixWorld.clone().premultiply(inv), step = Math.max(1, Math.floor(P.count / 2000));
+    for (let i = 0; i < P.count; i += step) { p.fromBufferAttribute(P, i).applyMatrix4(M); sides[p.z >= 0 ? 1 : -1].push(p.clone()); }
+  });
+  const out = [];
+  for (const k of [1, -1]) {
+    const pts = sides[k]; if (!pts.length) continue;
+    const box = new THREE.Box3().setFromPoints(pts), mid = box.getCenter(new THREE.Vector3());
+    out.push({ x: box.min.x, y: mid.y, z: k * (Math.abs(mid.z) + (box.max.z - box.min.z) * 0.15) });
+  }
+  return out;
 }
 function setLightsOn(on) {
   if (on === lightsOn) return;
