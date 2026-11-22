@@ -4,7 +4,8 @@
 /* Rough real changes from extra parts (Car #111): kg, grip, hp share (turbo-only where noted). Unlisted parts change nothing. */
 const EXTRA_PERF={"Carbon-fibre bonnet":{kg:-10},"Carbon roof":{kg:-5},"Bucket seats":{kg:-20},"Roll cage":{kg:30,grip:2},
   "Bull bar":{kg:15},"Roof rack":{kg:6},"Lift kit":{kg:25,grip:-6},"All-terrain tyres":{grip:-8},"Uprated intercooler":{hp:.01,turbo:true},
-  "Negative camber setup":{grip:3},"Wheel spacers":{grip:1},"Tow bar":{kg:12},"Racing harnesses":{kg:2},"Snorkel":{kg:3},"LED light bar":{kg:3}};
+  "Negative camber setup":{grip:3},"Wheel spacers":{grip:1},"Tow bar":{kg:12},"Racing harnesses":{kg:2},"Snorkel":{kg:3},"LED light bar":{kg:3},
+  "Limited slip diff":{grip:3},"Uprated anti-roll bars":{grip:2},"Strut brace":{grip:1}};
 function perf(car,m){
   m=m||{}; let hp=0,nm=0,kg=car.kg,grip=car.handling,brake=car.braking,down=0;
   if(m.tune){const t=TUNE_GAIN[car.turbo?"t":"n"][m.tune.stage];hp+=t[0];nm+=t[1];}

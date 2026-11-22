@@ -47,7 +47,7 @@ const extraRows=()=>{const have=new Set(PRICE_ROWS.flatMap(([,rs])=>rs.map(r=>r[
 const EXTRA_GROUPS=[["Extra parts: inside the car",/seat|steering|harness|shifter|sound system|interior|roll cage/i],
   ["Extra parts: practical and legal",/tow|plate|dash cam|roof rack|mud flap|visor|bull bar|protection film|ceramic/i],
   ["Extra parts: lights",/light|underglow|indicator|eyelid|halo/i],
-  ["Extra parts: engine, wheels and handling",/intercooler|exhaust|tips|spacer|lift kit|tyres|camber|snorkel|wheel finish/i],
+  ["Extra parts: engine, wheels and handling",/intercooler|exhaust|tips|spacer|lift kit|tyres|camber|snorkel|wheel finish|strut|diff|anti-roll|catch can|oil cooler/i],
   ["Extra parts: outside",/bonnet|vent|canard|sun strip|decal|grille|mirror|scoop|louvre|roof|wrap|numbers/i]];
 const extraGroups=()=>{const rows=extraRows(),out=EXTRA_GROUPS.map(([g])=>[g,[]]),other=[];
   rows.forEach(r=>{const i=EXTRA_GROUPS.findIndex(([,re])=>re.test(r[0]));(i<0?other:out[i][1]).push(r);});
