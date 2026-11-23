@@ -259,7 +259,30 @@
   box.addEventListener("submit", e => { if (e.target.id === "ownPlateForm") { e.preventDefault(); setPlate(document.getElementById("ownPlateText").value); } });
   box.addEventListener("input", e => { if (e.target.id === "ownPlateText") { const v = e.target.value.toUpperCase().replace(/[^A-Z0-9 ]/g, ""); if (v !== e.target.value) e.target.value = v; } });
 
+  // Website #137: render() rebuilds the panel, so remember which control had keyboard focus and put focus back on its
+  // new copy (a Fit it button becomes Take it off, so match that too; else fall back to the group's heading).
+  const FOCUS_ATTRS = ["data-row", "data-key", "data-val", "data-row-off", "data-row-fit", "data-g", "data-o", "data-x", "data-ps"];
+  function focusMemo() {
+    const el = document.activeElement;
+    if (!el || el === box || !box.contains(el)) return null;
+    const sec = el.closest(".opt-group"), q = a => `[${a}="${CSS.escape(el.getAttribute(a))}"]`;
+    const sels = [el.id ? "#" + CSS.escape(el.id) : el.tagName.toLowerCase() + FOCUS_ATTRS.filter(a => el.hasAttribute(a)).map(q).join("")];
+    if (el.dataset.rowFit) sels.push(`[data-row-off="${el.dataset.rowFit}"]`);
+    if (el.dataset.rowOff) sels.push(`[data-row-fit="${el.dataset.rowOff}"]`);
+    return { sels, sec: sec ? [...box.querySelectorAll(".opt-group")].indexOf(sec) : -1 };
+  }
+  function focusBack(m) {
+    if (!m) return;
+    for (const s of m.sels) { const el = box.querySelector(s); if (el) return el.focus(); }
+    const h = box.querySelectorAll(".opt-group")[m.sec]?.querySelector("h3");
+    if (h) { h.tabIndex = -1; h.focus(); }
+  }
   function render() {
+    const memo = focusMemo();
+    renderPanel();
+    focusBack(memo);
+  }
+  function renderPanel() {
     box.innerHTML = GROUPS.map((g, gi) => `<section class="opt-group" aria-label="${g.name}"><h3>${g.name}</h3>
       ${g.row ? rowHtml(g, gi) : ""}
       ${g.opts && !g.row ? `<div class="chips">${g.opts.map((o, oi) => chip(g, gi, o, oi, false)).join("")}</div>` : ""}
