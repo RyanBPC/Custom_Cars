@@ -525,6 +525,27 @@ function extraReply(p,part,mods,car){
 const VALUE_Q=/\bresale\b|\b(?:add|adds|keep|keeps|hold|holds|affect|affects|lower|lowers|ruin|ruins|hurt|hurts|increase|increases|boost|raise|lose|loses|kill|kills)\b.*\bvalue\b/;
 const VALUE_NOT=/\b(?:good|best|great|better|cheap) value\b|\bvalue for money\b/;
 const VALUE_REPLY="Most mods don't add value: when you sell, dealers and buyers usually pay less for a modified car, and some won't buy one at all. To keep its value, keep the original parts so you can put them back, and pick parts that come off cleanly, like a wrap, wheels or window tint. A remap or body changes are the hardest to sell on. Either way, tell your insurer about every mod.";
+/* "softer suspension", "make it comfier", "smoother ride": take a drop off instead of fitting coilovers (Car #133).
+   "better mpg", "more economical": a plain answer, nothing fitted. */
+const COMFORT_Q=/\b(?:soft(?:er)?|comf(?:ier|y)|(?:more )?comfortable|smoother|plush(?:er)?|less (?:harsh|firm|stiff|bumpy|crashy))(?: \w+)? (?:ride|suspension|setup|springs|dampers|shocks)\b|\bmake (?:it|the car|my car|her) (?:softer|comfier|comfy|more comfortable|smoother|plusher|less (?:harsh|firm|stiff|bumpy))\b|\b(?:quieter|smoother|better|nicer|comfier|softer|plusher) ride\b|\bride (?:comfort|quality)\b|\b(?:too|very|really|so) (?:harsh|stiff|firm|bumpy|crashy)\b/;
+const MPG_Q=/\bmpg\b|\b(?:fuel |petrol )?econom(?:y|ical)\b|\bfuel (?:efficien\w*|saving)\b|\b(?:use|uses|using|burn|burns) less (?:fuel|petrol|diesel)\b|\bsave (?:on )?(?:fuel|petrol)\b/;
+function comfortReply(low){
+  const car=CARS.find(x=>x.id===state.car), mods=state.mods||{}, d=mods.drop, w=mods.wheels;
+  const none={switchCar:null,reset:false,apply:[],remove:[],notes:{}};
+  if(MPG_Q.test(low)&&!COMFORT_Q.test(low)){
+    const worse=[w&&w.size>car.wheel?"bigger wheels":"",d?"the drop":"",mods.widebody?"the wide arches":"",mods.spoiler?"the spoiler":""].filter(Boolean);
+    return {reply:`For better mpg, the standard car is hard to beat: keep the ${car.wheel}″ wheels, check the tyre pressures every month, take off roof racks you're not using and drive smoothly.`
+      +(car.turbo?` A remap can help a little on a turbo car like the ${car.model}, but most people use the extra power, so it rarely saves fuel.`:` The ${car.model} has no turbo, so a remap won't help much here.`)
+      +(worse.length?` On your build, ${worse.join(", ").replace(/, ([^,]*)$/," and $1")} use a bit more fuel.`:"")+" Nothing has been changed.",...none};
+  }
+  const r=[];
+  if(d&&!d.air) r.push(`I've taken the ${d.springs?"lowering springs":"coilovers"} off, so it's back on the standard suspension, the comfiest setup for the road.`);
+  else if(d&&d.air) r.push("Air ride can be raised up for a softer ride, so I've left it on.");
+  else r.push(`The standard suspension is already the comfiest setup for the ${car.model}, so I haven't fitted anything.`);
+  r.push(`Lowering and bigger wheels make the ride firmer${w&&w.size>car.wheel?` (your ${w.size}″ wheels have thinner tyres; the standard ${car.wheel}″ are softer)`:""}.`);
+  if(car.id==="golf") r.push("Adaptive dampers (DCC) are a factory option on the Golf GTI that let you pick a Comfort mode.");
+  return {reply:r.join(" "),...none,remove:d&&!d.air?["drop"]:[]};
+}
 function localPlan(text){
   // Your own colour: "#ff8800" is read as the colour name "custom-ff8800" (see registerCustomColours).
   text=String(text).replace(/#([0-9a-f]{6})\b/gi,(m,h)=>"custom-"+h.toLowerCase()); registerCustomColours(text);
@@ -532,6 +553,7 @@ function localPlan(text){
   const low=" "+fixTypos(String(text).toLowerCase())+" ";
   if(priceAsked&&ADD_IT.test(low)){const asked=priceAsked; priceAsked=null; return planParts(asked);}
   if(VALUE_Q.test(low)&&!VALUE_NOT.test(low)) return {reply:VALUE_REPLY,switchCar:null,reset:false,apply:[],remove:[],notes:{}};
+  if((COMFORT_Q.test(low)||MPG_Q.test(low))&&!PRICE_Q.test(low)) return comfortReply(low);
   if(!PRICE_Q.test(low)&&!adviceAsked(low)){const q=questionReply(low); if(q) return q;}
   if(!PRICE_Q.test(low)||adviceAsked(low)) return planParts(text);
   const money=v=>"£"+Math.round(v).toLocaleString("en-GB");
