@@ -6,6 +6,8 @@ function playRev(which,btn){
   if(revBtn===btn){stopRev();return;}
   stopRev(); stopDriveEngine();
   const c=car(), m=which==="build"?state.mods:{};
+  const quiet=which==="build"&&!(m.exhaust||m.intake||m.tune);
+  $("soundNote").hidden=!quiet;
   if(!engine.start(c,m)) return;
   revBtn=btn; btn.textContent="■ Stop";
   const red=c.redline, seq=[[0,900,0],[900,900,0],[1100,4200,1],[1450,1500,0],[1900,900,0],[2300,1200,1],[3900,red*.98,1],[4000,red*.98,0],[4900,900,0],[5600,900,0]];
@@ -22,3 +24,4 @@ function playRev(which,btn){
 function stopRev(){if(revRAF)cancelAnimationFrame(revRAF);revRAF=null;if(revBtn){revBtn.textContent=revBtn.id==="hearStock"?"▶ Hear stock":"▶ Hear your build";revBtn=null;engine.stop();}}
 $("hearStock").addEventListener("click",e=>playRev("stock",e.currentTarget));
 $("hearBuild").addEventListener("click",e=>playRev("build",e.currentTarget));
+$("soundTry").addEventListener("click",()=>{stopRev();$("soundNote").hidden=true;applyPlan(localPlan("louder exhaust"),"louder exhaust");});
