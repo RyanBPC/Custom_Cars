@@ -461,7 +461,8 @@ function applyLights(p, b) {
   set(p.lensRear, ledTail ? 0xff1a22 : 0xff1414, ledTail ? 3.2 : 2.4, smokedT);
   // The beams: light on the road ahead and a red wash behind (off by day; dimmer through smoked lenses).
   if (!p.beams) return;
-  p.beams.front.forEach(s => { s.color.set(led ? 0xe6eeff : 0xfff0d8); s.intensity = lightsOn ? 22 * (smoked ? 0.4 : 1) : 0; });
+  p.beams.front.forEach(s => { s.color.set(led ? 0xe6eeff : 0xfff0d8); s.intensity = lightsOn ? 12 * (smoked ? 0.4 : 1) : 0; });
+  (p.beams.glows || []).forEach(q => { q.visible = lightsOn; q.material.opacity = q.userData.front ? (smoked ? 0.35 : 0.85) : (smokedT ? 0.45 : ledTail ? 0.95 : 0.75); q.material.color.set(q.userData.front ? (led ? 0xe6f0ff : 0xfff4e2) : 0xff2418); });
   p.beams.rear.forEach(l => { l.intensity = lightsOn ? (ledTail ? 0.16 : 0.12) * (smokedT ? 0.5 : 1) : 0; });
 }
 // The "LED tail lights" extra: a lighter smoked tail lens (smoked lights stay darker) that glows brighter.
@@ -485,11 +486,18 @@ function addBeams(rig) {
     const w = front.max[across] - front.min[across];
     for (const side of [front.min[across] + 0.2 * w, front.max[across] - 0.2 * w]) {
       const at = c.clone(); at[across] = side;
-      const aim = at.clone(); aim[along] += dir * 9; aim.y = 0;
-      const s = new THREE.SpotLight(0xfff0d8, 0, 25, 0.5, 0.6, 2); s.name = "Headlight_Beam"; s.castShadow = false;
+      const aim = at.clone(); aim[along] += dir * 14; aim.y = 0;
+      const s = new THREE.SpotLight(0xfff0d8, 0, 30, 0.42, 1, 2); s.name = "Headlight_Beam"; s.castShadow = false;
       s.position.copy(local(at)); s.target.position.copy(local(aim));
       rig.body.add(s, s.target); rig.beams.front.push(s);
     }
+  }
+  rig.beams.glows = [];
+  for (const [list, front] of [[rig.lensFront, true], [rig.lensRear, false]]) for (const lamp of lampsOf(rig, list, front)) {
+    const mat = new THREE.MeshBasicMaterial({ color: front ? 0xfff4e2 : 0xff2418, map: glowTexture(), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+    const q = new THREE.Mesh(new THREE.PlaneGeometry(lamp.w * 1.5, lamp.h * 2.2), mat); q.name = "Lamp_Glow"; q.renderOrder = 3;
+    q.position.set(lamp.x + (front ? 0.02 : -0.02), lamp.y, lamp.z); q.rotation.y = front ? Math.PI / 2 : -Math.PI / 2; q.visible = false;
+    q.userData.front = front; rig.body.add(q); rig.beams.glows.push(q);
   }
   // Tail lights: one small red glow just behind each lamp unit (found from the lens's own points on each
   // side of the car), so the red lands on the bumper and road right by the lights, not mid-tailgate.
@@ -497,6 +505,31 @@ function addBeams(rig) {
     const l = new THREE.PointLight(0xff1a14, 0, 1.1, 2); l.name = "Tail_Glow"; l.castShadow = false;
     l.position.set(lamp.x - 0.12, lamp.y - 0.04, lamp.z); rig.body.add(l); rig.beams.rear.push(l);
   }
+}
+// A soft round glow picture (bright middle fading to nothing), made once.
+let glowTex = null;
+function glowTexture() {
+  if (glowTex) return glowTex;
+  const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d"), gr = g.createRadialGradient(64, 64, 2, 64, 64, 64);
+  gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.25, "rgba(255,255,255,0.55)"); gr.addColorStop(0.6, "rgba(255,255,255,0.12)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  return (glowTex = new THREE.CanvasTexture(c));
+}
+// Each lamp unit (one per side) from a lens list: its outermost face along the car, middle height and side, and size.
+function lampsOf(rig, list, front) {
+  const inv = rig.body.matrixWorld.clone().invert(), p = new THREE.Vector3(), sides = { 1: [], [-1]: [] };
+  rig.group.traverse(o => {
+    if (!o.isMesh || !list.includes(o.material)) return;
+    const P = o.geometry.attributes.position, M = o.matrixWorld.clone().premultiply(inv), step = Math.max(1, Math.floor(P.count / 2000));
+    for (let i = 0; i < P.count; i += step) { p.fromBufferAttribute(P, i).applyMatrix4(M); sides[p.z >= 0 ? 1 : -1].push(p.clone()); }
+  });
+  const out = [];
+  for (const k of [1, -1]) {
+    const pts = sides[k]; if (pts.length < 3) continue;
+    const box = new THREE.Box3().setFromPoints(pts), mid = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+    out.push({ x: front ? box.max.x : box.min.x, y: mid.y, z: mid.z, w: Math.max(0.1, size.z), h: Math.max(0.05, size.y) });
+  }
+  return out;
 }
 // Where each rear lamp is, in the body's own space: the middle of the lens points on each side of the car,
 // weighted towards the outer half (where the bright part of most tail lights is). Car front is +x.
@@ -552,8 +585,12 @@ function applyBase(p, b) {
     else { m.transparent = st.glassRear[i].transparent; m.opacity = st.glassRear[i].opacity; m.color.copy(st.glassRear[i].color); }
     m.needsUpdate = true;
   });
-  p.lensFront.forEach((m, i) => m.color.copy(st.lensFront[i]).multiplyScalar(b.smoked ? 0.3 : 1));
-  p.lensRear.forEach((m, i) => m.color.copy(st.lensRear[i]).multiplyScalar(smokedTails(b) ? 0.3 : hasLedTails(b) ? 0.55 : 1));
+  const smoke = (m, on, dark) => {
+    if (m.userData.op0 === undefined) m.userData.op0 = m.opacity;
+    if (m.transparent) m.opacity = on ? Math.max(m.userData.op0, 0.72) : m.userData.op0;
+  };
+  p.lensFront.forEach((m, i) => { m.color.copy(st.lensFront[i]).multiplyScalar(b.smoked ? 0.22 : 1); smoke(m, b.smoked); });
+  p.lensRear.forEach((m, i) => { m.color.copy(st.lensRear[i]).multiplyScalar(smokedTails(b) ? 0.55 : hasLedTails(b) ? 0.55 : 1); smoke(m, smokedTails(b)); });
 }
 
 

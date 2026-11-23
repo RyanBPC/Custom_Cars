@@ -159,10 +159,14 @@ const PARTS = {
   // Ducktail: a body-coloured kick-up that grows out of the edge, curving up to a sharp lip.
   "spoiler:ducktail": (f, rig) => sweep(rearEdge(rig, f, hasBoot(f) ? "boot" : "roof"),
     [[-0.14, -0.01], [-0.06, 0.004], [0.0, 0.016], [0.05, 0.036], [0.085, 0.058], [0.092, 0.064], [0.084, 0.064], [0.04, 0.046], [-0.04, 0.022], [-0.14, 0.006]], shine(rig), 0.1),
-  // Roof spoiler extension (hatchbacks especially): a gloss black blade carrying the roof line further back,
-  // angled down over the rear window, with a thin upturned edge.
-  "spoiler:roof-ext": (f, rig) => sweep(rearEdge(rig, f, "roof"),
-    [[-0.04, -0.004], [0.04, -0.018], [0.11, -0.036], [0.124, -0.03], [0.122, -0.024], [0.06, -0.01], [-0.04, 0.006]], mats().black, 0.06),
+  // Roof spoiler extension (hatchbacks especially): a painted blade carrying the roof line about 15 cm further back,
+  // dropping slightly over the rear window, with a gloss black underside and a thin upturned edge.
+  "spoiler:roof-ext": (f, rig) => {
+    const e = rearEdge(rig, f, "roof"), g = new THREE.Group();
+    g.add(sweep(e, [[-0.05, 0.002], [0.04, -0.006], [0.12, -0.02], [0.158, -0.026], [0.162, -0.016], [0.12, -0.008], [0.04, 0.008], [-0.05, 0.012]], shine(rig), 0.05));
+    g.add(sweep(e, [[-0.02, -0.004], [0.15, -0.03], [0.15, -0.026], [-0.02, 0.0]], mats().black, 0.06));
+    return g;
+  },
   // Pedestal wing: a body-coloured wing on two short stands, mid-height above the boot or tailgate.
   "spoiler:pedestal": (f, rig) => {
     const g = new THREE.Group(), boot = hasBoot(f), legZ = Math.min(0.42, f.rearGlass.halfW - 0.12);
@@ -216,46 +220,19 @@ const PARTS = {
     }
     return g;
   },
-  bodykit: (f, rig) => {
-    const m = mats(), g = new THREE.Group(), w = f.sideZ - 0.08;
-    const fb = up(rig, f.frontX - 0.12, 0), ff = fb && fromFront(rig, fb.y + 0.02, 0);
-    const fy = fb ? fb.y : f.frontBottomY, fx = ff ? ff.x : f.frontX;
-    // Front splitter, curved to follow the bumper's corners.
-    const s = new THREE.Shape(); s.moveTo(-0.08, -w); s.lineTo(0.0, -w); s.quadraticCurveTo(0.09, -w * 0.7, 0.09, 0); s.quadraticCurveTo(0.09, w * 0.7, 0.0, w); s.lineTo(-0.08, w); s.lineTo(-0.08, -w);
-    const sp = mesh(new THREE.ExtrudeGeometry(s, { depth: 0.016, bevelEnabled: false }), m.carbon, fx - 0.06, fy - 0.016, 0); sp.rotation.x = -Math.PI / 2; g.add(sp);
-    // Side skirts between the wheels.
-    const xs = rig.wheelInfo, x0 = xs.rearX + xs.r + 0.04, x1 = xs.frontX - xs.r - 0.04;
-    // Side skirt: an L-shaped strip tucked under the sill, its outer face just proud of the door bottom.
-    g.add(sides(k => {
-      const xm = (x0 + x1) / 2, sb = up(rig, xm, k * (f.sideZ - 0.06)), yb = sb ? sb.y : f.sillY - 0.05;
-      const sf = fromSide(rig, xm, yb + 0.04, k), zo = sf ? Math.abs(sf.z) : f.sideZ;
-      const sec = new THREE.Shape(); // cross-section in (z, y), outer face first
-      sec.moveTo(zo - 0.06, yb + 0.012); sec.lineTo(zo + 0.012, yb + 0.012); sec.lineTo(zo + 0.022, yb - 0.025); sec.lineTo(zo + 0.016, yb - 0.06); sec.lineTo(zo - 0.06, yb - 0.05);
-      const geo = new THREE.ExtrudeGeometry(sec, { depth: x1 - x0, bevelEnabled: false });
-      const sk = mesh(geo, m.carbon); sk.rotation.y = -Math.PI / 2; sk.position.set(x1, 0, 0);
-      if (k < 0) { sk.scale.x = -1; }
-      return sk;
-    }));
-    // Rear diffuser with fins.
-    const rb = up(rig, f.rearX + 0.12, 0), ry = rb ? rb.y : f.rearBottomY, rbx = fromBack(rig, ry + 0.02, 0), dx = (rbx ? rbx.x : f.rearX) + 0.12, dw = 2 * f.exhaust.z - 0.2;
-    g.add(box(0.28, 0.016, dw, m.black, dx, ry - 0.008, 0));
-    for (let i = -2; i <= 2; i++) g.add(box(0.24, 0.07, 0.01, m.black, dx + 0.01, ry - 0.045, i * dw / 5));
-    return g;
-  },
+  bodykit: (f, rig) => { const g = new THREE.Group(); g.add(frontLip(f, rig), sideSkirts(f, rig), diffuser(f, rig)); return g; },
   widebody: (f, rig) => {
-    // Bolt-on over-fenders: a flared lip that follows each arch, swept round the wheel's own axle
-    // (a lathe), so it is thick where it meets the body and tucks in at the edge, with rivets along it.
+    // Bolt-on over-fenders (unpainted black, like most kits): a wide flare swept round each wheel's axle, about 6-8 cm
+    // proud of the body at its edge, thick where it meets the body, with bolts along it.
     const m = mats(), g = new THREE.Group(), r = rig.wheelInfo.r;
-    const profile = [[0.175, -0.012], [0.15, 0.022], [0.115, 0.048], [0.085, 0.062], [0.062, 0.058], [0.05, 0.035], [0.052, -0.012]].map(([a, h]) => new THREE.Vector2(r + a, h));
-    const arc = Math.PI + 0.5, geo = new THREE.LatheGeometry(profile, 40, Math.PI / 2 - 0.25, arc); geo.rotateX(Math.PI / 2); geo.computeVertexNormals();
+    const fender = namedMat("fender", () => new THREE.MeshPhysicalMaterial({ color: 0x111214, roughness: 0.55, clearcoat: 0.3 }));
+    const profile = [[0.22, -0.006], [0.19, 0.03], [0.14, 0.062], [0.1, 0.078], [0.07, 0.08], [0.052, 0.06], [0.046, 0.02], [0.05, -0.006]].map(([a, h]) => new THREE.Vector2(r + a, h));
+    const arc = Math.PI + 0.6, geo = new THREE.LatheGeometry(profile, 48, Math.PI / 2 - 0.3, arc); geo.rotateX(Math.PI / 2); geo.computeVertexNormals();
     for (const w of rig.wheelInfo.list) {
-      const k = Math.sign(w.z) || 1, sd = fromSide(rig, w.x, w.y + r + 0.06, k), z = sd ? Math.abs(sd.z) : f.sideZ;
-      const flare = new THREE.Group(); flare.position.set(w.x, w.y, k * (z - 0.012)); if (k < 0) flare.rotation.y = Math.PI;
-      flare.add(mesh(geo, rig.paints[0]));
-      for (let i = 0; i < 9; i++) { // rivets on the outer face
-        const a = Math.PI / 2 - 0.15 + (i / 8) * (arc - 0.2), rr = r + 0.128;
-        flare.add(mesh(new THREE.SphereGeometry(0.0065, 8, 6), m.chrome, rr * Math.sin(a), -rr * Math.cos(a), 0.04));
-      }
+      const k = Math.sign(w.z) || 1, sd = fromSide(rig, w.x, w.y + r + 0.08, k), z = sd ? Math.abs(sd.z) : f.sideZ;
+      const flare = new THREE.Group(); flare.position.set(w.x, w.y, k * (z - 0.01)); if (k < 0) flare.rotation.y = Math.PI;
+      flare.add(mesh(geo, fender));
+      for (let i = 0; i < 11; i++) { const a = Math.PI / 2 - 0.2 + (i / 10) * (arc - 0.25), rr = r + 0.165; flare.add(mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.006, 10).rotateX(Math.PI / 2), m.chrome, rr * Math.sin(a), -rr * Math.cos(a), 0.05)); }
       g.add(flare);
     }
     return g;
@@ -308,10 +285,10 @@ const PARTS = {
     });
   },
   "Rally mud flaps": (f, rig) => {
-    const m = mats(), g = new THREE.Group();
+    const g = new THREE.Group(), flap = namedMat("flap", () => new THREE.MeshStandardMaterial({ color: 0xb3171d, roughness: 0.8 }));
     for (const w of rig.wheelInfo.list) {
-      const x = w.x - rig.wheelInfo.r - 0.07, z = Math.sign(w.z) * (f.sideZ - 0.12), top = or((up(rig, x, z) || {}).y, 0.3);
-      g.add(box(0.012, top - 0.07, 0.2, m.rubber, x, (top + 0.07) / 2, z));
+      const x = w.x - rig.wheelInfo.r - 0.06, z = w.z, top = Math.min(or((up(rig, x, z) || {}).y, 0.32), 0.42);
+      g.add(box(0.008, top - 0.06, 0.26, flap, x, (top + 0.06) / 2, z));
     }
     return g;
   },
@@ -615,25 +592,42 @@ Object.assign(PARTS, {
     }
     return g;
   },
-  "Bucket seats": f => {
-    const c = cabinOf(f), g = new THREE.Group(), m = mats();
+  "Bucket seats": (f, rig) => {
+    // One-piece racing shells over the front seats: a tall back with a head section and two harness slots, big side
+    // wings round the shoulders and hips, and bolsters either side of the cushion. Black fabric facing, carbon shell.
+    const c = cabinOf(f), g = new THREE.Group(), m = mats(), fabric = namedMat("bucketFabric", () => new THREE.MeshStandardMaterial({ color: 0x1b1c1f, roughness: 0.95 }));
+    const H = c.headrestY + 0.1 - c.seatY, W = 0.56;
     for (const k of [1, -1]) {
-      const zc = k * c.seatZ, xb = c.headrestX - 0.04;
-      const back = box(0.03, c.headrestY - c.seatY + 0.12, 0.56, m.carbon, xb, (c.headrestY + c.seatY) / 2, zc); back.rotation.z = -0.12; g.add(back);
-      for (const s of [1, -1]) { const side = slab([[xb, c.seatY - 0.08], [c.frontSeatX + 0.32, c.seatY - 0.06], [c.frontSeatX + 0.3, c.seatY + 0.1], [xb + 0.12, c.seatY + 0.16], [xb + 0.06, c.headrestY - 0.1], [xb - 0.02, c.headrestY - 0.12]], 0.03, m.carbon); side.position.z = zc + s * 0.27; g.add(side); }
+      const zc = k * c.seatZ, xb = c.headrestX - 0.06;
+      const seat = new THREE.Group(); seat.position.set(xb, c.seatY - 0.04, zc); seat.rotation.z = 0.14; // reclined back (top towards the rear)
+      // Back shell, seen from the front: wide at the hips, shoulders, then a narrower head section; two harness slots.
+      const sh = new THREE.Shape(); sh.moveTo(-W / 2, 0); sh.lineTo(W / 2, 0); sh.lineTo(W / 2, H * 0.62); sh.quadraticCurveTo(W / 2, H * 0.72, 0.17, H * 0.75); sh.lineTo(0.15, H); sh.lineTo(-0.15, H); sh.lineTo(-0.17, H * 0.75); sh.quadraticCurveTo(-W / 2, H * 0.72, -W / 2, H * 0.62); sh.lineTo(-W / 2, 0);
+      for (const s2 of [-1, 1]) { const slot = new THREE.Path(); const sx = s2 * 0.09, sy = H * 0.66; slot.moveTo(sx - 0.03, sy - 0.035); slot.lineTo(sx + 0.03, sy - 0.035); slot.lineTo(sx + 0.03, sy + 0.035); slot.lineTo(sx - 0.03, sy + 0.035); sh.holes.push(slot); }
+      const back = new THREE.ExtrudeGeometry(sh, { depth: 0.035, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 2 }); back.rotateY(-Math.PI / 2); // shape z->car x
+      seat.add(mesh(back, m.carbon, 0.0, 0, 0));
+      const face = mesh(back.clone(), fabric, 0.03, 0, 0); face.scale.set(0.4, 0.98, 0.94); seat.add(face);
+      // Side wings: tall at the shoulders and hips, curving forward round the body.
+      for (const s2 of [-1, 1]) {
+        const wing = slab([[0, 0], [0.42, 0.02], [0.44, 0.13], [0.16, 0.2], [0.12, H * 0.45], [0.2, H * 0.6], [0.16, H * 0.72], [0, H * 0.74]], 0.03, m.carbon);
+        wing.rotation.y = 0; wing.position.z = s2 * (W / 2 - 0.01); seat.add(wing);
+      }
+      g.add(seat);
     }
     return g;
   },
-  "Racing harnesses": f => {
+  "Racing harnesses": (f, rig) => {
+    // Four-point harnesses: two shoulder straps over each seat back, through to a buckle, and lap belts; laid just in
+    // front of the measured seat surface so they show over the seat.
     const c = cabinOf(f), g = new THREE.Group(), red = redMat();
+    const front = (y, z, x0) => { const h = probe(rig, [x0 + 0.7, y, z], [-1, 0, 0]); return h && h.x > x0 - 0.1 && h.x < x0 + 0.6 ? h.x + 0.012 : x0 + 0.15; };
     for (const k of [1, -1]) {
-      const zc = k * c.seatZ, xb = c.headrestX + 0.06;
+      const zc = k * c.seatZ, xb = c.headrestX, yS = c.headrestY - 0.14, yC = c.seatY + 0.28, yL = c.seatY + 0.07, xl = c.frontSeatX + 0.08;
       for (const s of [1, -1]) {
-        g.add(bar([xb, c.headrestY - 0.12, zc + s * 0.1], [xb + 0.1, c.seatY + 0.22, zc + s * 0.08], 0.05, 0.006, red));
-        g.add(bar([xb + 0.1, c.seatY + 0.22, zc + s * 0.08], [c.frontSeatX + 0.12, c.seatY + 0.06, zc + s * 0.04], 0.05, 0.006, red));
-        g.add(bar([c.frontSeatX - 0.02, c.seatY + 0.04, zc + s * 0.24], [c.frontSeatX + 0.12, c.seatY + 0.06, zc], 0.05, 0.006, red));
+        const a = [front(yS, zc + s * 0.09, xb), yS, zc + s * 0.09], b = [front(yC, zc + s * 0.06, xb), yC, zc + s * 0.06], d = [xl + 0.06, yL + 0.03, zc];
+        g.add(bar(a, b, 0.05, 0.005, red), bar(b, d, 0.05, 0.005, red));
+        g.add(bar([xl - 0.12, yL, zc + s * 0.22], [xl + 0.06, yL + 0.03, zc], 0.05, 0.005, red));
       }
-      g.add(mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.012, 20), mats().chrome, c.frontSeatX + 0.12, c.seatY + 0.07, zc));
+      const buckle = mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.014, 20), mats().chrome, xl + 0.07, yL + 0.04, zc); buckle.rotation.z = Math.PI / 2 - 0.4; g.add(buckle);
     }
     return g;
   },
@@ -677,15 +671,34 @@ const colourIn = (text, fallback) => coloursIn(text)[0] || fallback;
 // Surfaces that aren't paint, glass, lights or wheels: trim, grilles and the cabin.
 function trimTriangles(rig) { return rig.trimTris || (rig.trimTris = copyTriangles(rig, m => !rig.paints.includes(m) && !/Glass|Lens|Rim|Tyre|Caliper|Disc|Hub|Plate/i.test(m.name || ""))); }
 function brushed(g, w, h) { g.fillStyle = "#a9adb2"; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y++) { g.fillStyle = `rgba(${(y * 7919) % 3 ? "255,255,255" : "40,44,48"},${0.05 + ((y * 104729) % 9) / 100})`; g.fillRect(0, y, w, 1); } }
-// Side skirts on their own (the aero kit has them too): modelled ones for cars without fitted aero parts.
+// Front lip (splitter): traced round the bottom of the front bumper, sticking out about 6 cm past it, with a short
+// upturned front face, in gloss black. Ends taper where the bumper turns back at the corners.
+function frontLip(f, rig) {
+  const fb = up(rig, f.frontX - 0.15, 0), y0 = fb ? fb.y : f.frontBottomY, w = f.sideZ - 0.14, edge = [];
+  for (let i = 0; i <= 16; i++) {
+    const z = -w + 2 * w * i / 16, h = fromFront(rig, y0 + 0.03, z); if (!h) continue;
+    const u = up(rig, h.x - 0.05, z), y = u && Math.abs(u.y - y0) < 0.08 ? u.y : y0;
+    edge.push(V3(h.x, y - 0.002, z));
+  }
+  return sweep(edge, [[0.14, 0], [0.14, -0.016], [-0.05, -0.016], [-0.064, -0.01], [-0.066, 0.018], [-0.056, 0.022], [-0.05, 0.004], [0.0, 0.0]], mats().black, 0.1);
+}
+// Rear diffuser: a gloss black plate under the back bumper between the exhaust tips, kicking up and out past it, with fins.
+function diffuser(f, rig) {
+  const m = mats(), g = new THREE.Group(), rb = up(rig, f.rearX + 0.15, 0), ry = rb ? rb.y : f.rearBottomY;
+  const back = fromBack(rig, ry + 0.03, 0), bx = back ? back.x : f.rearX, dw = Math.max(0.6, 2 * f.exhaust.z - 0.22);
+  const plate = slab([[bx + 0.3, ry - 0.004], [bx - 0.05, ry + 0.03], [bx - 0.05, ry + 0.016], [bx + 0.3, ry - 0.02]], dw, m.black); g.add(plate);
+  for (let i = 0; i < 6; i++) { const z = -dw / 2 + 0.04 + i * (dw - 0.08) / 5; const fin = slab([[bx + 0.28, ry - 0.01], [bx - 0.04, ry + 0.02], [bx - 0.045, ry - 0.06], [bx + 0.02, ry - 0.07]], 0.008, m.black); fin.position.z = z; g.add(fin); }
+  return g;
+}
+// Side skirts on their own (the aero kit has them too).
 function sideSkirts(f, rig) {
   const m = mats(), xs = rig.wheelInfo, x0 = xs.rearX + xs.r + 0.04, x1 = xs.frontX - xs.r - 0.04;
   return sides(k => {
     const xm = (x0 + x1) / 2, sb = up(rig, xm, k * (f.sideZ - 0.06)), yb = sb ? sb.y : f.sillY - 0.05;
     const sf = fromSide(rig, xm, yb + 0.04, k), zo = sf ? Math.abs(sf.z) : f.sideZ;
     const sec = new THREE.Shape();
-    sec.moveTo(zo - 0.06, yb + 0.012); sec.lineTo(zo + 0.012, yb + 0.012); sec.lineTo(zo + 0.022, yb - 0.025); sec.lineTo(zo + 0.016, yb - 0.06); sec.lineTo(zo - 0.06, yb - 0.05);
-    const sk = mesh(new THREE.ExtrudeGeometry(sec, { depth: x1 - x0, bevelEnabled: false }), m.carbon); sk.rotation.y = -Math.PI / 2; sk.position.set(x1, 0, 0);
+    sec.moveTo(zo - 0.06, yb + 0.012); sec.lineTo(zo + 0.014, yb + 0.012); sec.lineTo(zo + 0.026, yb - 0.022); sec.lineTo(zo + 0.03, yb - 0.05); sec.lineTo(zo + 0.058, yb - 0.064); sec.lineTo(zo + 0.056, yb - 0.074); sec.lineTo(zo - 0.06, yb - 0.066);
+    const sk = mesh(new THREE.ExtrudeGeometry(sec, { depth: x1 - x0, bevelEnabled: true, bevelThickness: 0.003, bevelSize: 0.003, bevelSegments: 1 }), m.carbon); sk.rotation.y = -Math.PI / 2; sk.position.set(x1, 0, 0);
     if (k < 0) sk.scale.x = -1;
     return sk;
   });
@@ -994,9 +1007,7 @@ export function measureWheels(rig) {
 /* ---------- modelled parts fitted to a particular car (models/aero/<car>/, made by models/tools/prep_aero.py) ----------
    They're saved in the car's own coordinates, so they just go on. Cars without them use the simple shapes above. */
 const AERO = {
-  bodykit: [["splitter", () => "carbon"], ["skirts", () => "carbon"], ["diffuser", () => "black"]],
   exhaust: [["exhaust", n => /chrome/i.test(n) ? "chrome" : "black"]],
-  "Side skirts": [["skirts", () => "carbon"]],
   "Quad exhaust tips": [["exhaust-quad", n => /chrome/i.test(n) ? "chrome" : "black"]]
 };
 const aeroCache = {};
@@ -1027,7 +1038,7 @@ export function updateAddons(rig, spec, f) {
   const s = spec || { extras: [] }, has = n => s.extras.includes(n), want = new Map();
   if (s.spoiler) want.set("spoiler:" + s.spoiler, "");
   for (const k of ["bodykit", "widebody", "exhaust"]) if (s[k] && !(k === "exhaust" && rig.aero && has("Quad exhaust tips"))) want.set(k, "");
-  const out = (has("Wheel spacers") ? 0.02 : 0) + (s.widebody ? 0.04 : 0), camber = has("Negative camber setup") ? 0.06 : 0;
+  const out = (has("Wheel spacers") ? 0.02 : 0) + (s.widebody ? 0.055 : 0), camber = has("Negative camber setup") ? 0.06 : 0;
   s.wheelOut = out;
   // A part's key: when it changes, the part is rebuilt (colour, plate text, wheel position).
   const low = has("Low-profile tyres") ? LOW_PRO : 0;
@@ -1053,9 +1064,13 @@ export function updateAddons(rig, spec, f) {
     w.group.position.z = w.home.pos.z + k * out; w.group.rotation.x = w.home.rotX - k * camber;
     w.group.position.y = w.home.pos.y - low; // low-profile tyres are a little smaller, so the whole car sits lower
   }
-  // Chrome wheels.
-  if (!rig.rimMR) rig.rimMR = rig.rims.map(m => [m.metalness, m.roughness]);
-  rig.rims.forEach((m, i) => { if (has("Chrome wheel finish")) { m.color.set(0xffffff); m.metalness = 1; m.roughness = 0.06; } else { m.metalness = rig.rimMR[i][0]; m.roughness = rig.rimMR[i][1]; } });
+  // Chrome wheels: mirror chrome, so the rim's own painted/machined picture comes off too.
+  if (!rig.rimMR) rig.rimMR = rig.rims.map(m => [m.metalness, m.roughness, m.map]);
+  rig.rims.forEach((m, i) => {
+    const on = has("Chrome wheel finish");
+    if (on) { m.color.set(0xffffff); m.metalness = 1; m.roughness = 0.05; m.map = null; } else { m.metalness = rig.rimMR[i][0]; m.roughness = rig.rimMR[i][1]; m.map = rig.rimMR[i][2]; }
+    m.needsUpdate = true;
+  });
   // Chrome delete: shiny trim goes gloss black. Paint protection film or ceramic coating: an extra-glossy clear coat.
   if (!rig.chromeMats) {
     rig.chromeMats = [];

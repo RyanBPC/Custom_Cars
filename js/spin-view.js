@@ -14,7 +14,7 @@ function spinBuild(mods) {
     id: c.id, name: `${c.make} ${c.model}`, paint: E.paint, finish: E.pfin, wheelIn: E.size,
     wheelsChanged: !!mods.wheels, brakesChanged: !!mods.brakes || paintC, wheelStyle: mods.wheels ? mods.wheels.style : null,
     rimColour: RIM_FINISH[E.finish] || RIM_FINISH.silver, caliper: paintC ? caliperPaint(mods) : E.caliper, bigBrake: E.bigBrake,
-    dropMm: mods.drop ? mods.drop.mm : 0, tint: E.tint, smoked: E.smoked,
+    dropMm: mods.drop ? (mods.drop.air ? 80 : mods.drop.mm) : 0, // aired out: tyres tucked into the arches tint: E.tint, smoked: E.smoked,
     addons: { spoiler: mods.spoiler ? mods.spoiler.type : null, bodykit: !!mods.bodykit, widebody: !!mods.widebody, exhaust: !!mods.exhaust,
               stripes: mods.stripes ? mods.stripes.colour : null, extras: mods.custom ? mods.custom.items.map(i => i.name) : [], glow: glowColour(mods),
               ambient: glowColour(mods, "LED ambient interior lighting", "#3aa8ff"), plate: privateReg(mods) || state.plate || carReg(c), plateStyle: plateStyleOf(mods), graphic: graphicStyle(mods), sunStrip: sunStripText(mods),
