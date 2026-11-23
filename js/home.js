@@ -11,13 +11,14 @@
     : `<img src="${thumb(b)}" alt="" loading="lazy" width="800" height="450" data-full="${photo(b)}" data-car="${b.car}">`;
   window.addEventListener("error", e => {
     const img = e.target;
-    if (!(img instanceof HTMLImageElement) || !img.closest("#buildGrid") || !img.dataset.car) return;
+    if (!(img instanceof HTMLImageElement) || !img.closest("#buildGrid, #popGrid") || !img.dataset.car) return;
     // No small copy? Try the full photo once before falling back to the drawn car.
     if (img.dataset.full) { const full = img.dataset.full; delete img.dataset.full; img.src = full; return; }
     img.outerHTML = drawn(img.dataset.car);
   }, true);
 
   // Short names for the Models filter and the "Build your own" card.
+  const POPULAR = ["track", "bmw-msport", "fiesta-fresh"];
   const SHORT = { golf: "Golf GTI", bmw440i: "BMW 440i", fiesta: "Fiesta" };
   const shortName = id => SHORT[id] || CARS.find(c => c.id === id).model;
   const own = `<button type="button" class="build-card own" data-build="" data-car="golf"><div class="art"><span class="plus" aria-hidden="true">+</span></div>
@@ -36,11 +37,15 @@
   }
   const priceLine = b => { const v = buildPrice(b); return v > 0 ? `<span class="price">About £${(Math.round(v / 100) * 100).toLocaleString("en-GB")} fitted</span>` : ""; };
   const grid = document.getElementById("buildGrid");
-  grid.innerHTML = own + BUILDS.map(b => {
+  const card = b => {
     const c = CARS.find(x => x.id === b.car);
     return `<button type="button" class="build-card" data-build="${b.id}" data-car="${b.car}"><div class="art">${art(b)}</div>
       <div class="body"><b>${b.name}</b><span>${c.make} ${c.model}</span>${priceLine(b)}<ul class="tags">${b.tags.map(t => `<li>${t}</li>`).join("")}</ul><span class="btn primary sm build-this">Build this</span></div></button>`;
-  }).join("");
+  };
+  grid.innerHTML = own + BUILDS.map(card).join("");
+  // Home page "Popular builds" (Website #123): one build per car, same cards as the Models page.
+  const popGrid = document.getElementById("popGrid");
+  if (popGrid) popGrid.innerHTML = POPULAR.map(id => BUILDS.find(b => b.id === id)).filter(Boolean).map(card).join("");
 
   // Models filter: All / one button per car that has builds. "Build your own" stays and follows the chosen car.
   const filter = document.getElementById("buildFilter");
@@ -91,7 +96,7 @@
       setTimeout(() => { if (!near(v.angle(), deg) && near(v.angle(), 43) && !v.inside()) v.setAngle(deg); }, 1500);
     })();
   }
-  document.getElementById("buildGrid").addEventListener("click", e => { const c = e.target.closest("[data-build]"); if (c) openBuild(c.dataset.build, c.dataset.car); });
+  ["buildGrid", "popGrid"].forEach(id => { const g = document.getElementById(id); if (g) g.addEventListener("click", e => { const c = e.target.closest("[data-build]"); if (c) openBuild(c.dataset.build, c.dataset.car); }); });
   // "Build yours" keeps whatever you're already building.
   document.getElementById("heroStart").addEventListener("click", () => goTab("build"));
   // Welcome back: saved builds (Website #67) live under the build sheet on the Build page, so a returning

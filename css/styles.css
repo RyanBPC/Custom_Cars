@@ -659,6 +659,13 @@ nav.main .wip-mark{font-size:0;width:7px;height:7px;padding:0;margin-left:4px;ba
 .how-steps li::before{content:counter(how);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;background:var(--grad-accent);color:var(--accent-ink)}
 .how-steps b{font-size:17px;font-weight:600}
 .how-steps span{color:var(--muted);font-size:14px}
+.home-popular{max-width:980px;margin:36px auto 0}
+.pop-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:14px}
+.home-how .pop-head h2.eyebrow{margin:0;text-align:left}
+.pop-head a{color:var(--muted);font-size:14px}
+.pop-head a:hover{color:inherit}
+.pop-grid{grid-template-columns:repeat(3,1fr)}
+@media (max-width:760px){.pop-grid{grid-template-columns:1fr}}
 .try-box{margin:28px auto 0;max-width:980px;text-align:center}
 .try-box p{margin:0 0 10px;color:var(--muted);font-size:14px}
 .try-box .chips{justify-content:center}
