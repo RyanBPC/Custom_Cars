@@ -660,8 +660,9 @@ Object.assign(PARTS, {
 const textOf = (s, name) => ((s.extraText || {})[name] || "").toLowerCase();
 // The colour named first in a part's text, as a hex value (COLOURS is the site's colour list), else the fallback.
 function coloursIn(text) {
+  if (typeof registerCustomColours === "function") registerCustomColours(text);
   const list = typeof COLOURS !== "undefined" ? COLOURS : [], found = [];
-  for (const [n, h] of list) { const re = new RegExp("\\b" + n + "\\b", "g"); let m; while ((m = re.exec(text))) found.push([m.index, n.length, h]); }
+  for (const [n, h] of list) { const re = new RegExp("\\b" + n.replace(/-/g, "\\-") + "\\b", "g"); let m; while ((m = re.exec(text))) found.push([m.index, n.length, h]); }
   found.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
   const out = []; let end = -1;
   for (const [i, l, h] of found) if (i >= end) { out.push(h); end = i + l; } // longest name wins where names overlap ("light grey")
@@ -740,20 +741,40 @@ function grilleSkin(f, rig, kind) {
     (x, y, z) => [z / 0.04, y / 0.07], tex, kind === "carbon" ? { roughness: 0.3 } : { roughness: 0.5, metalness: 0.3, clearcoat: 0 }, trimTriangles(rig));
 }
 // Copies the chosen triangles (lifted slightly off the surface) with a plain material: for re-covering seats.
+// A seat cover picture, one tile about 20 cm across: pleats (leather), diamonds (quilted) or a weave (cloth), stitched.
+function seatPicture(kind, col, stitch) {
+  return picture(256, 256, (g, w, h) => {
+    g.fillStyle = col; g.fillRect(0, 0, w, h);
+    const shade = a => `rgba(0,0,0,${a})`, light = a => `rgba(255,255,255,${a})`;
+    if (kind === "cloth") { for (let y = 0; y < h; y += 4) for (let x = 0; x < w; x += 4) { g.fillStyle = (x + y) % 8 ? shade(0.12) : light(0.05); g.fillRect(x, y, 2, 2); } }
+    if (kind === "alcantara") { for (let i = 0; i < 2500; i++) { g.fillStyle = i % 2 ? shade(0.06) : light(0.04); g.fillRect((i * 97) % w, (i * 57) % h, 2, 2); } }
+    const sew = (pts) => { g.strokeStyle = stitch || shade(0.35); g.lineWidth = stitch ? 2 : 1.5; g.setLineDash([5, 4]); g.beginPath(); pts.forEach(([a, b], i) => i ? g.lineTo(a, b) : g.moveTo(a, b)); g.stroke(); g.setLineDash([]); };
+    if (kind === "quilted") { for (let k = -w; k < 2 * w; k += 48) { sew([[k, 0], [k + h, h]]); sew([[k, h], [k + h, 0]]); } }
+    else { for (let x = 32; x < w; x += 64) { g.fillStyle = shade(0.18); g.fillRect(x - 2, 0, 4, h); sew([[x - 6, 0], [x - 6, h]]); sew([[x + 6, 0], [x + 6, h]]); } }
+  }, true);
+}
 function flatSkin(T, keep, mat) {
-  const P = T.pos, N = T.nrm, oP = [], oN = [], c = new THREE.Vector3(), nn = new THREE.Vector3();
+  const P = T.pos, N = T.nrm, oP = [], oN = [], oU = [], c = new THREE.Vector3(), nn = new THREE.Vector3();
   for (let t = 0; t < P.length; t += 9) {
     c.set((P[t] + P[t + 3] + P[t + 6]) / 3, (P[t + 1] + P[t + 4] + P[t + 7]) / 3, (P[t + 2] + P[t + 5] + P[t + 8]) / 3);
     nn.set(N[t] + N[t + 3] + N[t + 6], N[t + 1] + N[t + 4] + N[t + 7], N[t + 2] + N[t + 5] + N[t + 8]).normalize();
     if (!keep(c, nn)) continue;
-    for (let j = 0; j < 9; j += 3) { oP.push(P[t + j] + N[t + j] * 0.002, P[t + j + 1] + N[t + j + 1] * 0.002, P[t + j + 2] + N[t + j + 2] * 0.002); oN.push(N[t + j], N[t + j + 1], N[t + j + 2]); }
+    // Picture coordinates: across the seat (z) by height for upright faces, by length for flat ones (about 20 cm a tile).
+    const flat = Math.abs(nn.y) > 0.6;
+    for (let j = 0; j < 9; j += 3) { oP.push(P[t + j] + N[t + j] * 0.002, P[t + j + 1] + N[t + j + 1] * 0.002, P[t + j + 2] + N[t + j + 2] * 0.002); oN.push(N[t + j], N[t + j + 1], N[t + j + 2]); oU.push(P[t + j + 2] / 0.2, (flat ? P[t + j] : P[t + j + 1]) / 0.2); }
   }
   if (!oP.length) return null;
-  const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(oP, 3)); geo.setAttribute("normal", new THREE.Float32BufferAttribute(oN, 3));
+  const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(oP, 3)); geo.setAttribute("normal", new THREE.Float32BufferAttribute(oN, 3)); geo.setAttribute("uv", new THREE.Float32BufferAttribute(oU, 2));
   const m = new THREE.Mesh(geo, mat); m.userData.addon = true; m.receiveShadow = true; return m;
 }
 Object.assign(PARTS, {
-  "Side skirts": (f, rig) => sideSkirts(f, rig), // cars with fitted aero parts use those instead (AERO below)
+  "Side skirts": (f, rig) => sideSkirts(f, rig),
+  // Painted mirror caps: a colour, or the car's own colour ("body-coloured").
+  "Coloured mirror caps": (f, rig, s) => {
+    const t = textOf(s, "Coloured mirror caps"), col = /body/.test(t) ? "#" + rig.paints[0].color.getHexString() : colourIn(t, "#b5121b");
+    const tex = picture(64, 64, (g, w, h) => { g.fillStyle = col; g.fillRect(0, 0, w, h); }, true);
+    return skin(rig, (c, n) => n.x > 0 && Math.abs(c.z) > f.sideZ - 0.06 && c.y > 0.9 && c.y < 1.2 && c.x > 0.35 && c.x < 0.75, (x, y, z) => [y, z], tex);
+  }, // cars with fitted aero parts use those instead (AERO below)
   "Chrome window trim": (f, rig) => windowStrip(f, rig, mats().chrome),
   "Carbon window trim": (f, rig) => windowStrip(f, rig, mats().carbon),
   // Honeycomb mesh or carbon-look: drawn over the black plastic of the grille and the lower bumper openings.
@@ -793,9 +814,11 @@ Object.assign(PARTS, {
   // ---- cabin ----
   // Seat covers: the seats' own surfaces re-covered in leather or Alcantara; two-tone puts the second colour on the centre panels.
   "Seat covers": (f, rig, s) => {
-    const t = textOf(s, "Seat covers"), c = cabinOf(f), alc = /alcantara|suede/.test(t), cols = coloursIn(t);
+    const full = textOf(s, "Seat covers"), [t, st = ""] = full.split(" with "), c = cabinOf(f), cols = coloursIn(t);
+    const kind = /alcantara|suede/.test(t) ? "alcantara" : /cloth/.test(t) ? "cloth" : /quilt|diamond/.test(t) ? "quilted" : "leather", alc = kind === "alcantara" || kind === "cloth";
     const main = /\btan\b|saddle|cognac/.test(t) ? "#9a6236" : cols[0] || "#18191b", second = /two[- ]?tone/.test(t) ? (cols[1] || "#b5121b") : main;
-    const cover = col => new THREE.MeshPhysicalMaterial({ color: col, roughness: alc ? 0.95 : 0.45, sheen: alc ? 0.6 : 0, sheenColor: new THREE.Color(col), clearcoat: alc ? 0 : 0.15, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    const stitch = /stitch/.test(st) ? colourIn(st, "#b5121b") : null;
+    const cover = col => new THREE.MeshPhysicalMaterial({ color: 0xffffff, map: seatPicture(kind, col, stitch), roughness: alc ? 0.95 : 0.45, sheen: alc ? 0.6 : 0, sheenColor: new THREE.Color(col), clearcoat: alc ? 0 : 0.15, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
     const inSeat = p => {
       const front = p.x > c.headrestX - 0.14 && p.x < c.frontSeatX + 0.34 && Math.abs(Math.abs(p.z) - c.seatZ) < 0.27;
       const rear = p.x > c.rearSeatX - 0.36 && p.x < c.rearSeatX + 0.32 && Math.abs(p.z) < 0.62;
@@ -810,17 +833,26 @@ Object.assign(PARTS, {
   },
   // Dashboard trim: a band of carbon, brushed aluminium or piano black across the dash, at the level of the air vents.
   "Dashboard trim": (f, rig, s) => {
-    const t = textOf(s, "Dashboard trim"), c = cabinOf(f), kind = /alu|brushed|metal/.test(t) ? "brushed" : /piano|gloss black/.test(t) ? "piano" : "carbon";
+    const t = textOf(s, "Dashboard trim"), c = cabinOf(f), kind = /alu|brushed|metal/.test(t) ? "brushed" : /piano|gloss black/.test(t) ? "piano" : /wood/.test(t) ? "wood" : /painted/.test(t) ? "painted" : "carbon";
     const yc = c.wheel[1] - 0.1, y0 = yc - 0.035, y1 = yc + 0.035, drv = c.wheel[2];
-    const tex = picture(512, 64, (g, w, h) => kind === "carbon" ? weave(g, w, h, 64) : kind === "brushed" ? brushed(g, w, h) : (g.fillStyle = "#050506", g.fillRect(0, 0, w, h)));
-    const props = kind === "brushed" ? { metalness: 0.9, roughness: 0.35, clearcoat: 0 } : kind === "piano" ? { roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.02 } : { roughness: 0.3 };
+    const tex = picture(512, 64, (g, w, h) => {
+      if (kind === "carbon") return weave(g, w, h, 64);
+      if (kind === "brushed") return brushed(g, w, h);
+      if (kind === "wood") { g.fillStyle = "#5a3418"; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y++) { g.fillStyle = `rgba(${y % 7 < 3 ? "30,14,4" : "140,84,40"},${0.18 + 0.12 * Math.sin(y * 0.9)})`; g.fillRect(0, y, w, 1); } return; }
+      g.fillStyle = kind === "painted" ? colourIn(t, "#b5121b") : "#050506"; g.fillRect(0, 0, w, h);
+    });
+    const props = kind === "brushed" ? { metalness: 0.9, roughness: 0.35, clearcoat: 0 } : kind === "piano" || kind === "painted" ? { roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.02 } : kind === "wood" ? { roughness: 0.25, clearcoat: 1 } : { roughness: 0.3 };
     return skin(rig, (p, n) => n.x < -0.35 && p.x > c.dashX - 0.3 && p.x < c.dashX + 0.15 && p.y > y0 - 0.03 && p.y < y1 + 0.03 && Math.abs(p.z) < 0.7 && Math.abs(p.z - drv) > 0.2,
       (x, y, z) => [(z + 0.7) / 1.4, (y - y0) / (y1 - y0)], tex, props, trimTriangles(rig));
   },
   // Floor mats: carpet mats in each footwell with a coloured edge, laid on the floor found by measuring.
   "Floor mats": (f, rig, s) => {
-    const t = textOf(s, "Floor mats"), c = cabinOf(f), edge = colourIn(t, "#b5121b"), g = new THREE.Group();
-    const carpet = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.98 }), trim = new THREE.MeshStandardMaterial({ color: edge, roughness: 0.6 });
+    const t = textOf(s, "Floor mats"), c = cabinOf(f), rubber = /rubber/.test(t), e = t.match(/with (.+?) edging/), edge = rubber ? "#121314" : colourIn(e ? e[1] : t, "#b5121b"), g = new THREE.Group();
+    const ridges = rubber && picture(64, 64, (g2, w, h) => { g2.fillStyle = "#151617"; g2.fillRect(0, 0, w, h); g2.fillStyle = "#2a2c2f"; for (let y = 4; y < h; y += 12) g2.fillRect(0, y, w, 4); }, true);
+    const carpet = new THREE.MeshStandardMaterial({ color: rubber ? 0xffffff : 0x141416, map: ridges || null, roughness: rubber ? 0.7 : 0.98 }), trim = new THREE.MeshStandardMaterial({ color: edge, roughness: 0.6 });
+    if (ridges) ridges.repeat.set(8, 8);
+    // Embroidered badge: the car's model badge stitched in the edging colour near the heel.
+    const badge = /embroider/.test(t) && picture(256, 96, (g2, w, h) => { g2.fillStyle = rubber ? "#d0d0d0" : edge; g2.font = "bold 64px Arial, sans-serif"; g2.textAlign = "center"; g2.textBaseline = "middle"; g2.fillText(({ golf: "GTI", bmw440i: "M", fiesta: "ST" })[rig.carId] || "", w / 2, h / 2); });
     const outline = (L, W) => { const sh = new THREE.Shape(), r = 0.04; sh.moveTo(-L / 2 + r, -W / 2); sh.lineTo(L / 2 - r, -W / 2); sh.quadraticCurveTo(L / 2, -W / 2, L / 2, -W / 2 + r); sh.lineTo(L / 2, W / 2 - r); sh.quadraticCurveTo(L / 2, W / 2, L / 2 - r, W / 2); sh.lineTo(-L / 2 + r, W / 2); sh.quadraticCurveTo(-L / 2, W / 2, -L / 2, W / 2 - r); sh.lineTo(-L / 2, -W / 2 + r); sh.quadraticCurveTo(-L / 2, -W / 2, -L / 2 + r, -W / 2); return sh; };
     // Front: the footwell ahead of the seat. Rear: the floor between the front seat backs and the rear seat, measured from
     // below seat height so the rays reach the floor, not a cushion.
@@ -830,6 +862,7 @@ Object.assign(PARTS, {
       const holder = new THREE.Group(); holder.position.set(x, (a.y + b.y) / 2 + 0.004, z); holder.rotation.z = Math.atan2(a.y - b.y, L - 0.08);
       const base = mesh(new THREE.ExtrudeGeometry(outline(L, 0.38), { depth: 0.006, bevelEnabled: false }), trim); base.rotation.x = Math.PI / 2; base.position.y = 0.006; holder.add(base);
       const top = mesh(new THREE.ExtrudeGeometry(outline(L - 0.03, 0.35), { depth: 0.004, bevelEnabled: false }), carpet); top.rotation.x = Math.PI / 2; top.position.y = 0.01; holder.add(top);
+      if (badge) { const b = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.052), new THREE.MeshStandardMaterial({ map: badge, transparent: true, alphaTest: 0.3, roughness: 0.9 })); b.rotation.x = -Math.PI / 2; b.rotation.z = -Math.PI / 2; b.position.set(-L / 2 + 0.07, 0.0115, 0); holder.add(b); }
       g.add(holder);
     }
     g.userData.ownMaterials = true; return g;

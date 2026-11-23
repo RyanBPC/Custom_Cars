@@ -5,26 +5,75 @@
 (function () {
   // pick: the part this row chooses one of (null = factory / none). extras: parts you switch on and off.
   const GROUPS = [
-    { name: "Paint", pick: "wrap", swatch: true, opts: [["Factory", null], ["Gloss red", "red paint"], ["Gloss blue", "blue paint"], ["Gloss black", "black paint"], ["Gloss white", "white paint"], ["Gloss grey", "grey paint"], ["Gloss green", "green paint"], ["Gloss yellow", "yellow paint"], ["Gloss rose pink", "rose pink paint"], ["Metallic grey", "metallic grey paint"], ["Metallic red", "metallic red paint"], ["Metallic blue", "metallic blue paint"], ["Pearl white", "pearl white paint"], ["Pearl black", "pearl black paint"], ["Matte grey", "matte grey wrap"], ["Matte black", "matte black wrap"], ["Satin black", "satin black wrap"]] },
-    { name: "Wheels", pick: "wheels", opts: [["Factory", null], ["18″ black mesh", "18 inch black mesh wheels"], ["19″ silver multi-spoke", "19 inch silver multi-spoke wheels"], ["19″ gunmetal forged", "19 inch gunmetal forged wheels"], ["19″ bronze deep dish", "19 inch bronze deep dish wheels"], ["20″ turbofan", "20 inch chrome turbofan wheels"]] },
+    // ---- choice rows: dropdowns and a colour picker (see rowHtml); read gives the current choices from the fitted part ----
+    { name: "Paint and wrap", row: true, mod: "wrap", offLabel: "Back to factory paint", fitLabel: "Apply",
+      defaults: { kind: "wrap", finish: "gloss", colour: "#b5121b" },
+      fields: [{ key: "kind", label: "Type", opts: [["wrap", "Vinyl wrap"], ["paint", "Respray (paint)"]] },
+        { key: "finish", label: "Finish", opts: [["gloss", "Gloss"], ["satin", "Satin"], ["matte", "Matte"], ["metallic", "Metallic"], ["pearl", "Pearl"], ["chrome", "Chrome"], ["chameleon", "Colour-shift (chameleon)"], ["brushed", "Brushed metal"], ["carbon", "Carbon-look"]] },
+        { key: "colour", label: "Colour", colour: true }],
+      make: (v, n) => `${{ chameleon: "colour-shift", brushed: "brushed metal", carbon: "carbon-look" }[v.finish] || v.finish} ${n(v.colour)} ${v.kind === "paint" && !["chrome", "chameleon", "brushed", "carbon"].includes(v.finish) ? "respray" : "wrap"}` },
+    { name: "Graphic wrap", row: true, part: "Custom graphic wrap", defaults: { pattern: "camo" },
+      fields: [{ key: "pattern", label: "Pattern", opts: [["camo", "Camo"], ["flames", "Flames"], ["graffiti", "Graffiti / full print"]] }],
+      read: (t, v) => { v.pattern = /camo/.test(t) ? "camo" : /graffiti|tribal|print/.test(t) ? "graffiti" : "flames"; },
+      make: v => `${v.pattern === "graffiti" ? "graffiti" : v.pattern} wrap` },
+    { name: "Wheels", pick: "wheels", opts: [["Factory", null], ["18″ black mesh", "18 inch black mesh wheels"], ["19″ silver multi-spoke", "19 inch silver multi-spoke wheels"], ["19″ gunmetal forged", "19 inch gunmetal forged wheels"], ["19″ bronze deep dish", "19 inch bronze deep dish wheels"], ["20″ turbofan", "20 inch chrome turbofan wheels"]], extras: [["Low-profile tyres", "low profile tyres"]] },
     { name: "Ride height", pick: "drop", opts: [["Factory", null], ["−20mm", "lower it 20mm"], ["−35mm", "lower it 35mm"], ["Slammed −50mm", "slammed"], ["Air ride", "air ride"]] },
     { name: "Aero", pick: "spoiler", opts: [["No spoiler", null], ["Lip", "lip spoiler"], ["Ducktail", "ducktail spoiler"], ["Roof extension", "roof spoiler extension"], ["Pedestal wing", "pedestal wing"], ["GT wing", "gt wing"]], extras: [["Body kit", "body kit"], ["Widebody", "widebody"]] },
-    { name: "Styling", extras: [["20% tint", "20% tint"], ["Smoked lights", "smoked lights"], ["Racing stripes", "racing stripes"], ["Carbon mirror caps", "carbon mirror caps"], ["Big brakes", "big brakes"]] },
+    { name: "Styling", extras: [["20% tint", "20% tint"], ["Smoked lights", "smoked lights"], ["Big brakes", "big brakes"]] },
     { name: "Body & trim", extras: [["Side skirts", "side skirts"], ["Smoked tail lights", "smoked tail lights"], ["Honeycomb grille", "honeycomb mesh grille"], ["Carbon grille", "carbon grille"], ["Chrome window trim", "chrome window trim"], ["Carbon window trim", "carbon window trim"]] },
-    // Colour or finish rows: off, or one choice of an extra part. The third value is the swatch colour.
-    { name: "Bonnet wrap", part: "Bonnet wrap", opts: [["Off", null], ["Gloss black", "gloss black bonnet wrap", "#0b0c0e"], ["Matte black", "matte black bonnet wrap", "#1d1e20"], ["Carbon-look", "carbon-look bonnet wrap", "#2a2d31"], ["Satin grey", "satin grey bonnet wrap", "#6f757c"], ["Gloss white", "gloss white bonnet wrap", "#ecebe6"], ["Gloss red", "gloss red bonnet wrap", "#b5121b"]] },
-    { name: "Caliper paint", part: "Caliper paint", opts: [["Off", null], ["Red", "paint the calipers red", "#c41d24"], ["Yellow", "paint the calipers yellow", "#e1b400"], ["Blue", "paint the calipers blue", "#2459c2"], ["Black", "paint the calipers black", "#26282c"], ["Green", "paint the calipers green", "#2f7a45"], ["Orange", "paint the calipers orange", "#d9601e"]] },
-    { name: "Wheel centre caps", part: "Centre cap swap", opts: [["Factory", null], ["Black", "black centre caps", "#111214"], ["Red", "red centre caps", "#b5121b"], ["Blue", "blue centre caps", "#2459c2"], ["Gold", "gold centre caps", "#b8964e"], ["Chrome", "chrome centre caps", "#e8e8e8"]], extras: [["Low-profile tyres", "low profile tyres"]] },
-    // Underglow: off or a colour (the LED colour on the road under the car).
-    { name: "Underglow", part: "LED underglow", opts: [["Off", null], ["Blue", "blue underglow", "#2459c2"], ["White", "white underglow", "#ecebe6"], ["Purple", "purple underglow", "#8a3fd1"], ["Pink", "pink underglow", "#e0509a"], ["Green", "green underglow", "#2fbf5a"], ["Red", "red underglow", "#d01a22"], ["Orange", "orange underglow", "#e8731e"]] },
-    { name: "Interior", extras: [["Ambient lighting", "ambient lighting"]], link: ["Sit inside →", "#interior"] },
-    { name: "Seat covers", part: "Seat covers", opts: [["Factory", null], ["Black leather", "black leather seat covers", "#18191b"], ["Tan leather", "tan leather seat covers", "#9a6236"], ["Red leather", "red leather seat covers", "#b5121b"], ["White leather", "white leather seat covers", "#ecebe6"], ["Grey Alcantara", "grey alcantara seat covers", "#6f757c"], ["Two-tone black and red", "two-tone black and red leather seat covers", "linear-gradient(90deg,#18191b 50%,#b5121b 50%)"]] },
-    { name: "Dashboard trim", part: "Dashboard trim", opts: [["Factory", null], ["Carbon fibre", "carbon dashboard trim", "#2a2d31"], ["Brushed aluminium", "brushed aluminium dashboard trim", "#a9adb2"], ["Piano black", "piano black dashboard trim", "#050506"]] },
-    { name: "Floor mats", part: "Floor mats", opts: [["Factory", null], ["Red edging", "floor mats with red edging", "#b5121b"], ["Blue edging", "floor mats with blue edging", "#2459c2"], ["White edging", "floor mats with white edging", "#ecebe6"], ["Yellow edging", "floor mats with yellow edging", "#e0b400"]] },
+    { name: "Racing stripes", row: true, mod: "stripes", defaults: { colour: "#ecebe6" }, fields: [{ key: "colour", label: "Colour", colour: true }],
+      make: (v, n) => `${n(v.colour)} racing stripes` },
+    { name: "Bonnet wrap", row: true, part: "Bonnet wrap", defaults: { finish: "gloss", colour: "#16181c" },
+      fields: [{ key: "finish", label: "Finish", opts: [["gloss", "Gloss"], ["satin", "Satin"], ["matte", "Matte"], ["carbon", "Carbon-look"]] }, { key: "colour", label: "Colour", colour: true, when: v => v.finish !== "carbon" }],
+      read: (t, v, c) => { v.finish = /carbon/.test(t) ? "carbon" : /matte/.test(t) ? "matte" : /satin/.test(t) ? "satin" : "gloss"; if (c[0]) v.colour = c[0]; },
+      make: (v, n) => v.finish === "carbon" ? "carbon-look bonnet wrap" : `${v.finish} ${n(v.colour)} bonnet wrap` },
+    { name: "Mirror caps", row: true, parts: ["Carbon mirror caps", "Gloss black mirror caps", "Coloured mirror caps"], defaults: { finish: "carbon", colour: "#b5121b" },
+      fields: [{ key: "finish", label: "Finish", opts: [["carbon", "Carbon fibre"], ["black", "Gloss black"], ["colour", "Painted colour"]] }, { key: "colour", label: "Colour", colour: true, when: v => v.finish === "colour" }],
+      read: (t, v, c, name) => { v.finish = name === "Carbon mirror caps" ? "carbon" : name === "Gloss black mirror caps" ? "black" : "colour"; if (c[0]) v.colour = c[0]; },
+      make: (v, n) => v.finish === "carbon" ? "carbon mirror caps" : v.finish === "black" ? "gloss black mirror caps" : `${n(v.colour)} mirror caps` },
+    { name: "Caliper paint", row: true, part: "Caliper paint", defaults: { colour: "#b5121b" }, fields: [{ key: "colour", label: "Colour", colour: true }],
+      read: (t, v, c) => { if (c[0]) v.colour = c[0]; }, make: (v, n) => `paint the calipers ${n(v.colour)}`, note: "Paints your standard brakes. For bigger brakes, choose Big brakes under Styling." },
+    { name: "Wheel centre caps", row: true, part: "Centre cap swap", defaults: { finish: "painted", colour: "#16181c" },
+      fields: [{ key: "finish", label: "Finish", opts: [["painted", "Painted"], ["chrome", "Chrome"]] }, { key: "colour", label: "Colour", colour: true, when: v => v.finish !== "chrome" }],
+      read: (t, v, c) => { v.finish = /chrome/.test(t) ? "chrome" : "painted"; if (c[0]) v.colour = c[0]; },
+      make: (v, n) => v.finish === "chrome" ? "chrome centre caps" : `${n(v.colour)} centre caps` },
+    { name: "Underglow", row: true, part: "LED underglow", defaults: { colour: "#2459c2" }, fields: [{ key: "colour", label: "Colour", colour: true }],
+      read: (t, v, c) => { if (c[0]) v.colour = c[0]; }, make: (v, n) => `${n(v.colour)} underglow`,
+      note: "UK roads: no red showing forwards, no white backwards, no blue or flashing. Safest switched on only when parked." },
+    { name: "Interior", link: ["Sit inside →", "#interior"] },
+    { name: "Ambient lighting", row: true, part: "LED ambient interior lighting", defaults: { colour: "#5aa6dc" }, fields: [{ key: "colour", label: "Colour", colour: true }],
+      read: (t, v, c) => { if (c[0]) v.colour = c[0]; }, make: (v, n) => `${n(v.colour)} ambient lighting` },
+    { name: "Seat covers", row: true, part: "Seat covers", defaults: { material: "leather", colour: "#16181c", tone: "one", colour2: "#b5121b", stitch: "matching", stitchColour: "#b5121b" },
+      fields: [{ key: "material", label: "Material", opts: [["leather", "Leather"], ["alcantara", "Alcantara"], ["cloth", "Cloth"], ["quilted", "Quilted (diamond-stitch) leather"]] },
+        { key: "colour", label: "Colour", colour: true },
+        { key: "tone", label: "Two-tone", opts: [["one", "One colour"], ["two", "Two-tone (centre panels)"]] },
+        { key: "colour2", label: "Centre panel colour", colour: true, when: v => v.tone === "two" },
+        { key: "stitch", label: "Stitching", opts: [["matching", "Matching"], ["contrast", "Contrast colour"]] },
+        { key: "stitchColour", label: "Stitching colour", colour: true, when: v => v.stitch === "contrast" }],
+      read: (t, v) => {
+        const [main, stitch] = t.split(/ with /), c = coloursInText(main);
+        v.material = /alcantara/.test(t) ? "alcantara" : /cloth/.test(t) ? "cloth" : /quilt|diamond/.test(t) ? "quilted" : "leather";
+        v.tone = /two[- ]?tone/.test(t) ? "two" : "one"; if (c[0]) v.colour = c[0]; if (c[1]) v.colour2 = c[1];
+        if (stitch && /stitch/.test(stitch)) { v.stitch = "contrast"; const s = coloursInText(stitch); if (s[0]) v.stitchColour = s[0]; } else v.stitch = "matching";
+      },
+      make: (v, n) => `${v.tone === "two" ? `two-tone ${n(v.colour)} and ${n(v.colour2)}` : n(v.colour)} ${{ leather: "leather", alcantara: "alcantara", cloth: "cloth", quilted: "quilted leather" }[v.material]} seat covers${v.stitch === "contrast" ? ` with ${n(v.stitchColour)} stitching` : ""}` },
+    { name: "Dashboard trim", row: true, part: "Dashboard trim", defaults: { finish: "carbon", colour: "#b5121b" },
+      fields: [{ key: "finish", label: "Finish", opts: [["carbon", "Carbon fibre"], ["piano", "Piano black"], ["brushed", "Brushed aluminium"], ["wood", "Wood"], ["colour", "Painted colour"]] }, { key: "colour", label: "Colour", colour: true, when: v => v.finish === "colour" }],
+      read: (t, v, c) => { v.finish = /wood/.test(t) ? "wood" : /alumin|brushed/.test(t) ? "brushed" : /piano/.test(t) ? "piano" : /painted/.test(t) ? "colour" : "carbon"; if (c[0]) v.colour = c[0]; },
+      make: (v, n) => ({ carbon: "carbon dashboard trim", piano: "piano black dashboard trim", brushed: "brushed aluminium dashboard trim", wood: "wood dashboard trim" })[v.finish] || `${n(v.colour)} painted dashboard trim` },
+    { name: "Floor mats", row: true, part: "Floor mats", defaults: { material: "carpet", colour: "#b5121b", logo: "none" },
+      fields: [{ key: "material", label: "Material", opts: [["carpet", "Carpet with coloured edging"], ["rubber", "Rubber"]] }, { key: "colour", label: "Edging colour", colour: true, when: v => v.material === "carpet" },
+        { key: "logo", label: "Embroidery", opts: [["none", "None"], ["logo", "Embroidered badge"]] }],
+      read: (t, v, c) => { v.material = /rubber/.test(t) ? "rubber" : "carpet"; const e = t.match(/with (.+?) edging/); const ec = e && coloursInText(e[1]); if (ec && ec[0]) v.colour = ec[0]; v.logo = /embroider/.test(t) ? "logo" : "none"; },
+      make: (v, n) => `${v.material === "rubber" ? "rubber floor mats" : `carpet floor mats with ${n(v.colour)} edging`}${v.logo === "logo" ? " and embroidered badge" : ""}` },
     { name: "Number plates", extras: [["No front plate", "no front plate"], ["No rear plate", "no rear plate"]], plateBox: true },
     { name: "Performance", pick: "tune", opts: [["Stock", null], ["Stage 1", "stage 1 tune"], ["Stage 2", "stage 2 tune"]], extras: [["Louder exhaust", "louder exhaust"], ["Quad tips", "quad exhaust tips"]] }
   ];
   const box = document.getElementById("options");
+  if (!document.getElementById("optRowCss")) document.head.insertAdjacentHTML("beforeend", `<style id="optRowCss">
+    .opt-row{display:grid;gap:10px}.colour-field{display:grid;gap:6px}.cf-label{font-size:12px;color:var(--muted)}
+    .chip.sw-only{padding:5px}.chip.sw-only .sw{width:18px;height:18px}.opt-row .plate-style{margin:0}.opt-note{color:var(--muted);font-size:12px}
+    .opt-row input[type=color]{width:44px;height:28px;padding:0;border:0;background:none;cursor:pointer}</style>`);
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const customs = () => (state.mods.custom && state.mods.custom.items) || [];
   // What an option fits on a stock car. (The parser skips parts already fitted, so ask it about an empty build.)
@@ -62,6 +111,61 @@
   // Rows for an extra part with a colour or finish: a choice is on when the part is fitted with exactly that wording.
   const itemOf = name => customs().find(c => c.name === name);
   const plannedText = (text, name) => { const a = (planFor(text).apply || []).find(x => x.id === "custom"), it = a && a.params.items.find(i => i.name === name); return it ? it.text : null; };
+  /* ---------- choice rows: dropdowns and a colour picker instead of a button for every option ----------
+     A row builds one plain-English request from its choices ("satin purple bonnet wrap") and sends it through the
+     advisor's parser, like typing it. Its current choices are read back from the car. */
+  const QUICK = ["black", "white", "silver", "grey", "nardo grey", "red", "blue", "navy", "sky blue", "green", "british racing green", "yellow", "orange", "purple", "pink", "gold", "bronze", "teal"];
+  const nameOf = hex => { const f = COLOURS.find(c => c[1].toLowerCase() === String(hex).toLowerCase()); return f ? f[0] : "custom-" + String(hex).replace("#", "").toLowerCase(); };
+  const hexOf = name => (COLOURS.find(c => c[0] === name) || [])[1];
+  // Colours named in a piece of text, in order (custom colours are "custom-rrggbb").
+  function coloursInText(t) {
+    if (typeof registerCustomColours === "function") registerCustomColours(t);
+    const hits = []; for (const [n, h] of COLOURS) { const i = t.search(new RegExp("\\b" + n.replace(/[-]/g, "\\-") + "\\b")); if (i >= 0) hits.push([i, n.length, h]); }
+    hits.sort((a, b) => a[0] - b[0] || b[1] - a[1]); const out = []; let end = -1;
+    for (const [i, l, h] of hits) if (i >= end) { out.push(h); end = i + l; }
+    return out;
+  }
+  const allColours = () => { const seen = new Set(); return COLOURS.filter(c => !/^custom-/.test(c[0]) && !seen.has(c[1]) && seen.add(c[1])).map(c => c[0]).sort(); };
+  function colourField(gi, key, label, hex) {
+    const cur = hex ? nameOf(hex) : "";
+    return `<div class="colour-field"><span class="cf-label">${label}</span><div class="chips">${QUICK.map(n => `<button type="button" class="chip sw-only" data-row="${gi}" data-key="${key}" data-val="${hexOf(n)}" aria-pressed="${cur === n}" title="${n}" aria-label="${n}"><i class="sw" style="background:${hexOf(n)}"></i></button>`).join("")}</div>
+      <div class="plate-style"><label>More colours<select data-row="${gi}" data-key="${key}"><option value="">Pick a colour…</option>${allColours().map(n => `<option value="${hexOf(n)}"${cur === n ? " selected" : ""}>${n.replace(/\b\w/g, m => m.toUpperCase())}</option>`).join("")}</select></label>
+      <label>Your own colour<input type="color" data-row="${gi}" data-key="${key}" value="${hex || "#888888"}"></label></div></div>`;
+  }
+  function selectField(gi, key, label, opts, val) {
+    return `<div class="plate-style"><label>${label}<select data-row="${gi}" data-key="${key}">${opts.map(([v, l]) => `<option value="${v}"${v === val ? " selected" : ""}>${l}</option>`).join("")}</select></label></div>`;
+  }
+  // The text a row's part is fitted with now (custom part), or null.
+  const partsOf = g => g.parts || (g.part ? [g.part] : []);
+  const rowItem = g => customs().find(c => partsOf(g).includes(c.name));
+  // Current choices of a row: read from the fitted part, else its defaults.
+  function rowVals(g) {
+    if (g.mod === "wrap") { const w = state.mods.wrap; return w ? { colour: w.colour, finish: w.finish, kind: w.paint ? "paint" : "wrap" } : { ...g.defaults, on: false }; }
+    if (g.mod === "stripes") { const s = state.mods.stripes; return s ? { colour: s.colour } : { ...g.defaults, on: false }; }
+    const it = rowItem(g); if (!it) return { ...g.defaults, on: false };
+    const t = (it.text || it.name).toLowerCase(), v = { on: true }; g.read(t, v, coloursInText(t), it.name); return { ...g.defaults, ...v };
+  }
+  function rowHtml(g, gi) {
+    const v = rowVals(g), fitted = v.on !== false;
+    return `<div class="opt-row">${g.fields.map(f => f.colour ? (f.when && !f.when(v) ? "" : colourField(gi, f.key, f.label, v[f.key])) : selectField(gi, f.key, f.label, f.opts, v[f.key])).join("")}
+      <div class="chips">${fitted ? `<button type="button" class="chip" data-row-off="${gi}">${g.offLabel || "Take it off"}</button>` : `<button type="button" class="chip" data-row-fit="${gi}">${g.fitLabel || "Fit it"}</button>`}</div>
+      ${g.note ? `<small class="opt-note">${g.note}</small>` : ""}</div>`;
+  }
+  // Applies a row's choices: builds its wording and fits it (replacing the part's previous choice).
+  function applyRow(g, v) {
+    const text = g.make(v, nameOf);
+    const p = planFor(text);
+    p.apply = (p.apply || []).map(a => a.id !== "custom" ? a : { id: "custom", params: { items: [...customs().filter(c => !a.params.items.some(i => i.name === c.name) && !partsOf(g).includes(c.name)), ...a.params.items] } });
+    addUser(text); applyPlan(p, text);
+  }
+  function rowOff(g) {
+    const what = g.name.toLowerCase();
+    const plan = g.mod ? { remove: [g.mod] } : customPlan(customs().filter(c => !partsOf(g).includes(c.name)));
+    plan.reply = `Taken off: ${what}.`; addUser(`Remove the ${what}`); applyPlan(plan, `${what} off`);
+  }
+  function rowChange(gi, key, val) {
+    const g = GROUPS[gi], v = rowVals(g); v[key] = val; v.on = true; applyRow(g, v);
+  }
   function chip(g, gi, o, oi, extra) {
     const on = g.part && !extra ? (o[1] ? !!itemOf(g.part) && itemOf(g.part).text === plannedText(o[1], g.part) : !itemOf(g.part)) : o[1] ? isOn(o[1]) : !state.mods[g.pick];
     let sw = g.part && !extra && o[2] ? `<i class="sw flat" style="background:${o[2]}"></i>` : "";
@@ -88,7 +192,10 @@
     plan.reply = item ? `Done: plates now with ${label.toLowerCase()}.` : "Back to standard plates.";
     addUser(`Number plates: ${label.toLowerCase()}`); applyPlan(plan, `plates ${label}`);
   }
-  box.addEventListener("change", e => { const sel = e.target.closest("select[data-ps]"); if (sel) setPlateStyle(sel.dataset.ps, sel.value); });
+  box.addEventListener("change", e => {
+    const sel = e.target.closest("select[data-ps]"); if (sel) return setPlateStyle(sel.dataset.ps, sel.value);
+    const f = e.target.closest("[data-row]"); if (f && f.value) rowChange(+f.dataset.row, f.dataset.key, f.value);
+  });
   function setPlate(raw) {
     const reg = cleanReg(raw), rest = customs().filter(c => c.name !== "Private number plate");
     if (!reg) { const plan = customPlan(rest); plan.reply = "Your plates are back to the car's own reg."; addUser("Take the private plate off"); applyPlan(plan, "private plate off"); return; }
@@ -101,7 +208,8 @@
 
   function render() {
     box.innerHTML = GROUPS.map((g, gi) => `<section class="opt-group" aria-label="${g.name}"><h3>${g.name}</h3>
-      ${g.opts ? `<div class="chips">${g.opts.map((o, oi) => chip(g, gi, o, oi, false)).join("")}</div>` : ""}
+      ${g.row ? rowHtml(g, gi) : ""}
+      ${g.opts && !g.row ? `<div class="chips">${g.opts.map((o, oi) => chip(g, gi, o, oi, false)).join("")}</div>` : ""}
       ${g.extras ? `<div class="chips">${g.extras.map((o, oi) => chip(g, gi, o, oi, true)).join("")}</div>` : ""}
       ${g.plateBox ? plateBox() : ""}
       ${g.link ? `<a class="opt-link" href="${g.link[1]}">${g.link[0]}</a>` : ""}</section>`).join("")
@@ -109,6 +217,13 @@
   }
 
   box.addEventListener("click", e => {
+    const rb = e.target.closest("[data-row],[data-row-off],[data-row-fit]");
+    if (rb && rb.tagName === "BUTTON") {
+      if (rb.dataset.rowOff) return rowOff(GROUPS[rb.dataset.rowOff]);
+      if (rb.dataset.rowFit) { const g = GROUPS[rb.dataset.rowFit]; return applyRow(g, rowVals(g)); }
+      if (rb.getAttribute("aria-pressed") !== "true") rowChange(+rb.dataset.row, rb.dataset.key, rb.dataset.val);
+      return;
+    }
     const b = e.target.closest(".chip");
     if (b) {
       const g = GROUPS[b.dataset.g], extra = b.dataset.x === "1", o = (extra ? g.extras : g.opts)[b.dataset.o];

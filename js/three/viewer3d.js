@@ -39,6 +39,12 @@ function paintSettings(finish) {
     // shifts colour gently along curved panels (iridescence), like real Kings Red or Moonstone Grey.
     case "metallic": return { roughness: 0.38, metalness: 0.5, clearcoat: 1, clearcoatRoughness: 0.03, specularIntensity: 1, flakes: true };
     case "pearl": return { roughness: 0.32, metalness: 0.25, clearcoat: 1, clearcoatRoughness: 0.03, specularIntensity: 1, flakes: true, iridescence: 0.45 };
+    // Colour-shift (chameleon) film: strong iridescence over a metallic base, so the colour swings along the panels.
+    case "chameleon": return { roughness: 0.22, metalness: 0.65, clearcoat: 1, clearcoatRoughness: 0.03, specularIntensity: 1, flakes: true, iridescence: 1 };
+    // Brushed metal film: metallic with fine streaks (brushed normal map), no clear coat.
+    case "brushed": return { roughness: 0.28, metalness: 0.92, clearcoat: 0, clearcoatRoughness: 0, specularIntensity: 1, brushed: true };
+    // Carbon-look film: the weave picture under a gloss clear coat.
+    case "carbon": return { roughness: 0.3, metalness: 0.1, clearcoat: 1, clearcoatRoughness: 0.04, specularIntensity: 1, weave: true };
     default: return { roughness: 0.3, metalness: 0.15, clearcoat: 1, clearcoatRoughness: 0.03, specularIntensity: 1 }; // gloss
   }
 }
@@ -58,14 +64,34 @@ function flakeTexture() {
   flakeTex.wrapS = flakeTex.wrapT = THREE.RepeatWrapping; flakeTex.repeat.set(30, 30);
   return flakeTex;
 }
+// Carbon weave (for carbon-look wraps) and fine brushed streaks (a normal map for brushed metal), made once.
+let weaveTex = null, brushTex = null;
+function weaveTexture() {
+  if (weaveTex) return weaveTex;
+  const c = document.createElement("canvas"); c.width = c.height = 256; const g = c.getContext("2d");
+  for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) { g.fillStyle = (x + Math.floor(y / 2)) % 2 ? "#3a3e44" : "#16171a"; g.fillRect(x * 8, y * 8, 8, 8); }
+  weaveTex = new THREE.CanvasTexture(c); weaveTex.wrapS = weaveTex.wrapT = THREE.RepeatWrapping; weaveTex.repeat.set(24, 24); weaveTex.colorSpace = THREE.SRGBColorSpace;
+  return weaveTex;
+}
+function brushedTexture() {
+  if (brushTex) return brushTex;
+  const c = document.createElement("canvas"); c.width = c.height = 256; const g = c.getContext("2d"), img = g.createImageData(256, 256);
+  for (let y = 0; y < 256; y++) { const n = ((y * 7919) % 97) / 97 - 0.5; for (let x = 0; x < 256; x++) { const i = (y * 256 + x) * 4; img.data[i] = 128; img.data[i + 1] = 128 + n * 70; img.data[i + 2] = 255; img.data[i + 3] = 255; } }
+  g.putImageData(img, 0, 0);
+  brushTex = new THREE.CanvasTexture(c); brushTex.wrapS = brushTex.wrapT = THREE.RepeatWrapping; brushTex.repeat.set(4, 30);
+  return brushTex;
+}
 function applyPaint(m, colour, finish) {
-  const { flakes, iridescence = 0, ...s } = paintSettings(finish);
+  const { flakes, brushed, weave, iridescence = 0, ...s } = paintSettings(finish);
   m.color.set(colour); Object.assign(m, s);
-  m.iridescence = iridescence; m.iridescenceIOR = 1.4; m.iridescenceThicknessRange = [250, 500];
+  m.iridescence = iridescence; m.iridescenceIOR = finish === "chameleon" ? 1.8 : 1.4; m.iridescenceThicknessRange = finish === "chameleon" ? [150, 900] : [250, 500];
+  // Carbon-look: the weave as the paint's picture, tinted by the chosen colour (lightened so the weave shows).
+  if (!("ownMap" in m.userData)) m.userData.ownMap = m.map || null;
+  if (weave) { m.map = weaveTexture(); m.color.lerp(new THREE.Color(0xffffff), 0.55); } else m.map = m.userData.ownMap;
   // Keep a real model's own normal map, and only swap in the flakes for metallic / pearl.
   if (!("ownNormal" in m.userData)) { m.userData.ownNormal = m.normalMap || null; m.userData.ownNormalScale = m.normalScale.clone(); }
-  m.normalMap = flakes ? flakeTexture() : m.userData.ownNormal;
-  if (flakes) m.normalScale.set(0.12, 0.12); else m.normalScale.copy(m.userData.ownNormalScale);
+  m.normalMap = flakes ? flakeTexture() : brushed ? brushedTexture() : m.userData.ownNormal;
+  if (flakes) m.normalScale.set(0.12, 0.12); else if (brushed) m.normalScale.set(0.25, 0.25); else m.normalScale.copy(m.userData.ownNormalScale);
   m.needsUpdate = true;
 }
 

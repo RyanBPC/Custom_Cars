@@ -83,6 +83,7 @@ const EXTRA_PARTS = [
  {re:/(?:gloss |piano )?black(?:ed)?(?:[- ]?out)? (?:the )?(?:front |kidney )?(?:grilles?|kidneys?)\b|\bgrilles? (?:in |painted )?(?:gloss )?black\b/,name:"Gloss black grille",in3d:true,price:150,text:"a gloss-black front grille instead of the standard finish"},
  {re:/(?:gloss |piano )?black (?:wing )?mirror(?:s| caps?)\b/,name:"Gloss black mirror caps",in3d:true,price:120,text:"gloss-black wing mirror caps"},
  {re:/(?<!black (?:wing )?)mirror caps?|carbon (?:wing )?mirrors?/,name:"Carbon mirror caps",in3d:true,price:180,text:"carbon-fibre wing mirror caps"},
+ {re:/\b(?:red|blue|white|yellow|green|orange|pink|purple|grey|gray|silver|gold|bronze|teal|lime|navy|brown|custom-[0-9a-f]{6}|body[- ]colou?r(?:ed)?)\b[a-z -]{0,14}?(?:wing )?mirror caps?\b/,name:"Coloured mirror caps",in3d:true,price:150,text:"painted wing mirror caps"},
  {re:/(wheel )?spacers?/,name:"Wheel spacers",in3d:true,price:150,text:"wheel spacers so the wheels sit flush with the arches"},
  {re:/bucket seats?|racing seats?|sports? seats?/,name:"Bucket seats",in3d:true,price:1800,text:"carbon racing bucket seats visible through the windows"},
  {re:/roll ?cage/,name:"Roll cage",in3d:true,price:2500,text:"a roll cage visible through the windows"},
@@ -175,7 +176,7 @@ function modPrice(id,p,car){
     case "bodykit": return small?850:1800;
     case "widebody": return small?4500:six?7500:6500;
     case "spoiler": return ({lip:small?200:350,ducktail:small?400:650,"gt-wing":small?1200:1900,"roof-ext":small?250:350,pedestal:small?600:850})[p.type];
-    case "wrap": return p.paint?(small?3000:six?4500:4000):p.finish==="chrome"?(small?3800:5200):(small?1900:six?2900:2600);
+    case "wrap": return p.paint?(small?3000:six?4500:4000):p.finish==="chrome"||p.finish==="chameleon"?(small?3800:5200):p.finish==="brushed"?(small?3000:4200):p.finish==="carbon"?(small?2500:3500):(small?1900:six?2900:2600);
     case "stripes": return 380;
     case "tint": return 220;
     case "lights": return 280;
@@ -183,7 +184,10 @@ function modPrice(id,p,car){
   }
   return 0;
 }
-function colourName(hex){const f=COLOURS.find(c=>c[1].toLowerCase()===String(hex).toLowerCase());return f?f[0].replace(/\b\w/g,m=>m.toUpperCase()):"Custom colour";}
+function colourName(hex){const f=COLOURS.find(c=>c[1].toLowerCase()===String(hex).toLowerCase()&&!/^custom-/.test(c[0]));return f?f[0].replace(/\b\w/g,m=>m.toUpperCase()):"Custom colour ("+String(hex).toUpperCase()+")";}
+// Your own colour (from the colour picker, or typed as #rrggbb) is written "custom-rrggbb" so it reads like any other colour name;
+// this adds any such colours in a piece of text to the colour list, so the parser, 3D and labels all know them.
+function registerCustomColours(text){for(const m of String(text||"").toLowerCase().matchAll(/custom-([0-9a-f]{6})\b/g)){const n="custom-"+m[1];if(!COLOURS.some(c=>c[0]===n))COLOURS.push([n,"#"+m[1]]);}}
 function modLabel(id,p){
   switch(id){
     case "tune": return p.stage===3?"Stage 3 power upgrade":"Stage "+p.stage+" remap";

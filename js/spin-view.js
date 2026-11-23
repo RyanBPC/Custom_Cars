@@ -29,8 +29,10 @@ function caliperPaint(mods) {
 }
 // Underglow colour from what the user said ("purple underglow"), blue-ish if none.
 function glowColour(mods, name = "LED underglow", fallback = "#22c8ff") {
-  const g = mods.custom && mods.custom.items.find(i => i.name === name);
-  const c = g && COLOURS.find(x => g.text.toLowerCase().includes(x[0]));
+  const g = mods.custom && mods.custom.items.find(i => i.name === name), t = g ? g.text.toLowerCase() : "";
+  if (g) registerCustomColours(t);
+  // The first colour named (the longest name where two start together, so "sky blue" beats "blue").
+  const c = g && COLOURS.map(x => [t.search(new RegExp("\\b" + x[0] + "\\b")), x]).filter(x => x[0] >= 0).sort((a, b) => a[0] - b[0] || b[1][0].length - a[1][0].length).map(x => x[1])[0];
   return c ? c[1] : fallback;
 }
 // Which pattern a "Custom graphic wrap" is, from what the user said.
