@@ -661,9 +661,171 @@ Object.assign(PARTS, {
   }
 });
 
+/* ---------- cosmetic extras: trim, grilles, bonnet wrap, centre caps and the cabin ----------
+   Each reads its colour or finish from what the user chose (s.extraText[name], e.g. "tan leather seat covers"). */
+const textOf = (s, name) => ((s.extraText || {})[name] || "").toLowerCase();
+// The colour named first in a part's text, as a hex value (COLOURS is the site's colour list), else the fallback.
+function coloursIn(text) {
+  const list = typeof COLOURS !== "undefined" ? COLOURS : [], found = [];
+  for (const [n, h] of list) { const re = new RegExp("\\b" + n + "\\b", "g"); let m; while ((m = re.exec(text))) found.push([m.index, n.length, h]); }
+  found.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+  const out = []; let end = -1;
+  for (const [i, l, h] of found) if (i >= end) { out.push(h); end = i + l; } // longest name wins where names overlap ("light grey")
+  return out;
+}
+const colourIn = (text, fallback) => coloursIn(text)[0] || fallback;
+// Surfaces that aren't paint, glass, lights or wheels: trim, grilles and the cabin.
+function trimTriangles(rig) { return rig.trimTris || (rig.trimTris = copyTriangles(rig, m => !rig.paints.includes(m) && !/Glass|Lens|Rim|Tyre|Caliper|Disc|Hub|Plate/i.test(m.name || ""))); }
+function brushed(g, w, h) { g.fillStyle = "#a9adb2"; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y++) { g.fillStyle = `rgba(${(y * 7919) % 3 ? "255,255,255" : "40,44,48"},${0.05 + ((y * 104729) % 9) / 100})`; g.fillRect(0, y, w, 1); } }
+// Side skirts on their own (the aero kit has them too): modelled ones for cars without fitted aero parts.
+function sideSkirts(f, rig) {
+  const m = mats(), xs = rig.wheelInfo, x0 = xs.rearX + xs.r + 0.04, x1 = xs.frontX - xs.r - 0.04;
+  return sides(k => {
+    const xm = (x0 + x1) / 2, sb = up(rig, xm, k * (f.sideZ - 0.06)), yb = sb ? sb.y : f.sillY - 0.05;
+    const sf = fromSide(rig, xm, yb + 0.04, k), zo = sf ? Math.abs(sf.z) : f.sideZ;
+    const sec = new THREE.Shape();
+    sec.moveTo(zo - 0.06, yb + 0.012); sec.lineTo(zo + 0.012, yb + 0.012); sec.lineTo(zo + 0.022, yb - 0.025); sec.lineTo(zo + 0.016, yb - 0.06); sec.lineTo(zo - 0.06, yb - 0.05);
+    const sk = mesh(new THREE.ExtrudeGeometry(sec, { depth: x1 - x0, bevelEnabled: false }), m.carbon); sk.rotation.y = -Math.PI / 2; sk.position.set(x1, 0, 0);
+    if (k < 0) sk.scale.x = -1;
+    return sk;
+  });
+}
+/* The window line: where the side glass meets the door top, found at points along each side by measuring
+   from the side (glass above, paint below), then a thin strip of chrome or carbon laid along it. */
+function windowLine(f, rig) {
+  if (rig.beltLine) return rig.beltLine;
+  const xs = rig.wheelInfo, out = { 1: [], [-1]: [] }, yTop = f.roofEdge.y - 0.22;
+  for (const k of [1, -1]) for (let i = 0; i <= 14; i++) {
+    const x = xs.rearX + xs.r * 0.6 + (xs.frontX - xs.r - 0.25 - xs.rearX - xs.r * 0.6) * i / 14;
+    const hi = fromSide(rig, x, yTop, k, true);
+    if (!hi || !hi.glass) continue; // a pillar here, not a window
+    let a = yTop, b = 0.7, last = hi;
+    if ((fromSide(rig, x, b, k, true) || {}).glass) continue;
+    for (let n = 0; n < 7; n++) { const y = (a + b) / 2, h = fromSide(rig, x, y, k, true); if (h && h.glass) { a = y; last = h; } else b = y; }
+    out[k].push(V3(x, a, last.z));
+  }
+  return (rig.beltLine = out);
+}
+function windowStrip(f, rig, mat) {
+  const line = windowLine(f, rig), g = new THREE.Group();
+  for (const k of [1, -1]) {
+    const pts = line[k]; if (pts.length < 2) continue;
+    const curve = new THREE.CatmullRomCurve3(pts.map(p => V3(p.x, p.y + 0.003, p.z + k * 0.006)));
+    g.add(mesh(new THREE.TubeGeometry(curve, pts.length * 8, 0.0065, 8, false), mat));
+  }
+  return g;
+}
+// A grille finish over the front's black plastic (grille and bumper openings), seen from the front.
+function grilleSkin(f, rig, kind) {
+  const tex = kind === "carbon" ? picture(256, 256, (g, w, h) => weave(g, w, h, 16), true) : picture(128, 222, (g, w, h) => {
+    g.fillStyle = "#3a3d42"; g.fillRect(0, 0, w, h); g.fillStyle = "#070708";
+    const hex = (cx, cy, r) => { g.beginPath(); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a)); } g.closePath(); g.fill(); };
+    for (const [cx, cy] of [[0, 0], [w, 0], [w / 2, h / 2], [0, h], [w, h]]) hex(cx, cy, w * 0.56);
+  }, true);
+  const top = f.bonnet ? f.bonnet.minY - 0.02 : 0.75;
+  return skin(rig, (c, n) => n.x > 0.45 && c.x > f.frontX - 0.4 && Math.abs(c.z) < 0.6 && c.y > f.frontBottomY + 0.03 && c.y < top,
+    (x, y, z) => [z / 0.04, y / 0.07], tex, kind === "carbon" ? { roughness: 0.3 } : { roughness: 0.5, metalness: 0.3, clearcoat: 0 }, trimTriangles(rig));
+}
+// Copies the chosen triangles (lifted slightly off the surface) with a plain material: for re-covering seats.
+function flatSkin(T, keep, mat) {
+  const P = T.pos, N = T.nrm, oP = [], oN = [], c = new THREE.Vector3(), nn = new THREE.Vector3();
+  for (let t = 0; t < P.length; t += 9) {
+    c.set((P[t] + P[t + 3] + P[t + 6]) / 3, (P[t + 1] + P[t + 4] + P[t + 7]) / 3, (P[t + 2] + P[t + 5] + P[t + 8]) / 3);
+    nn.set(N[t] + N[t + 3] + N[t + 6], N[t + 1] + N[t + 4] + N[t + 7], N[t + 2] + N[t + 5] + N[t + 8]).normalize();
+    if (!keep(c, nn)) continue;
+    for (let j = 0; j < 9; j += 3) { oP.push(P[t + j] + N[t + j] * 0.002, P[t + j + 1] + N[t + j + 1] * 0.002, P[t + j + 2] + N[t + j + 2] * 0.002); oN.push(N[t + j], N[t + j + 1], N[t + j + 2]); }
+  }
+  if (!oP.length) return null;
+  const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(oP, 3)); geo.setAttribute("normal", new THREE.Float32BufferAttribute(oN, 3));
+  const m = new THREE.Mesh(geo, mat); m.userData.addon = true; m.receiveShadow = true; return m;
+}
+Object.assign(PARTS, {
+  "Side skirts": (f, rig) => sideSkirts(f, rig), // cars with fitted aero parts use those instead (AERO below)
+  "Chrome window trim": (f, rig) => windowStrip(f, rig, mats().chrome),
+  "Carbon window trim": (f, rig) => windowStrip(f, rig, mats().carbon),
+  // Honeycomb mesh or carbon-look: drawn over the black plastic of the grille and the lower bumper openings.
+  "Honeycomb mesh grille": (f, rig) => grilleSkin(f, rig, "honeycomb"),
+  "Carbon grille": (f, rig) => grilleSkin(f, rig, "carbon"),
+  // Bonnet wrap: just the bonnet in a gloss or matte colour, or carbon-look vinyl.
+  "Bonnet wrap": (f, rig, s) => {
+    const t = textOf(s, "Bonnet wrap"), b = f.bonnet, col = colourIn(t, "#0b0c0e");
+    const kind = /carbon/.test(t) ? "carbon" : /matte?|satin/.test(t) ? "matte" : "gloss";
+    const tex = kind === "carbon" ? picture(1024, Math.round(1024 * 2 * b.halfW / (b.x1 - b.x0)), (g, w, h) => weave(g, w, h, 150)) : picture(64, 64, (g, w, h) => { g.fillStyle = col; g.fillRect(0, 0, w, h); });
+    const props = kind === "matte" ? { roughness: 0.7, clearcoat: 0 } : kind === "carbon" ? {} : { roughness: 0.2 };
+    return skin(rig, (c, n) => n.y > 0.35 && Math.abs(n.z) < 0.6 && c.y > b.minY, (x, y, z) => [(x - b.x0) / (b.x1 - b.x0), (z + b.halfW) / (2 * b.halfW)], tex, props);
+  },
+  // Centre caps: a coloured cap with a bright edge on each wheel's hub, set on the wheel face found by measuring.
+  "Centre cap swap": (f, rig, s) => {
+    const t = textOf(s, "Centre cap swap"), col = /chrome|silver/.test(t) ? null : colourIn(t, "#111214");
+    const mat = col ? new THREE.MeshPhysicalMaterial({ color: col, roughness: 0.25, clearcoat: 1, metalness: 0.2 }) : mats().chrome;
+    const ring = new THREE.MeshStandardMaterial({ color: 0xd8d8d8, metalness: 1, roughness: 0.15 });
+    const g = new THREE.Group(), rc = new THREE.Raycaster();
+    rig.group.updateMatrixWorld(true);
+    const toGroup = rig.group.matrixWorld.clone().invert();
+    for (const w of rig.wheels) {
+      const meshes = []; w.group.traverse(o => { if (o.isMesh && o.visible && !/Tyre/.test(o.material.name || "") && !(o.geometry.type === "LatheGeometry")) meshes.push(o); });
+      const box = new THREE.Box3(); meshes.forEach(o => box.expandByObject(o)); if (box.isEmpty()) continue;
+      const c = box.getCenter(new THREE.Vector3()), k = Math.sign(c.clone().applyMatrix4(toGroup).z) || 1;
+      const outW = V3(0, 0, k).transformDirection(rig.group.matrixWorld);
+      rc.set(c.clone().addScaledVector(outW, 1), outW.clone().negate());
+      const hit = rc.intersectObjects(meshes, false)[0]; if (!hit) continue;
+      const p = hit.point.applyMatrix4(toGroup), cap = new THREE.Group();
+      cap.position.set(p.x, p.y, p.z + k * 0.003); if (k < 0) cap.rotation.y = Math.PI;
+      const disc = mesh(new THREE.CylinderGeometry(0.03, 0.031, 0.008, 32), mat); disc.rotation.x = Math.PI / 2; cap.add(disc);
+      cap.add(mesh(new THREE.TorusGeometry(0.03, 0.0025, 8, 32), ring, 0, 0, 0.004));
+      g.add(cap);
+    }
+    g.userData.ground = true; g.userData.ownMaterials = true; return g; // on the wheels, which aren't on the body
+  },
+  // ---- cabin ----
+  // Seat covers: the seats' own surfaces re-covered in leather or Alcantara; two-tone puts the second colour on the centre panels.
+  "Seat covers": (f, rig, s) => {
+    const t = textOf(s, "Seat covers"), c = cabinOf(f), alc = /alcantara|suede/.test(t), cols = coloursIn(t);
+    const main = /\btan\b|saddle|cognac/.test(t) ? "#9a6236" : cols[0] || "#18191b", second = /two[- ]?tone/.test(t) ? (cols[1] || "#b5121b") : main;
+    const cover = col => new THREE.MeshPhysicalMaterial({ color: col, roughness: alc ? 0.95 : 0.45, sheen: alc ? 0.6 : 0, sheenColor: new THREE.Color(col), clearcoat: alc ? 0 : 0.15, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    const inSeat = p => {
+      const front = p.x > c.headrestX - 0.14 && p.x < c.frontSeatX + 0.34 && Math.abs(Math.abs(p.z) - c.seatZ) < 0.27;
+      const rear = p.x > c.rearSeatX - 0.36 && p.x < c.rearSeatX + 0.32 && Math.abs(p.z) < 0.62;
+      return (front || rear) && p.y > c.seatY - 0.1 && p.y < c.headrestY + 0.08;
+    };
+    const lining = (p, n) => n.y < -0.4 && p.y > c.headrestY - 0.05; // the roof lining above the seats isn't seat
+    // Centre panels: the middle of each front seat and of each outer rear place.
+    const centre = p => p.x > c.headrestX - 0.14 ? Math.abs(Math.abs(p.z) - c.seatZ) < 0.12 : Math.abs(Math.abs(p.z) - 0.36) < 0.12;
+    const T = trimTriangles(rig), g = new THREE.Group();
+    for (const [want, col] of [[true, second], [false, main]]) { const m = flatSkin(T, (p, n) => inSeat(p) && !lining(p, n) && centre(p) === want, cover(col)); if (m) g.add(m); }
+    g.userData.ownMaterials = true; return g;
+  },
+  // Dashboard trim: a band of carbon, brushed aluminium or piano black across the dash, at the level of the air vents.
+  "Dashboard trim": (f, rig, s) => {
+    const t = textOf(s, "Dashboard trim"), c = cabinOf(f), kind = /alu|brushed|metal/.test(t) ? "brushed" : /piano|gloss black/.test(t) ? "piano" : "carbon";
+    const yc = c.wheel[1] - 0.1, y0 = yc - 0.035, y1 = yc + 0.035, drv = c.wheel[2];
+    const tex = picture(512, 64, (g, w, h) => kind === "carbon" ? weave(g, w, h, 64) : kind === "brushed" ? brushed(g, w, h) : (g.fillStyle = "#050506", g.fillRect(0, 0, w, h)));
+    const props = kind === "brushed" ? { metalness: 0.9, roughness: 0.35, clearcoat: 0 } : kind === "piano" ? { roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.02 } : { roughness: 0.3 };
+    return skin(rig, (p, n) => n.x < -0.35 && p.x > c.dashX - 0.3 && p.x < c.dashX + 0.15 && p.y > y0 - 0.03 && p.y < y1 + 0.03 && Math.abs(p.z) < 0.7 && Math.abs(p.z - drv) > 0.2,
+      (x, y, z) => [(z + 0.7) / 1.4, (y - y0) / (y1 - y0)], tex, props, trimTriangles(rig));
+  },
+  // Floor mats: carpet mats in each footwell with a coloured edge, laid on the floor found by measuring.
+  "Floor mats": (f, rig, s) => {
+    const t = textOf(s, "Floor mats"), c = cabinOf(f), edge = colourIn(t, "#b5121b"), g = new THREE.Group();
+    const carpet = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.98 }), trim = new THREE.MeshStandardMaterial({ color: edge, roughness: 0.6 });
+    const outline = (L, W) => { const sh = new THREE.Shape(), r = 0.04; sh.moveTo(-L / 2 + r, -W / 2); sh.lineTo(L / 2 - r, -W / 2); sh.quadraticCurveTo(L / 2, -W / 2, L / 2, -W / 2 + r); sh.lineTo(L / 2, W / 2 - r); sh.quadraticCurveTo(L / 2, W / 2, L / 2 - r, W / 2); sh.lineTo(-L / 2 + r, W / 2); sh.quadraticCurveTo(-L / 2, W / 2, -L / 2, W / 2 - r); sh.lineTo(-L / 2, -W / 2 + r); sh.quadraticCurveTo(-L / 2, -W / 2, -L / 2 + r, -W / 2); return sh; };
+    // Front: the footwell ahead of the seat. Rear: the floor between the front seat backs and the rear seat, measured from
+    // below seat height so the rays reach the floor, not a cushion.
+    for (const [x, L, from, max] of [[c.frontSeatX + 0.42, 0.42, 0.6, 0.55], [c.rearSeatX + 0.5, 0.26, 0.42, 0.4]]) for (const k of [1, -1]) {
+      const z = k * c.seatZ, a = probe(rig, [x + L / 2 - 0.04, from, z], [0, -1, 0]), b = probe(rig, [x - L / 2 + 0.04, from, z], [0, -1, 0]);
+      if (!a || !b || a.y > max || b.y > max) continue;
+      const holder = new THREE.Group(); holder.position.set(x, (a.y + b.y) / 2 + 0.004, z); holder.rotation.z = Math.atan2(a.y - b.y, L - 0.08);
+      const base = mesh(new THREE.ExtrudeGeometry(outline(L, 0.38), { depth: 0.006, bevelEnabled: false }), trim); base.rotation.x = Math.PI / 2; base.position.y = 0.006; holder.add(base);
+      const top = mesh(new THREE.ExtrudeGeometry(outline(L - 0.03, 0.35), { depth: 0.004, bevelEnabled: false }), carpet); top.rotation.x = Math.PI / 2; top.position.y = 0.01; holder.add(top);
+      g.add(holder);
+    }
+    g.userData.ownMaterials = true; return g;
+  }
+});
+
 // Extra parts shown by changing the paint, wheels or ride height instead of adding a shape.
 const PAINT_EXTRAS = ["Carbon-fibre bonnet", "Carbon roof", "Two-tone black roof", "Bonnet vents", "Wing vents", "Racing numbers", "Decals and graphics", "Carbon mirror caps", "Gloss black mirror caps", "Custom graphic wrap", "Paint protection film", "Ceramic coating", "Windscreen sun strip"];
-const OTHER_EXTRAS = ["Wheel spacers", "Negative camber setup", "Chrome wheel finish", "Lift kit", "Chrome delete and black badges", "Gloss black grille", "Front plate delete", "Rear plate delete", "Private number plate", "Styled number plates"];
+const OTHER_EXTRAS = ["Low-profile tyres", "Caliper paint", "Smoked tail lights", "Wheel spacers", "Negative camber setup", "Chrome wheel finish", "Lift kit", "Chrome delete and black badges", "Gloss black grille", "Front plate delete", "Rear plate delete", "Private number plate", "Styled number plates"];
 // Every extra part (by its name in EXTRA_PARTS) that the 3D view can show.
 export const SHOWN_EXTRAS = [...Object.keys(PARTS).filter(k => !k.includes(":") && !/^(bodykit|widebody|exhaust)$/.test(k)), ...PAINT_EXTRAS, ...OTHER_EXTRAS];
 
@@ -698,7 +860,7 @@ function skin(rig, keep, uv, tex, matProps = {}, T = paintTriangles(rig)) {
     nn.set(N[t] + N[t + 3] + N[t + 6], N[t + 1] + N[t + 4] + N[t + 7], N[t + 2] + N[t + 5] + N[t + 8]).normalize();
     if (!keep(c, nn)) continue;
     const uvs = [0, 3, 6].map(j => uv(P[t + j], P[t + j + 1], P[t + j + 2]));
-    if (uvs.every(q => q[0] < 0) || uvs.every(q => q[0] > 1) || uvs.every(q => q[1] < 0) || uvs.every(q => q[1] > 1)) continue; // wholly outside the picture
+    if (tex.wrapS !== THREE.RepeatWrapping && (uvs.every(q => q[0] < 0) || uvs.every(q => q[0] > 1) || uvs.every(q => q[1] < 0) || uvs.every(q => q[1] > 1))) continue; // wholly outside the picture (tiled pictures cover everything)
     for (let j = 0; j < 9; j += 3) {
       oP.push(P[t + j] + N[t + j] * 0.0015, P[t + j + 1] + N[t + j + 1] * 0.0015, P[t + j + 2] + N[t + j + 2] * 0.0015);
       oN.push(N[t + j], N[t + j + 1], N[t + j + 2]); oU.push(...uvs[j / 3]);
@@ -716,7 +878,7 @@ function picture(w, h, draw, repeat = false) {
   draw(g, w, h);
   if (!repeat) g.clearRect(0, 0, w, 2), g.clearRect(0, h - 2, w, 2), g.clearRect(0, 0, 2, h), g.clearRect(w - 2, 0, 2, h);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
-  if (!repeat) t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  t.wrapS = t.wrapT = repeat ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
   return t;
 }
 function weave(g, w, h, cells) { const s = w / cells; for (let y = 0; y * s < h; y++) for (let x = 0; x < cells; x++) { g.fillStyle = (x + Math.floor(y / 2)) % 2 ? "#2b2e33" : "#111214"; g.fillRect(x * s, y * s, Math.ceil(s), Math.ceil(s)); } }
@@ -834,6 +996,7 @@ export function measureWheels(rig) {
 const AERO = {
   bodykit: [["splitter", () => "carbon"], ["skirts", () => "carbon"], ["diffuser", () => "black"]],
   exhaust: [["exhaust", n => /chrome/i.test(n) ? "chrome" : "black"]],
+  "Side skirts": [["skirts", () => "carbon"]],
   "Quad exhaust tips": [["exhaust-quad", n => /chrome/i.test(n) ? "chrome" : "black"]]
 };
 const aeroCache = {};
@@ -867,8 +1030,10 @@ export function updateAddons(rig, spec, f) {
   const out = (has("Wheel spacers") ? 0.02 : 0) + (s.widebody ? 0.04 : 0), camber = has("Negative camber setup") ? 0.06 : 0;
   s.wheelOut = out;
   // A part's key: when it changes, the part is rebuilt (colour, plate text, wheel position).
-  const keyOf = n => ({ "LED underglow": s.glow, "LED ambient interior lighting": s.ambient, "Number plates": (s.plate || "") + has("Front plate delete") + has("Rear plate delete") + JSON.stringify(s.plateStyle || {}), "All-terrain tyres": String(out) })[n] || "";
-  for (const n of s.extras) if (PARTS[n]) want.set(n, keyOf(n));
+  const low = has("Low-profile tyres") ? LOW_PRO : 0;
+  const keyOf = n => ({ "LED underglow": s.glow, "LED ambient interior lighting": s.ambient, "Number plates": (s.plate || "") + has("Front plate delete") + has("Rear plate delete") + JSON.stringify(s.plateStyle || {}),
+    "All-terrain tyres": String(out) + low, "Centre cap swap": textOf(s, n) + out + low + camber + (rig.wheelKey || "") })[n] ?? textOf(s, n);
+  for (const n of s.extras) if (PARTS[n] && !(n === "Side skirts" && s.bodykit)) want.set(n, keyOf(n)); // the aero kit has its own skirts
   // Number plates are on every car unless both are taken off; they show the reg typed in the Studio's plate box, or the car's own.
   want.set("Number plates", keyOf("Number plates")); // always: with a plate off, some cars get a cover over their blank mount
   // Paint-on effects (skins).
@@ -886,6 +1051,7 @@ export function updateAddons(rig, spec, f) {
   for (const w of rig.wheels) {
     if (!w.home) continue; const k = Math.sign(w.home.pos.z) || 1;
     w.group.position.z = w.home.pos.z + k * out; w.group.rotation.x = w.home.rotX - k * camber;
+    w.group.position.y = w.home.pos.y - low; // low-profile tyres are a little smaller, so the whole car sits lower
   }
   // Chrome wheels.
   if (!rig.rimMR) rig.rimMR = rig.rims.map(m => [m.metalness, m.roughness]);
@@ -923,5 +1089,8 @@ export function updateAddons(rig, spec, f) {
   }
   rig.grilleMats.forEach((m, i) => { const [c, r, mt] = rig.grilleStock[i]; if (has("Gloss black grille")) { m.color.set(0x0a0a0b); m.roughness = 0.2; m.metalness = 0; } else { m.color.copy(c); m.roughness = r; m.metalness = mt; } });
   if (has("Paint protection film") || has("Ceramic coating")) rig.paints.forEach(m => { m.clearcoat = 1; m.clearcoatRoughness = 0.0; });
-  return has("Lift kit") ? 0.06 : 0; // how much the body goes up
+  return (has("Lift kit") ? 0.06 : 0) - low; // how much the body goes up
 }
+
+// How much smaller (in radius) a low-profile tyre is than the car's own: its sidewall is about this much thinner.
+export const LOW_PRO = 0.012;

@@ -9,7 +9,7 @@ import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
 import { GroundedSkybox } from "three/addons/objects/GroundedSkybox.js";
 import { WebGLPathTracer, DenoiseMaterial } from "three-gpu-pathtracer";
 import { FullScreenQuad } from "three/addons/postprocessing/Pass.js";
-import { STANDIN_FIT, measureWheels, updateAddons } from "./addons3d.js";
+import { STANDIN_FIT, measureWheels, updateAddons, LOW_PRO } from "./addons3d.js";
 import { fitWheels } from "./wheels3d.js";
 import { addBadges } from "./badges3d.js";
 
@@ -429,8 +429,14 @@ function applyTo(p, b) {
   applyLights(p, b);
   // Real aftermarket wheels (modelled rims at the chosen size, with a tyre to fit); the car's own otherwise.
   const chrome = !!(b.addons && b.addons.extras.includes("Chrome wheel finish"));
-  fitWheels(p, b.wheelsChanged && b.wheelStyle ? { style: b.wheelStyle.replace("-", ""), inch: b.wheelIn, colour: b.rimColour, chrome } : null)
-    .then(changed => { if (changed) { ptCarChanged(); requestRender(); } });
+  const low = b.addons && b.addons.extras.includes("Low-profile tyres") ? LOW_PRO : 0;
+  fitWheels(p, b.wheelsChanged && b.wheelStyle ? { style: b.wheelStyle.replace("-", ""), inch: b.wheelIn, colour: b.rimColour, chrome } : null, low)
+    .then(changed => {
+      if (!changed) return;
+      // Centre caps sit on the wheel face, so they're measured again on the new wheels (the body height is already set).
+      if (b.addons && b.addons.extras.includes("Centre cap swap")) updateAddons(p, b.addons, p.fit || STANDIN_FIT);
+      ptCarChanged(); requestRender();
+    });
 }
 /* Lights on at night: in a night setting the head and tail lights glow as if switched on, so the car looks
    parked with its lights on rather than dead. Smoked lenses glow dimmer; the LED upgrade is a cooler white.
@@ -443,23 +449,25 @@ let userLights = false, nightLights = false;
 function syncLights() { setLightsOn(userLights || nightLights); }
 function applyLights(p, b) {
   const smoked = !!(b && b.smoked), led = !!(b && b.addons && b.addons.extras.includes("LED headlight upgrade"));
-  const ledTail = hasLedTails(b);
-  const set = (list, colour, strength) => list.forEach(m => {
+  const ledTail = hasLedTails(b), smokedT = smokedTails(b);
+  const set = (list, colour, strength, smoked) => list.forEach(m => {
     const day = m.userData.day || (m.userData.day = { e: m.emissive.clone(), i: m.emissiveIntensity });
     if (!lightsOn) { m.emissive.copy(day.e); m.emissiveIntensity = p.standIn ? (smoked ? 0.15 : ledTail && list === p.lensRear ? 0.3 : 0.6) : day.i; return; }
     const see = m.transparent ? Math.max(m.opacity, 0.2) : 1;
     m.emissive.set(colour); m.emissiveIntensity = Math.min(8, strength * (smoked ? 0.35 : 1) / see);
   });
-  set(p.lensFront, led ? 0xdde8ff : 0xfff0d8, 2);
+  set(p.lensFront, led ? 0xdde8ff : 0xfff0d8, 2, smoked);
   // LED tail lights: a darker lens by day, but a brighter, crisper red when lit.
-  set(p.lensRear, ledTail ? 0xff1a22 : 0xff1414, ledTail ? 3.2 : 2.4);
+  set(p.lensRear, ledTail ? 0xff1a22 : 0xff1414, ledTail ? 3.2 : 2.4, smokedT);
   // The beams: light on the road ahead and a red wash behind (off by day; dimmer through smoked lenses).
   if (!p.beams) return;
   p.beams.front.forEach(s => { s.color.set(led ? 0xe6eeff : 0xfff0d8); s.intensity = lightsOn ? 22 * (smoked ? 0.4 : 1) : 0; });
-  p.beams.rear.forEach(l => { l.intensity = lightsOn ? (ledTail ? 0.16 : 0.12) * (smoked ? 0.5 : 1) : 0; });
+  p.beams.rear.forEach(l => { l.intensity = lightsOn ? (ledTail ? 0.16 : 0.12) * (smokedT ? 0.5 : 1) : 0; });
 }
 // The "LED tail lights" extra: a lighter smoked tail lens (smoked lights stay darker) that glows brighter.
 function hasLedTails(b) { return !!(b && b.addons && b.addons.extras.includes("LED tail lights")); }
+// Smoked tail lights: the smoked-lights mod (head and tail), or the "Smoked tail lights" extra on its own.
+function smokedTails(b) { return !!(b && (b.smoked || (b.addons && b.addons.extras.includes("Smoked tail lights")))); }
 /* Gives a car two headlight beams (spot lights aimed a few metres ahead and slightly down) and a small red
    light low behind it, placed from where its lenses are. They sit on the body so they drop with it, and stay
    in the scene at zero strength when off, so switching them never makes the 3D rebuild its shaders. Cars
@@ -526,7 +534,7 @@ function applyBase(p, b) {
     p.rims.forEach(m => m.color.set(b.rimColour));
     p.glassRear.forEach(m => { m.opacity = b.tint ? TINT_OPACITY[b.tint] || 0.85 : 0.55; m.color.set(b.tint ? 0x07090b : 0x2a3640); });
     p.lensFront.forEach(m => { m.color.set(b.smoked ? 0x3a4048 : 0xf2f6ff); m.emissiveIntensity = b.smoked ? 0.15 : 0.6; });
-    p.lensRear.forEach(m => { m.color.set(b.smoked ? 0x3a0d12 : hasLedTails(b) ? 0x6a1016 : 0xc0161f); m.emissiveIntensity = b.smoked ? 0.15 : hasLedTails(b) ? 0.3 : 0.6; });
+    p.lensRear.forEach(m => { m.color.set(smokedTails(b) ? 0x3a0d12 : hasLedTails(b) ? 0x6a1016 : 0xc0161f); m.emissiveIntensity = smokedTails(b) ? 0.15 : hasLedTails(b) ? 0.3 : 0.6; });
     p.calipers.forEach(m => m.color.set(b.caliper));
     return;
   }
@@ -545,7 +553,7 @@ function applyBase(p, b) {
     m.needsUpdate = true;
   });
   p.lensFront.forEach((m, i) => m.color.copy(st.lensFront[i]).multiplyScalar(b.smoked ? 0.3 : 1));
-  p.lensRear.forEach((m, i) => m.color.copy(st.lensRear[i]).multiplyScalar(b.smoked ? 0.3 : hasLedTails(b) ? 0.55 : 1));
+  p.lensRear.forEach((m, i) => m.color.copy(st.lensRear[i]).multiplyScalar(smokedTails(b) ? 0.3 : hasLedTails(b) ? 0.55 : 1));
 }
 
 

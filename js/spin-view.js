@@ -7,18 +7,26 @@ function spinActive() { return viewMode === "spin"; }
 
 // A build in the simple form the 3D view needs. With no mods it describes the stock car.
 function spinBuild(mods) {
-  const c = car(), E = eff(c, mods);
+  const c = car(), E = eff(c, mods), items = mods.custom ? mods.custom.items : [];
+  // Caliper paint: the standard brakes in a new colour (big brakes bring their own calipers).
+  const paintC = !mods.brakes && items.some(i => i.name === "Caliper paint");
   return {
     id: c.id, name: `${c.make} ${c.model}`, paint: E.paint, finish: E.pfin, wheelIn: E.size,
-    wheelsChanged: !!mods.wheels, brakesChanged: !!mods.brakes, wheelStyle: mods.wheels ? mods.wheels.style : null,
-    rimColour: RIM_FINISH[E.finish] || RIM_FINISH.silver, caliper: E.caliper, bigBrake: E.bigBrake,
+    wheelsChanged: !!mods.wheels, brakesChanged: !!mods.brakes || paintC, wheelStyle: mods.wheels ? mods.wheels.style : null,
+    rimColour: RIM_FINISH[E.finish] || RIM_FINISH.silver, caliper: paintC ? caliperPaint(mods) : E.caliper, bigBrake: E.bigBrake,
     dropMm: mods.drop ? mods.drop.mm : 0, tint: E.tint, smoked: E.smoked,
     addons: { spoiler: mods.spoiler ? mods.spoiler.type : null, bodykit: !!mods.bodykit, widebody: !!mods.widebody, exhaust: !!mods.exhaust,
               stripes: mods.stripes ? mods.stripes.colour : null, extras: mods.custom ? mods.custom.items.map(i => i.name) : [], glow: glowColour(mods),
-              ambient: glowColour(mods, "LED ambient interior lighting", "#3aa8ff"), plate: privateReg(mods) || state.plate || carReg(c), plateStyle: plateStyleOf(mods), graphic: graphicStyle(mods), sunStrip: sunStripText(mods) }
+              ambient: glowColour(mods, "LED ambient interior lighting", "#3aa8ff"), plate: privateReg(mods) || state.plate || carReg(c), plateStyle: plateStyleOf(mods), graphic: graphicStyle(mods), sunStrip: sunStripText(mods),
+              extraText: Object.fromEntries(items.map(i => [i.name, i.text || ""])) } // what was chosen for each extra (its colour, finish...)
   };
 }
 
+// The caliper paint colour: one of the caliper colours by name, else any colour named, red if none.
+function caliperPaint(mods) {
+  const it = mods.custom.items.find(i => i.name === "Caliper paint"), t = it.text.toLowerCase(), k = Object.keys(CALIPER).find(n => new RegExp("\b" + n + "\b").test(t));
+  return k ? CALIPER[k] : glowColour(mods, "Caliper paint", CALIPER.red);
+}
 // Underglow colour from what the user said ("purple underglow"), blue-ish if none.
 function glowColour(mods, name = "LED underglow", fallback = "#22c8ff") {
   const g = mods.custom && mods.custom.items.find(i => i.name === name);

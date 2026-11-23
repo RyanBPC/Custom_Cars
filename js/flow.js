@@ -95,6 +95,13 @@ el("lookAsk").addEventListener("click", async () => {
 // Which way to turn the 3D car to show each part best (degrees in the 360 view: 60 = front three-quarter,
 // 0 = side, 210 = back three-quarter; Photoshoot counts from the other end, see partShot).
 const PART_ANGLE = { wheels: 45, drop: 0, brakes: 35, bodykit: 60, widebody: 50, spoiler: 210, exhaust: 235, wrap: 60, stripes: 80, tint: 330, lights: 85 };
+// Best angle for extra parts that show better from somewhere other than the front three-quarter.
+const EXTRA_ANGLE = { "Side skirts": 0, "Smoked tail lights": 210, "Caliper paint": 35, "Centre cap swap": 35, "Low-profile tyres": 20, "Honeycomb mesh grille": 75, "Carbon grille": 75,
+  "Chrome window trim": 15, "Carbon window trim": 15, "Seat covers": 25, "Dashboard trim": 40, "Floor mats": 25, "Bonnet wrap": 65 };
+// eBay search words for extra parts where the part's name alone isn't what shops call it.
+const EXTRA_QUERY = { "Bonnet wrap": "bonnet vinyl wrap film", "Caliper paint": "brake caliper paint kit", "Centre cap swap": "wheel centre caps", "Low-profile tyres": "low profile tyres",
+  "Honeycomb mesh grille": "honeycomb mesh grille", "Smoked tail lights": "smoked tail light tint film", "Chrome window trim": "chrome window trim strip", "Carbon window trim": "carbon window trim",
+  "Seat covers": "seat covers", "Dashboard trim": "dashboard trim kit", "Floor mats": "floor mats" };
 const UNSEEN = { tune: "Under the bonnet", intake: "Under the bonnet" };
 // What to search for at each shop.
 const SEARCH = {
@@ -114,7 +121,7 @@ function productQuery(x, c) {
     if (x.item.name === "Private number plate") return null;
     if (x.item.name === "Styled number plates") return "4D gel number plates road legal pair";
     if (/plate delete/i.test(x.item.name)) return null;
-    return `${cw} ${x.item.name}`;
+    return `${cw} ${EXTRA_QUERY[x.item.name] || x.item.name}`;
   }
   switch (x.id) {
     case "tune": return null;
@@ -170,7 +177,7 @@ function cards() {
   const c = car(), out = [];
   for (const id of Object.keys(state.mods).sort((a, b) => MODS[a].order - MODS[b].order)) {
     const p = state.mods[id];
-    if (id === "custom") { for (const it of p.items) out.push({ id, item: it, title: it.name + (it.reg ? ` (${it.reg})` : ""), cat: "Extras", price: it.price || 0, text: it.text || "", angle: /plate/i.test(it.name) ? 215 : 60 }); continue; }
+    if (id === "custom") { for (const it of p.items) out.push({ id, item: it, title: it.name + (it.reg ? ` (${it.reg})` : ""), cat: "Extras", price: it.price || 0, text: it.text || "", angle: EXTRA_ANGLE[it.name] ?? (/plate/i.test(it.name) ? 215 : 60) }); continue; }
     const info = modInfo(id, p, c) || {};
     out.push({ id, p, title: modLabel(id, p), cat: MODS[id].cat, price: modPrice(id, p, c), text: info.what || "", effect: info.effect || "", angle: PART_ANGLE[id] });
   }

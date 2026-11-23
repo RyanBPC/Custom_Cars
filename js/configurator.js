@@ -10,9 +10,17 @@
     { name: "Ride height", pick: "drop", opts: [["Factory", null], ["−20mm", "lower it 20mm"], ["−35mm", "lower it 35mm"], ["Slammed −50mm", "slammed"], ["Air ride", "air ride"]] },
     { name: "Aero", pick: "spoiler", opts: [["No spoiler", null], ["Lip", "lip spoiler"], ["Ducktail", "ducktail spoiler"], ["Roof extension", "roof spoiler extension"], ["Pedestal wing", "pedestal wing"], ["GT wing", "gt wing"]], extras: [["Body kit", "body kit"], ["Widebody", "widebody"]] },
     { name: "Styling", extras: [["20% tint", "20% tint"], ["Smoked lights", "smoked lights"], ["Racing stripes", "racing stripes"], ["Carbon mirror caps", "carbon mirror caps"], ["Big brakes", "big brakes"]] },
+    { name: "Body & trim", extras: [["Side skirts", "side skirts"], ["Smoked tail lights", "smoked tail lights"], ["Honeycomb grille", "honeycomb mesh grille"], ["Carbon grille", "carbon grille"], ["Chrome window trim", "chrome window trim"], ["Carbon window trim", "carbon window trim"]] },
+    // Colour or finish rows: off, or one choice of an extra part. The third value is the swatch colour.
+    { name: "Bonnet wrap", part: "Bonnet wrap", opts: [["Off", null], ["Gloss black", "gloss black bonnet wrap", "#0b0c0e"], ["Matte black", "matte black bonnet wrap", "#1d1e20"], ["Carbon-look", "carbon-look bonnet wrap", "#2a2d31"], ["Satin grey", "satin grey bonnet wrap", "#6f757c"], ["Gloss white", "gloss white bonnet wrap", "#ecebe6"], ["Gloss red", "gloss red bonnet wrap", "#b5121b"]] },
+    { name: "Caliper paint", part: "Caliper paint", opts: [["Off", null], ["Red", "paint the calipers red", "#c41d24"], ["Yellow", "paint the calipers yellow", "#e1b400"], ["Blue", "paint the calipers blue", "#2459c2"], ["Black", "paint the calipers black", "#26282c"], ["Green", "paint the calipers green", "#2f7a45"], ["Orange", "paint the calipers orange", "#d9601e"]] },
+    { name: "Wheel centre caps", part: "Centre cap swap", opts: [["Factory", null], ["Black", "black centre caps", "#111214"], ["Red", "red centre caps", "#b5121b"], ["Blue", "blue centre caps", "#2459c2"], ["Gold", "gold centre caps", "#b8964e"], ["Chrome", "chrome centre caps", "#e8e8e8"]], extras: [["Low-profile tyres", "low profile tyres"]] },
     // Underglow: off or a colour (the LED colour on the road under the car).
-    { name: "Underglow", glow: true, opts: [["Off", null], ["Blue", "blue underglow"], ["White", "white underglow"], ["Purple", "purple underglow"], ["Pink", "pink underglow"], ["Green", "green underglow"], ["Red", "red underglow"], ["Orange", "orange underglow"]] },
+    { name: "Underglow", part: "LED underglow", opts: [["Off", null], ["Blue", "blue underglow", "#2459c2"], ["White", "white underglow", "#ecebe6"], ["Purple", "purple underglow", "#8a3fd1"], ["Pink", "pink underglow", "#e0509a"], ["Green", "green underglow", "#2fbf5a"], ["Red", "red underglow", "#d01a22"], ["Orange", "orange underglow", "#e8731e"]] },
     { name: "Interior", extras: [["Ambient lighting", "ambient lighting"]], link: ["Sit inside →", "#interior"] },
+    { name: "Seat covers", part: "Seat covers", opts: [["Factory", null], ["Black leather", "black leather seat covers", "#18191b"], ["Tan leather", "tan leather seat covers", "#9a6236"], ["Red leather", "red leather seat covers", "#b5121b"], ["White leather", "white leather seat covers", "#ecebe6"], ["Grey Alcantara", "grey alcantara seat covers", "#6f757c"], ["Two-tone black and red", "two-tone black and red leather seat covers", "linear-gradient(90deg,#18191b 50%,#b5121b 50%)"]] },
+    { name: "Dashboard trim", part: "Dashboard trim", opts: [["Factory", null], ["Carbon fibre", "carbon dashboard trim", "#2a2d31"], ["Brushed aluminium", "brushed aluminium dashboard trim", "#a9adb2"], ["Piano black", "piano black dashboard trim", "#050506"]] },
+    { name: "Floor mats", part: "Floor mats", opts: [["Factory", null], ["Red edging", "floor mats with red edging", "#b5121b"], ["Blue edging", "floor mats with blue edging", "#2459c2"], ["White edging", "floor mats with white edging", "#ecebe6"], ["Yellow edging", "floor mats with yellow edging", "#e0b400"]] },
     { name: "Number plates", extras: [["No front plate", "no front plate"], ["No rear plate", "no rear plate"]], plateBox: true },
     { name: "Performance", pick: "tune", opts: [["Stock", null], ["Stage 1", "stage 1 tune"], ["Stage 2", "stage 2 tune"]], extras: [["Louder exhaust", "louder exhaust"], ["Quad tips", "quad exhaust tips"]] }
   ];
@@ -51,11 +59,12 @@
     return { said: text, plan: p };
   }
 
-  const glowItem = () => customs().find(c => c.name === "LED underglow");
-  const colourOf = text => { const c = COLOURS.find(x => text.startsWith(x[0] + " ")); return c ? c[1] : null; };
+  // Rows for an extra part with a colour or finish: a choice is on when the part is fitted with exactly that wording.
+  const itemOf = name => customs().find(c => c.name === name);
+  const plannedText = (text, name) => { const a = (planFor(text).apply || []).find(x => x.id === "custom"), it = a && a.params.items.find(i => i.name === name); return it ? it.text : null; };
   function chip(g, gi, o, oi, extra) {
-    const on = g.glow ? (o[1] ? !!glowItem() && glowColour(state.mods) === colourOf(o[1]) : !glowItem()) : o[1] ? isOn(o[1]) : !state.mods[g.pick];
-    let sw = g.glow && o[1] ? `<i class="sw flat" style="background:${colourOf(o[1])}"></i>` : "";
+    const on = g.part && !extra ? (o[1] ? !!itemOf(g.part) && itemOf(g.part).text === plannedText(o[1], g.part) : !itemOf(g.part)) : o[1] ? isOn(o[1]) : !state.mods[g.pick];
+    let sw = g.part && !extra && o[2] ? `<i class="sw flat" style="background:${o[2]}"></i>` : "";
     if (g.swatch) {
       const p = o[1] && planFor(o[1]).apply[0], col = p ? p.params.colour : car().colour;
       sw = `<i class="sw${p && !["gloss", "metallic", "pearl"].includes(p.params.finish) ? " flat" : ""}" style="background:${col}"></i>`;
@@ -104,7 +113,7 @@
     if (b) {
       const g = GROUPS[b.dataset.g], extra = b.dataset.x === "1", o = (extra ? g.extras : g.opts)[b.dataset.o];
       if (!extra && b.getAttribute("aria-pressed") === "true") return; // already chosen
-      if (g.glow && !o[1]) { const plan = customPlan(customs().filter(c => c.name !== "LED underglow")); plan.reply = "Taken off: underglow."; addUser("Remove the underglow"); applyPlan(plan, "underglow off"); return; }
+      if (g.part && !extra && !o[1]) { const what = g.name.toLowerCase(), plan = customPlan(customs().filter(c => c.name !== g.part)); plan.reply = `Taken off: ${what}.`; addUser(`Remove the ${what}`); applyPlan(plan, `${what} off`); return; }
       const { said, plan } = plans(g, o, extra);
       addUser(said); applyPlan(plan, said);
       return;

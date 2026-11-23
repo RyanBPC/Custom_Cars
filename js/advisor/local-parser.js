@@ -32,7 +32,24 @@ function colourNear(t,re){
   return null;
 }
 // Words the chat understands. A close misspelling ("bonet", "spoilor", "exaust", "fiber") is read as the right word.
-const PARSE_WORDS="bonnet hood spoiler wing ducktail exhaust exhausts wheels wheel rims alloys carbon fibre fiber underglow stripes stripe racing tint tinted windows window lower lowered lowering coilovers suspension brakes brake calipers caliper bodykit widebody splitter diffuser skirts intake turbo remap tune headlights lights smoked wrap paint respray colour color matte satin gloss chrome roof rack snorkel louvres louvers canards visors harness harnesses steering shifter subwoofer speakers interior ambient bucket seats cage mirror mirrors decals graphics flames camo graffiti plate number intercooler scoop vents quad tips bumper sequential indicators eyelids spacers camber terrain tyres tires lift lifted louder faster power stance slammed slam massive spoilers pedestal extension flare flares arch arches overfenders strip sunstrip banner windscreen".split(" ");
+// Cosmetic parts whose colour or finish the user chooses: the word each colour belongs to, and the part's wording.
+const COSMETIC_NEAR={"Caliper paint":/calipers?/,"Centre cap swap":/caps?\b/,"Floor mats":/mats?\b|edging/,"Bonnet wrap":/bonnet|hood/,"Seat covers":/seats?|upholster|covers?|leather|alcantara/,"Dashboard trim":/dash/};
+const CALIPER_PAINT_RE=/calipers? paint|paint(?:ed)? (?:the |my )?(?:brake )?calipers?|painted (?:brake )?calipers?|calipers? (?:colou?r|painted)/;
+const SMOKED_TAIL_RE=/smoked? (?:tail|rear) ?lights?|(?:tail|rear) ?lights? (?:smoked|tinted)|tint(?:ed)? (?:the )?(?:tail|rear) ?lights?/;
+function cosmeticText(name,t){
+  if(!COSMETIC_NEAR[name]) return null;
+  const h=colourNear(t,name==="Floor mats"&&/edg/.test(t)?/edging/:COSMETIC_NEAR[name]), c=h&&(COLOURS.find(x=>x[1]===h)||[])[0];
+  if(name==="Caliper paint") return (c||"red")+" painted brake calipers";
+  if(name==="Centre cap swap") return /chrome|silver/.test(t)?"chrome wheel centre caps":(c||"black")+" wheel centre caps";
+  if(name==="Floor mats") return "black floor mats with "+(c&&c!=="black"?c:"red")+" edging";
+  if(name==="Bonnet wrap") return /carbon/.test(t)?"a carbon-look vinyl wrap on the bonnet":"a "+(/matte?\b/.test(t)?"matte":/satin/.test(t)?"satin":"gloss")+" "+(c||"black")+" vinyl wrap on the bonnet";
+  if(name==="Dashboard trim") return /alumin|brushed|metal/.test(t)?"brushed aluminium dashboard trim":/piano|gloss black/.test(t)?"piano black dashboard trim":"carbon-fibre dashboard trim";
+  // Seat covers: leather or Alcantara, one colour or two-tone (the first colour on the bolsters, the second on the centre panels).
+  const mat=/alcantara|suede/.test(t)?"Alcantara":"leather";
+  if(/two[- ]?tone/.test(t)){const cs=COLOURS.map(x=>[t.search(new RegExp("\\b"+x[0]+"\\b")),x[0]]).filter(x=>x[0]>=0).sort((a,b)=>a[0]-b[0]||b[1].length-a[1].length).map(x=>x[1]).filter((x,i,a)=>!a.slice(0,i).some(y=>y.includes(x))); return "two-tone "+(cs[0]||"black")+" and "+(cs[1]||"red")+" "+mat+" seat covers";}
+  return (/\btan\b/.test(t)?"tan":c||"black")+" "+mat+" seat covers";
+}
+const PARSE_WORDS="bonnet hood spoiler wing ducktail exhaust exhausts wheels wheel rims alloys carbon fibre fiber underglow stripes stripe racing tint tinted windows window lower lowered lowering coilovers suspension brakes brake calipers caliper bodykit widebody splitter diffuser skirts intake turbo remap tune headlights lights smoked wrap paint respray colour color matte satin gloss chrome roof rack snorkel louvres louvers canards visors harness harnesses steering shifter subwoofer speakers interior ambient bucket seats cage mirror mirrors decals graphics flames camo graffiti plate number intercooler scoop vents quad tips bumper sequential indicators eyelids spacers camber terrain tyres tires lift lifted louder faster power stance slammed slam massive spoilers pedestal extension honeycomb mesh grille trim handles caps centre center hub calipers painted mats edging dash dashboard leather alcantara suede upholstery covers seats two-tone low-profile profile stretched sidewalls flare flares arch arches overfenders strip sunstrip banner windscreen".split(" ");
 // Ordinary words and car names are never "corrected" ("back" must not become "rack", "golf" not "gold").
 const PARSE_KEEP=new Set("dechrome dechromed lose flower flowers slower slowly shower showers tower towers mower blower follower track back side more make take have some also that this then than them they want with like need just love nice cool look looks rear front real full good best feel keep sound wide deep dark does done give here there when what your into onto over under extra every maybe could would should thing things stuff little really super very much many same lets please thanks cheers mate bring check change turn same seat doors door body tail high tall long short lows boot gear gets wants fits tone toned tones limo quiet quieter light lighter bright pale fine time tint ride springs spring bagged bags badge badges badgeless debadge debadged decat decatted stock standard original factory normal glass privacy downpipe downpipes steps wind winds deflector deflectors sport sports towbar towbars strap straps inch inches brace braces limited slip diff diffs quaife roll anti catch cooler coolers quid grand".split(" "));
 function editDistance(a,b){
@@ -100,7 +117,7 @@ function planParts(text){
   const quiet=QUIET_RE.test(t); if(quiet) t=t.replace(QUIET_RE," standard exhaust ");
   // "Carbon (kidney) grilles": the studio's grille part is gloss black, so fit that and say carbon costs a bit more.
   const CARBON_GRILLE_RE=/\bcarbon(?:[- ]fib(?:re|er))?\s+(?:front\s+|kidney\s+)?(?:grilles?|kidneys?)\b/g;
-  const carbonGrille=CARBON_GRILLE_RE.test(t); if(carbonGrille) t=t.replace(CARBON_GRILLE_RE," gloss black grille ");
+  const carbonGrille=false; // carbon grilles are their own part now ("Carbon grille" in EXTRA_PARTS)
   const SP=String.raw`(ride height|tail lights|\d{2}s|`+Object.keys(STOCK_PART).filter(k=>!k.includes(" ")).join("|")+")";
   const stockNames=[];
   const toStock=w=>{const k=/^\d{2}s$/.test(w)?"wheels":STOCK_PART[w]; if(!stockNames.includes(k)) stockNames.push(k); return " remove the "+k+" , ";};
@@ -231,7 +248,7 @@ function planParts(text){
     add("wheels",{size:sz?+sz[1]:plainSize,style,finish});
   }
   // Word edges, so "flowers", "slower" or "teardrop" don't lower the car.
-  if((air||springs||/\blower(s|ed|ing)?\b|\bdrop(s|ped)?\b|coilover|stance|\bslam|suspension|\blow\b|closer to the ground|sits? low|ground clearance/.test(t))&&!/lift|raise|higher/.test(t)&&!remove.includes("drop")){
+  if((air||springs||/\blower(s|ed|ing)?\b|\bdrop(s|ped)?\b|coilover|stance|\bslam|suspension|\blow\b(?![- ]?pro)|closer to the ground|sits? low|ground clearance/.test(t))&&!/lift|raise|higher/.test(t)&&!remove.includes("drop")){
     // Prefer a mm number next to a lowering word ("lower it 40mm", "40mm drop"); never one for spacers ("15mm spacers").
     let mm=t.match(/\b(?:lower\w*|drop\w*|slam\w*|coilovers?)\s+(?:it\s+|the car\s+)?(?:by\s+)?(\d{2,3})\s*mm/)||t.match(/\b(\d{2,3})\s*mm\s+(?:lower|drop)/)||t.match(/\b(\d{2,3})\s*mm\b(?!\s*(?:wheel\s+)?spacers?)/);
     // Inches ("lower it 2 inches", "drop it an inch"): 25.4mm each, rounded to the nearest 5mm. Only 1-4 inches right after a lowering word, so "19 inch wheels" is never a drop.
@@ -245,7 +262,7 @@ function planParts(text){
     add("drop",air?{mm:50,air:true}:springs?{mm:mm?Math.min(40,Math.max(20,+mm[1])):30,springs:true}:{mm:mm?+mm[1]:/slam|really low|super low|as low/.test(t)?50:/a bit|slightly|little/.test(t)?20:30});}
   const ts=t.replace(/wing ?(vents?|mirrors?)/g,""); // "wing vents" and "wing mirrors" aren't spoilers
   if(/spoiler|\bwing\b|duck ?tail/.test(ts)&&!remove.includes("spoiler")) add("spoiler",{type:/pedestal|boot wing|mid(?:-| )?(?:height )?wing/.test(ts)?"pedestal":/roof (?:spoiler )?ext|spoiler extension|roof spoiler|maxton/.test(ts)?"roof-ext":/duck/.test(ts)?"ducktail":/\blip\b|small|subtle/.test(ts)?"lip":/gt|big|huge|massive|giant|large|track|swan|tall|\bwing\b/.test(ts)?"gt-wing":"ducktail"});
-  if(/\bbody ?kit|\blip ?kit|splitter|skirt|diffuser|aero|front lip|more aggressive|sportier look|sporty look|look sporty|look sportier|make it sportier|racier/.test(t)&&!remove.includes("bodykit")) add("bodykit",{});
+  if(/\bbody ?kit|\blip ?kit|splitter|(?<!side ?)skirt|diffuser|aero|front lip|more aggressive|sportier look|sporty look|look sporty|look sportier|make it sportier|racier/.test(t)&&!remove.includes("bodykit")) add("bodykit",{});
   if(/wide ?body|widebody|wider|flare|arches|wide arch|over ?fenders?|fat|chunky/.test(t)&&!remove.includes("widebody")) add("widebody",{});
   // "No pops and bangs" asks for them to stay off, so it adds nothing.
   const NOPOPS_RE=/\b(?:no|without|remove|lose|get rid of|turn off|switch off)\s+(?:the\s+)?(?:pops|bangs|crackles?)(?:\s+(?:and|n|&)\s+bangs)?\b/g;
@@ -269,7 +286,7 @@ function planParts(text){
   else if(/(much|way|really|insanely|seriously) (faster|quicker|more power)|max power|loads of power/.test(t)) add("tune",{stage:2});
   else if((/faster|quicker|more power|remap|tune|chip|more hp|horsepower|bhp|\bspeed\b|more pull|more torque|\bfast\b|power up/.test(t)||pops)&&!remove.includes("tune")) add("tune",{stage:1});
   if(pops&&apply.some(a=>a.id==="tune")) notes.push("Pops and bangs come from the remap, so that's on too. Keep it quiet near homes.");
-  if(/brake|caliper|stop better|stopping power/.test(t)&&!remove.includes("brakes")){const cc=colourNear(t,/brake|caliper/);const name=cc?(COLOURS.find(x=>x[1]===cc)||[""])[0]:"red";add("brakes",{caliper:Object.keys(CALIPER).find(k=>name.includes(k))||"red"});}
+  if(/brake|caliper|stop better|stopping power/.test(t)&&!CALIPER_PAINT_RE.test(t)&&!remove.includes("brakes")){const cc=colourNear(t,/brake|caliper/);const name=cc?(COLOURS.find(x=>x[1]===cc)||[""])[0]:"red";add("brakes",{caliper:Object.keys(CALIPER).find(k=>name.includes(k))||"red"});}
   // "tinted headlights" means smoked lights only, so hide tint words next to a lights word before looking for window tint.
   const tT=t.replace(/\btint(?:ed)?\s+(?:the\s+|my\s+)?(?:(?:head|tail|rear|front|fog)\s?)?lights?\b|\b(?:(?:head|tail|rear|front|fog)\s?)?lights?\s+tinted\b/g," ");
   if(/tint|\blimo\b|dark(er)? windows|black(ed)?[- ]?out windows|privacy glass/.test(tT)&&!remove.includes("tint")){const notInch="(?!\\s*-?\\s*(?:inch|in\\b|\"|”|s\\b))"; // so "tint and 20 inch wheels" isn't read as 20% tint
@@ -287,10 +304,11 @@ function planParts(text){
   if(/matrix (?:led )?(?:head)?lights?|daytime running lights?|\bdrls?\b/.test(t)) notes.push(`Matrix headlights and daytime running lights come from the factory, so I've fitted the LED headlight upgrade, the closest look for the ${c.model}.`);
   // Neons (underglow), puddle lights and DRLs are their own parts, so they don't fit smoked lenses too (Car #113).
   const tL2=tL.replace(/\b(?:neon(?:\s+[a-z]+)?\s+lights?|neons?|puddle lights?|(?:door )?projector lights?|door (?:logo )?lights?|matrix (?:led )?(?:head)?lights?|daytime running lights?|drls?)\b/g," ");
-  if(!clearL&&/\bsmoked?\b|\b(head|tail) ?lights?\b|\blights\b|\blenses\b|dark(er)? lights|tinted lights/.test(tL2)&&!/light ?bar|underglow|angel|halo|led |dynamic|hid|xenon|brighter|sequential|eyelid|interior light|ambient/.test(t)&&!remove.includes("lights")) add("lights",{});
+  if(!clearL&&!(SMOKED_TAIL_RE.test(t)&&!/head/.test(t))&&/\bsmoked?\b|\b(head|tail) ?lights?\b|\blights\b|\blenses\b|dark(er)? lights|tinted lights/.test(tL2)&&!/light ?bar|underglow|angel|halo|led |dynamic|hid|xenon|brighter|sequential|eyelid|interior light|ambient/.test(t)&&!remove.includes("lights")) add("lights",{});
   // A colour right before a part ("gloss black mirror caps", "black roof", "red calipers") belongs to that part, not the paint.
   const colNames=COLOURS.map(x=>x[0]).sort((x,y)=>y.length-x.length).map(n=>n.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|");
-  const tw=t.replace(new RegExp(String.raw`\b(?:(?:gloss|glossy|matte?|satin|piano)\s+)?(?:`+colNames+String.raw`)\s+(?:wing\s+)?(?:mirror caps?|mirrors?|roof|wheels?|rims?|alloys?|calipers?|brakes?|stripes?|badges?|(?:kidney\s+|front\s+)?grilles?|kidneys?)\b`,"g")," ");
+  const tw=t.replace(new RegExp(String.raw`\b(?:(?:gloss|glossy|matte?|satin|piano)\s+)?(?:`+colNames+String.raw`)\s+(?:wing\s+)?(?:mirror caps?|mirrors?|roof|wheels?|rims?|alloys?|calipers?|brakes?|stripes?|badges?|(?:kidney\s+|front\s+)?grilles?|kidneys?|bonnet|hood|(?:leather\s+|alcantara\s+)?seats?|(?:leather\s+|alcantara\s+)?seat covers?|leather|alcantara|(?:centre|center|wheel|hub)\s+caps?|edging)\b`,"g")," ")
+    .replace(/\bpaint(?:ed)? (?:the |my )?(?:brake )?calipers? (?:in )?[a-z]+\b|\btwo[- ]?tone [a-z ]+? and [a-z]+\b/g," ");
   // "chrome delete" is the trim part, and "chrome turbofan wheels" is the wheels' finish; neither is a chrome wrap.
   const twc=tw.replace(/\bchrome delete\b/g," ").replace(new RegExp(CHROME_WHEELS_RE.source,"g")," ");
   const finish=/matte|matt\b/.test(twc)?"matte":/satin/.test(twc)?"satin":/chrome/.test(twc)?"chrome":/\bpearl(?:escent)?\b/.test(tw)?"pearl":/metallic|metal flake/.test(tw)?"metallic":"gloss";
@@ -315,7 +333,9 @@ function planParts(text){
   if(regPlate) items=[...items.filter(i=>i.name!=="Private number plate"),{name:"Private number plate",in3d:true,price:250,text:"",reg:regPlate}];
   if(plateStyle){const it=plateStyleItem(plateStyle); items=[...items.filter(i=>i.name!=="Styled number plates"),...(it?[it]:[])];}
   const removedCustom=items.length<had.length;
-  for(const e of EXTRA_PARTS) if(e.re.test(t)&&!remWords.some(w=>e.re.test(w))&&!items.some(i=>i.name===e.name)) {let tx=e.text||(e.name==="Custom graphic wrap"?text.trim().slice(0,160):e.name.toLowerCase()); if(e.name==="LED underglow"||e.name==="LED ambient interior lighting"){const h=colourNear(t,e.name==="LED underglow"?/under ?glow|neon|underbody/:/interior lights?|ambient|led interior/); const c=h&&COLOURS.find(x=>x[1]===h); if(c) tx=c[0]+" "+tx;} if(e.name==="Windscreen sun strip"){const w=text.match(/\b(?:saying|that says|says|reading|reads)\s+["'“]?([A-Za-z0-9][A-Za-z0-9 \-]{0,11}?)["'”]?(?=\s*(?:,|\.|!|$|\band\b|\bon\b|\bplease\b))/i); tx='a dark windscreen sun strip with white lettering saying "'+(w?w[1].trim().toUpperCase():"GTI")+'"';} items.push({name:e.name,price:e.price,text:tx});}
+  // A cosmetic part asked for again in a new colour or finish ("tan seats" after "black seats") is changed, not doubled.
+  for(const e of EXTRA_PARTS) if(COSMETIC_NEAR[e.name]&&e.re.test(t)&&items.some(i=>i.name===e.name&&i.text!==cosmeticText(e.name,t))) items=items.filter(i=>i.name!==e.name);
+  for(const e of EXTRA_PARTS) if(e.re.test(t)&&!remWords.some(w=>e.re.test(w))&&!items.some(i=>i.name===e.name)&&!(e.name==="Side skirts"&&(state.mods.bodykit||apply.some(a=>a.id==="bodykit")))&&!(e.name==="Two-tone black roof"&&/seat|leather|alcantara|upholster/.test(t)&&!/roof/.test(t))) {let tx=e.text||(e.name==="Custom graphic wrap"?text.trim().slice(0,160):e.name.toLowerCase()); if(e.name==="LED underglow"||e.name==="LED ambient interior lighting"){const h=colourNear(t,e.name==="LED underglow"?/under ?glow|neon|underbody/:/interior lights?|ambient|led interior/); const c=h&&COLOURS.find(x=>x[1]===h); if(c) tx=c[0]+" "+tx;} tx=cosmeticText(e.name,t)||tx; if(e.name==="Windscreen sun strip"){const w=text.match(/\b(?:saying|that says|says|reading|reads)\s+["'“]?([A-Za-z0-9][A-Za-z0-9 \-]{0,11}?)["'”]?(?=\s*(?:,|\.|!|$|\band\b|\bon\b|\bplease\b))/i); tx='a dark windscreen sun strip with white lettering saying "'+(w?w[1].trim().toUpperCase():"GTI")+'"';} items.push({name:e.name,price:e.price,text:tx});}
   if(!apply.length&&!remove.length&&!removedCustom&&items.length===had.length&&!reset&&!decat&&!hiddenNote.length&&!(switchCar&&switchCar!==state.car)){
     let m=t.match(/\b(?:let'?s do|lets get|can (?:i|you|we) (?:get|have|add|do|fit)|could (?:i|you) (?:get|add)|i'?d like|i would like|give me|chuck on|slap on|throw on|bolt on|add|fit|put on|put|give it|install|i want|want|get me|stick on|do)\s+(?:a |an |some |the |me )?([a-z0-9][a-z0-9 '\-]{2,40}?)(?=\s*(?:,|\.|!|$|\band\b|\bon it\b|\bplease\b))/);
     // A question ("what should i do first", "where do i start") is never a part name (Car #131).

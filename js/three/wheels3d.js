@@ -89,13 +89,19 @@ function removeFitted(w) {
 }
 
 /* spec: { style, inch, colour (hex), chrome } to fit new wheels, or null for the car's own.
+   low: how much smaller in radius low-profile tyres are (0 = normal tyres). On the car's own wheels they
+   replace its tyres with thinner-walled ones round the same rim; on new wheels the tyre is made that way.
    Returns a promise that resolves when the wheels are on (the caller redraws). */
-export async function fitWheels(rig, spec) {
+export async function fitWheels(rig, spec, low = 0) {
   if (rig.standIn) return false;
-  const key = spec ? [spec.style, spec.inch, spec.colour, !!spec.chrome, rig.carId].join("|") : "";
+  const key = (spec ? [spec.style, spec.inch, spec.colour, !!spec.chrome, rig.carId].join("|") : "") + (low ? "|low" + low : "");
   if (rig.wheelKey === key) return false;
   rig.wheelKey = key;
-  if (!spec) { for (const w of rig.wheels) { removeFitted(w); showOriginal(w, true); } return true; }
+  if (!spec) {
+    for (const w of rig.wheels) { removeFitted(w); showOriginal(w, true); }
+    if (low) lowOnOwnRims(rig, low);
+    return true;
+  }
   const model = await loadRim(spec.style);
   if (!model || rig.wheelKey !== key) return false; // missing file, or changed again while loading
   measure(rig);
@@ -123,11 +129,29 @@ export async function fitWheels(rig, spec) {
     rim.quaternion.copy(turn);
     rim.position.copy(t.centre).addScaledVector(t.outward, t.width / 2 - 0.012 - depth / 2);
     const tyreRimR = spec.inch * 0.0254 / 2 + 0.008;
-    const tyre = new THREE.Mesh(makeTyre(tyreRimR, t.outerR, t.width), rubber);
+    const tyre = new THREE.Mesh(makeTyre(tyreRimR, t.outerR - low, t.width * (low ? 0.95 : 1)), rubber);
     tyre.position.copy(t.centre); tyre.quaternion.copy(turn); tyre.castShadow = true; tyre.userData.wheelPart = tyre.userData.ownGeo = true;
-    tyre.add(sidewallLabel(tyreRimR, t.outerR, t.width, spec.inch, Array.isArray(own) ? own[isFront(w) ? 0 : 1] : own)); // size lettering on the outer sidewall
+    tyre.add(sidewallLabel(tyreRimR, t.outerR - low, t.width * (low ? 0.95 : 1), spec.inch, Array.isArray(own) ? own[isFront(w) ? 0 : 1] : own)); // size lettering on the outer sidewall
     g.add(rim, tyre);
     w.group.add(g); w.fitted = g;
   }
   return true;
+}
+// Low-profile tyres on the car's own rims: its tyres are swapped for ones with a thinner sidewall (smaller outside,
+// same rim), slightly narrower so the tyre sits a touch stretched on the rim.
+function lowOnOwnRims(rig, low) {
+  measure(rig);
+  for (const w of rig.wheels) {
+    const t = w.tyreInfo; if (!t) continue;
+    const inv = w.group.matrixWorld.clone().invert(), box = new THREE.Box3();
+    w.group.traverse(o => { if (o.isMesh && o.material && o.material.name === "Rim") { const b = new THREE.Box3().setFromObject(o); b.applyMatrix4(inv); box.union(b); } });
+    if (box.isEmpty()) continue;
+    const s = box.getSize(new THREE.Vector3()), dims = [s.x, s.y, s.z], axle = dims.indexOf(Math.min(...dims));
+    const rimR = Math.max(...dims.filter((_, i) => i !== axle)) / 2 - 0.004;
+    w.group.traverse(o => { if (o.isMesh && !o.userData.wheelPart && o.material && o.material.name === "Tyre") o.visible = false; });
+    const tyre = new THREE.Mesh(makeTyre(rimR, t.outerR - low, t.width * 0.95), rubber);
+    tyre.position.copy(t.centre); tyre.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), t.outward);
+    tyre.castShadow = true; tyre.userData.wheelPart = tyre.userData.ownGeo = true;
+    const g = new THREE.Group(); g.userData.wheelPart = true; g.add(tyre); w.group.add(g); w.fitted = g;
+  }
 }
