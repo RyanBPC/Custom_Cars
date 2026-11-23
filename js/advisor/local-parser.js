@@ -574,6 +574,48 @@ function driveReply(){
   r.push("Nothing has been changed.");
   return {reply:r.join(" "),switchCar:null,reset:false,apply:[],remove:[],notes:{}};
 }
+/* Practical "can i get it on finance", "can i fit it myself", "where can i get it done", "how long does it take to fit",
+   "is it diy": a plain answer, nothing fitted (Car #149). Before, "it on finance" / "it myself" became blank custom parts. */
+const PRACTICAL_FIN=/\bfinance\b|\bpay (?:monthly|in instal?ments)\b|\bmonthly payments?\b|\bklarna\b|\bpaypal credit\b|\bspread the cost\b/;
+const PRACTICAL_CHEAP=/\b(?:get|do|make|have) (?:it|this|that|them|my mods|the mods|the parts) (?:done |fitted )?cheaper\b|\bcheaper way\b|\bsave (?:some )?money on (?:it|this|mods|parts|my build)\b/;
+const PRACTICAL_DELIVER=/\b(?:get|have) (?:it|this|that|them|the parts?) (?:delivered|posted|shipped)\b|\b(?:do|can) you (?:deliver|ship|post)\b|\bdelivery\b/;
+const PRACTICAL_DIY=/\bmyself\b|\bdiy\b|\bat home\b|\bself[- ]fit\b|\bon my (?:own|drive)\b/;
+const PRACTICAL_WHERE=/\bwhere (?:can|do|should|would|could) (?:i|you|we) (?:get|have|take)\b.*\b(?:done|fitted|installed|sorted|it|them)\b|\bwho (?:can|could|should|would) (?:fit|install|do)\b|\bfind a (?:garage|fitter|specialist|tuner)\b/;
+const PRACTICAL_TIME=/\bhow long\b(?!.*(?:\b0-?6[02]\b|\b6[02] ?mph\b|\b0 to 6[02]\b))|\b(?:do|done|fit|fitted) (?:it|this|that|them|everything|the lot)? ?in (?:a|one) (?:day|weekend|morning|afternoon)\b|\bhow (?:quick|quickly|fast) can (?:you|they|i|it) (?:fit|do|be)\b/;
+// [words, name, fitting time, who fits it, DIY advice, what to say to try it]
+const PRACTICAL_PARTS=[
+  [/\bremap|\btune\b|\bstage ?[123]\b|\becu\b/,"A remap","about an hour","a tuner","It isn't DIY: the tuner uses their own software.","add a remap"],
+  [/\bwheels?\b|\brims?\b|\balloys?\b|\btyres?\b/,"New wheels and tyres","about an hour","a tyre shop","Leave it to a tyre shop: new tyres need fitting and balancing.","new wheels"],
+  [/\btint\b|\bwindows?\b/,"Window tint","2 to 3 hours","a tint shop","Leave it to a tint shop: the film is hard to get on bubble-free.","dark windows"],
+  [/\bcoilovers?\b|\bsprings?\b|\bsuspension\b|\blower(?:ed|ing)?\b|\bdrop\b|\bair ride\b/,"Coilovers or lowering springs","about half a day, plus a wheel alignment","a garage","Leave it to a garage: springs are under huge force and it needs an alignment after.","lower it"],
+  [/\bexhaust\b|\bcat ?back\b|\bdownpipe\b|\btips?\b/,"A cat-back exhaust","1 to 2 hours","a garage with a ramp","Best at a garage: old bolts are often seized.","louder exhaust"],
+  [/\bbrakes?\b|\bcalipers?\b|\bbbk\b/,"Big brakes","about half a day","a garage","Leave it to a garage: brakes are a safety part.","bigger brakes"],
+  [/\bwrap\b/,"A full wrap","2 to 4 days","a wrap shop","It's a wrap-shop job; small bits like the roof or mirrors are possible at home with practice.","wrap it satin black"],
+  [/\brespray\b|\bpaint\b/,"A respray","1 to 2 weeks","a bodyshop","It isn't DIY: it needs a paint booth.","paint it nardo grey"],
+  [/\bspoiler\b|\bwing\b|\blip\b|\bsplitter\b|\bskirts?\b|\bdiffuser\b|\baero\b|\bbody ?kit\b|\bbonnet\b|\bwidebody\b|\barches\b/,"Body and aero parts","a few hours (a widebody takes 1 to 2 weeks)","a bodyshop","Some just bolt on, but most need drilling or paint matching, so a bodyshop is safer.","big spoiler"],
+  [/\bintake\b|\binduction\b|\bair filter\b/,"An intake","about an hour","a garage","It's one of the easier DIY jobs with basic tools.","add an intake"],
+  [/\bunderglow\b|\bleds?\b|\blights?\b|\bheadlights?\b/,"LED lights","1 to 3 hours","an auto electrician","An auto electrician is safest for the wiring.","underglow"],
+  [/\bmirror caps?\b|\bgear knob\b|\bfloor mats?\b|\bbadges?\b|\bdebadge\b|\bseat covers?\b|\btrim\b/,"Small trim parts (mirror caps, mats, badges)","under an hour","home or any garage","They're easy to do yourself.",""]
+];
+function practicalReply(low){
+  const fin=PRACTICAL_FIN.test(low), cheap=PRACTICAL_CHEAP.test(low), del=PRACTICAL_DELIVER.test(low), diy=PRACTICAL_DIY.test(low), where=PRACTICAL_WHERE.test(low), time=PRACTICAL_TIME.test(low);
+  if(!(fin||cheap||del||diy||where||time)) return null;
+  const car=CARS.find(x=>x.id===state.car), r=[];
+  const named=PRACTICAL_PARTS.filter(p=>p[0].test(low));
+  if(fin) r.push("Finance depends on who sells or fits the parts: many UK tuners, wheel and tyre shops offer pay-monthly (sometimes 0%), so ask them. Check the interest rate first, and remember a modified car can cost more to insure.");
+  if(cheap) r.push("To spend less: get two or three quotes, look at good used parts (wheels especially), use a mobile fitter for tint or wheels, and do small trim bits yourself.");
+  if(del) r.push("This site doesn't sell parts; the part cards on the Build page link to UK sellers, and most deliver in a few days. Bigger jobs still need a garage to fit them.");
+  if(named.length&&(diy||time)){
+    for(const p of named) r.push((time?`Fitting ${p[1][0].toLowerCase()+p[1].slice(1)} takes ${p[2]}, at ${p[3]}.`:p[1]+"?")+(diy?" "+p[4]:""));
+  } else {
+    if(time) r.push("Rough fitting times: a remap or new wheels about an hour, window tint 2 to 3 hours, coilovers or an exhaust half a day, a wrap 2 to 4 days, a respray 1 to 2 weeks. A typical first build of wheels, a drop and tint can be done in a day or two.");
+    if(diy) r.push(`As a beginner, small trim parts (mirror caps, mats, badges) and an intake are fine to do yourself. Leave suspension, brakes, exhausts, tint, wraps and remaps to a garage or specialist: they need special tools, and some are safety parts.`);
+  }
+  if(where) r.push(`For fitting, an independent ${car.make==="Volkswagen"?"VW":car.make} specialist or performance garage near you is usually best; use a tint or wrap shop for those, and a tuner with a rolling road for a remap. Read reviews and ask to see cars they've done.`);
+  r.push("The Price list shows what each part costs fitted. Nothing has been changed.");
+  if(named.length===1&&named[0][5]&&(diy||time)) r.push(`Say "${named[0][5]}" to try it on.`);
+  return {reply:r.join(" "),switchCar:null,reset:false,apply:[],remove:[],notes:{}};
+}
 function localPlan(text){
   // Your own colour: "#ff8800" is read as the colour name "custom-ff8800" (see registerCustomColours).
   text=String(text).replace(/#([0-9a-f]{6})\b/gi,(m,h)=>"custom-"+h.toLowerCase()); registerCustomColours(text);
@@ -584,6 +626,7 @@ function localPlan(text){
   if(VALUE_Q.test(low)&&!VALUE_NOT.test(low)) return {reply:VALUE_REPLY,switchCar:null,reset:false,apply:[],remove:[],notes:{}};
   if((COMFORT_Q.test(low)||MPG_Q.test(low))&&!PRICE_Q.test(low)) return comfortReply(low);
   {const c=colourAskReply(low); if(c) return c;}
+  if(!PRICE_Q.test(low)){const pr=practicalReply(low); if(pr) return pr;}
   if(!PRICE_Q.test(low)&&!adviceAsked(low)){const q=questionReply(low); if(q) return q;}
   if(!PRICE_Q.test(low)||adviceAsked(low)) return planParts(text);
   const money=v=>"£"+Math.round(v).toLocaleString("en-GB");
