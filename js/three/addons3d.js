@@ -621,28 +621,36 @@ Object.assign(PARTS, {
         wing.rotation.y = 0; wing.position.z = s2 * (W / 2 - 0.01); seat.add(wing);
       }
       g.add(seat);
+      // Seat pan: a padded cushion with raised side bolsters, from the back of the shell to the front of the seat.
+      const panL = c.frontSeatX + 0.34 - xb, py = c.seatY + 0.02;
+      g.add(box(panL, 0.07, W - 0.1, fabric, xb + panL / 2, py, zc));
+      for (const s2 of [-1, 1]) { const bol = slab([[xb, py], [xb + panL, py], [xb + panL - 0.02, py + 0.09], [xb + 0.04, py + 0.12]], 0.07, fabric); bol.position.z = zc + s2 * (W / 2 - 0.06); g.add(bol); }
     }
     return g;
   },
   "Racing harnesses": (f, rig, s) => {
-    // Four-point harnesses: shoulder straps from the bucket's slots (or the seat back) down to a buckle, and lap belts.
-    // With bucket seats they lie on the shell's face, which leans back; otherwise on the measured seat surface.
     const c = cabinOf(f), g = new THREE.Group(), red = redMat(), buckets = s && s.extras && s.extras.includes("Bucket seats");
-    const H = c.headrestY + 0.1 - c.seatY, lean = Math.sin(0.14);
-    const faceX = (y, z, x0) => {
-      // In front of whichever is further forward: the bucket shell's face, or the car's own seat (which can show through it).
-      const shell = buckets ? c.headrestX - 0.03 - (y - (c.seatY - 0.04)) * lean : -Infinity;
-      const h = probe(rig, [x0 + 0.7, y, z], [-1, 0, 0]), own = h && h.x > x0 - 0.1 && h.x < x0 + 0.6 ? h.x : x0 + 0.13;
-      return Math.max(shell, own) + 0.015;
+    const H = c.headrestY + 0.1 - c.seatY, lean = Math.sin(0.14), xb = c.headrestX - 0.06, base = c.seatY - 0.04;
+    // The seat's front surface at a height: the bucket's face, or the car's own seat (measured).
+    const faceX = (y, z) => {
+      if (buckets) return xb + 0.045 - (y - base) * lean + 0.008;
+      const h = probe(rig, [c.frontSeatX + 0.7, y, z], [-1, 0, 0]); return (h && h.x > xb - 0.1 && h.x < c.frontSeatX + 0.5 ? h.x : xb + 0.13) + 0.008;
     };
+    const lapY = z => { if (buckets) return c.seatY + 0.065; const h = probe(rig, [c.frontSeatX - 0.05, c.seatY + 0.4, z], [0, -1, 0]); return (h && h.y > c.seatY - 0.1 ? h.y : c.seatY + 0.06) + 0.006; };
+    const strap = pts => { for (let i = 1; i < pts.length; i++) g.add(bar(pts[i - 1], pts[i], 0.048, 0.004, red)); };
     for (const k of [1, -1]) {
-      const zc = k * c.seatZ, xb = c.headrestX, yS = buckets ? c.seatY - 0.04 + H * 0.66 : c.headrestY - 0.14, yC = c.seatY + 0.28, yL = c.seatY + 0.07, xl = c.frontSeatX + 0.08;
+      const zc = k * c.seatZ, ly = lapY(zc), bx = xb + 0.3, buckle = [bx, ly + 0.012, zc];
+      const topY = buckets ? base + H * 0.74 : c.headrestY - 0.1;
       for (const s2 of [1, -1]) {
-        const a = [faceX(yS, zc + s2 * 0.09, xb), yS, zc + s2 * 0.09], b = [faceX(yC, zc + s2 * 0.06, xb) + 0.03, yC, zc + s2 * 0.06], d = [xl + 0.06, yL + 0.03, zc];
-        g.add(bar(a, b, 0.05, 0.005, red), bar(b, d, 0.05, 0.005, red));
-        g.add(bar([xl - 0.12, yL, zc + s2 * 0.22], [xl + 0.06, yL + 0.03, zc], 0.05, 0.005, red));
+        const z = zc + s2 * 0.085;
+        // Shoulder strap: from behind the seat, over the top (through the slot on a bucket), down the face to the buckle.
+        strap([[faceX(topY, z) - 0.09, topY - 0.12, z], [faceX(topY, z) - 0.01, topY + 0.01, z], [faceX(topY - 0.2, z), topY - 0.2, zc + s2 * 0.07], [faceX(ly + 0.18, zc) + 0.03, ly + 0.15, zc + s2 * 0.045], buckle]);
+        // Lap strap: from the hip, along the cushion, to the buckle.
+        strap([[xb + 0.06, ly + 0.05, zc + s2 * 0.23], [xb + 0.16, ly + 0.02, zc + s2 * 0.17], buckle]);
       }
-      const buckle = mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.014, 20), mats().chrome, xl + 0.07, yL + 0.04, zc); buckle.rotation.z = Math.PI / 2 - 0.4; g.add(buckle);
+      // Crotch strap: up from the front of the cushion to the buckle.
+      strap([[bx + 0.13, ly - 0.005, zc], buckle]);
+      const disc = mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.012, 24), mats().chrome, bx, ly + 0.02, zc); g.add(disc);
     }
     return g;
   },
@@ -1098,6 +1106,37 @@ function aeroPart(rig, files) {
   return g;
 }
 
+/* The car's own front seats are part of one big cabin mesh, so they're hidden by leaving their triangles out of
+   this car's copy of the mesh while bucket seats are in (and put back when they come out). Shared geometry is
+   copied first, so the stock car beside it keeps its seats. */
+function stockSeats(rig, f, show) {
+  if (!!rig.seatsHidden === !show) return;
+  rig.seatsHidden = !show;
+  const c = cabinOf(f), inv = rig.body.matrixWorld.clone().invert(), a = new THREE.Vector3(), b = new THREE.Vector3(), d = new THREE.Vector3();
+  const inSeat = p => p.x > c.headrestX - 0.2 && p.x < c.frontSeatX + 0.36 && Math.abs(Math.abs(p.z) - c.seatZ) < 0.25 && p.y > c.seatY - 0.06 && p.y < c.headrestY + 0.16;
+  rig.body.updateWorldMatrix(true, true);
+  rig.body.traverse(o => {
+    if (!o.isMesh || o.userData.addon || rig.paints.includes(o.material) || /Glass|Lens|Rim|Tyre|Caliper|Disc|Hub/i.test(o.material.name || "")) return;
+    if (!o.userData.seatInfo) { // measured once: does this mesh have seat triangles, and which index keeps the rest?
+      const g = o.geometry, P = g.attributes.position, idx = g.index, n = idx ? idx.count : P.count, M = o.matrixWorld.clone().premultiply(inv), keep = [];
+      let cut = 0;
+      for (let i = 0; i < n; i += 3) {
+        const k = [0, 1, 2].map(j => idx ? idx.getX(i + j) : i + j);
+        a.fromBufferAttribute(P, k[0]).applyMatrix4(M); b.fromBufferAttribute(P, k[1]).applyMatrix4(M); d.fromBufferAttribute(P, k[2]).applyMatrix4(M);
+        if (inSeat(a.clone().add(b).add(d).divideScalar(3))) cut++; else keep.push(...k);
+      }
+      o.userData.seatInfo = cut ? { keep, full: idx ? Array.from(idx.array) : null, count: n } : { none: true };
+      if (cut) o.geometry = g.clone(); // this car's own copy
+    }
+    const si = o.userData.seatInfo; if (si.none) return;
+    const g = o.geometry;
+    if (show) { if (si.full) g.setIndex(si.full); else g.setIndex(null); }
+    else g.setIndex(si.keep);
+    g.computeBoundingSphere();
+  });
+  rig.probes = null; rig.probeMeshes = null; rig.trimTris = null; // measurements of the cabin change with the seats
+}
+
 /* ---------- putting a build's add-ons on a car ---------- */
 // spec: { spoiler, bodykit, widebody, exhaust, stripes, extras: [names], glow } or null for none.
 export function updateAddons(rig, spec, f) {
@@ -1122,6 +1161,7 @@ export function updateAddons(rig, spec, f) {
   for (const k in fx) if (fx[k]) want.set(k, String(fx[k]));
   // Rebuild only the parts that changed.
   for (const [k, part] of rig.fx.parts) if (!want.has(k) || want.get(k) !== part.userData.key) { part.parent.remove(part); part.traverse(o => { if (o.isMesh) { if (!rig.aero || !AERO[k]) o.geometry.dispose(); if (part.userData.ownMaterials || o.parent && o.parent.userData.ownMaterials) { if (o.material.map && o.material.map !== tyreTex && !Object.values(tyreTexts).includes(o.material.map)) o.material.map.dispose(); o.material.dispose(); } } }); rig.fx.parts.delete(k); }
+  if (!rig.standIn) stockSeats(rig, f, !has("Bucket seats"));
   for (const [k, key] of want) if (!rig.fx.parts.has(k)) {
     const part = k.startsWith("fx:") ? SKINS[k.slice(3)](f, rig, s, key === "black") : rig.aero && AERO[k] ? aeroPart(rig, AERO[k]) : PARTS[k](f, rig, s); part.userData.key = key;
     (part.userData.ground ? rig.group : rig.body).add(part); rig.fx.parts.set(k, part);
