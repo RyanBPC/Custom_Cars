@@ -179,21 +179,40 @@ const PARTS = {
     }
     return g;
   },
+  // GT wing (swan-neck): a thin carbon aerofoil blade, nose down and trailing edge up, with carbon end plates.
+  // Two slim black aluminium uprights stand on the boot lid (hatchbacks: the tailgate just under the rear window),
+  // rise in front of the blade, arch back over it and hook down onto its top surface, like a real swan-neck wing.
   "spoiler:gt-wing": (f, rig) => {
-    const m = mats(), g = new THREE.Group(), span = Math.min(1.55, 2 * f.sideZ - 0.2), legZ = 0.4;
-    // The legs stand on the boot lid (hatchbacks: the tailgate just below the rear window).
-    const bx = f.rearGlass ? f.rearGlass.bottom[0] - 0.03 : f.rearX + 0.15;
-    const feet = [1, -1].map(k => down(rig, bx, k * legZ) || V3(bx, f.rearGlass ? f.rearGlass.bottom[1] : 1, k * legZ));
-    const footY = Math.min(feet[0].y, feet[1].y), bladeY = Math.max(f.roofEdge.y + 0.02, footY + 0.3), x = bx - 0.07;
-    // Wing blade with an aerofoil side profile, trailing edge raised for downforce.
-    const blade = slab([[0.16, 0.0], [0.08, 0.025], [-0.1, 0.03], [-0.16, 0.012], [-0.16, -0.004], [0.0, -0.008]], span, m.carbon);
-    blade.position.set(x, bladeY, 0); blade.rotation.z = -0.12; g.add(blade);
+    const m = mats(), g = new THREE.Group(), boot = hasBoot(f);
+    const span = Math.min(1.5, 2 * f.sideZ - 0.2), legZ = Math.min(0.45, span / 2 - 0.25);
+    const fx = boot ? f.rearGlass.bottom[0] - 0.12 : f.rearGlass.bottom[0] - 0.03;
+    const feet = [1, -1].map(k => down(rig, fx, k * legZ) || V3(fx, f.rearGlass.bottom[1], k * legZ));
+    const footY = Math.min(feet[0].y, feet[1].y), chord = 0.25, aoa = 0.14;
+    const y = boot ? footY + 0.3 : Math.max(f.roofEdge.y + 0.03, footY + 0.25), x = fx - chord / 2 - 0.05; // blade centre
+    // Aerofoil: rounded nose at the front (-back), flat-ish underside, thin trailing edge. Points are [back, up].
+    const foil = [[-0.5, 0], [-0.47, 0.045], [-0.38, 0.085], [-0.2, 0.115], [0.05, 0.11], [0.3, 0.075], [0.5, 0.02], [0.5, 0.004],
+      [0.3, 0.0], [0.05, -0.012], [-0.2, -0.03], [-0.38, -0.03], [-0.47, -0.016]]
+      .map(([u, v]) => [u * chord, v * chord]).map(([u, v]) => [u * Math.cos(aoa) - v * Math.sin(aoa), u * Math.sin(aoa) + v * Math.cos(aoa)]);
+    const edge = []; for (let i = 0; i <= 10; i++) { const z = -span / 2 + span * i / 10; edge.push(V3(x - 0.02 * (z * z) / (span * span / 4), y, z)); }
+    g.add(sweep(edge, foil, m.carbon, 0.004));
+    const top = y + 0.11 * chord; // top of the blade near mid-chord
     for (const k of [1, -1]) {
-      const foot = feet[k > 0 ? 0 : 1], h = bladeY - foot.y + 0.01;
-      // Swan-neck legs: from the boot lid up and slightly back to the blade, with a mounting plate.
-      const leg = box(0.1, h, 0.014, m.black, (foot.x + x) / 2, foot.y + h / 2 - 0.005, k * legZ); leg.rotation.z = Math.atan2(foot.x - x, h); g.add(leg);
-      g.add(box(0.12, 0.012, 0.06, m.black, foot.x, foot.y + 0.004, k * legZ));
-      g.add(box(0.36, 0.15, 0.01, m.carbon, x, bladeY + 0.01, k * (span / 2 + 0.005))); // end plates
+      // End plate: a carbon plate a little bigger than the blade's side, raked at the back.
+      const ex = x - 0.02;
+      const ep = slab([[ex + 0.14, y - 0.035], [ex + 0.145, y + 0.03], [ex - 0.02, y + 0.075], [ex - 0.15, y + 0.07], [ex - 0.16, y - 0.01], [ex - 0.1, y - 0.045]], 0.007, m.carbon);
+      ep.position.z = k * (span / 2 + 0.0035); g.add(ep);
+      // Upright: a curved strip along a swan-neck path, about 3 cm wide and 1.2 cm thick.
+      const foot = feet[k > 0 ? 0 : 1], xa = x - 0.01;
+      const path = new THREE.CatmullRomCurve3([V3(foot.x, foot.y - 0.01, 0), V3(foot.x - 0.005, (foot.y + top) / 2, 0), V3(foot.x - 0.012, top + 0.022, 0),
+        V3((foot.x + xa) / 2, top + 0.045, 0), V3(xa, top + 0.024, 0), V3(xa - 0.003, top - 0.004, 0)]).getPoints(40);
+      const w = 0.016, L = [], R = [];
+      path.forEach((p, i) => {
+        const a = path[Math.max(0, i - 1)], b = path[Math.min(path.length - 1, i + 1)], t = V3(b.x - a.x, b.y - a.y, 0).normalize();
+        const ww = i < 6 ? w * (1.6 - 0.1 * i) : w; // a little wider at the foot
+        L.push([p.x - t.y * ww, p.y + t.x * ww]); R.push([p.x + t.y * ww, p.y - t.x * ww]);
+      });
+      const up = slab([...L, ...R.reverse()], 0.012, m.black); up.position.z = k * legZ; g.add(up);
+      g.add(box(0.14, 0.01, 0.07, m.black, foot.x, foot.y + 0.002, k * legZ)); // mounting plate on the boot
     }
     return g;
   },
@@ -813,7 +832,6 @@ export function measureWheels(rig) {
 /* ---------- modelled parts fitted to a particular car (models/aero/<car>/, made by models/tools/prep_aero.py) ----------
    They're saved in the car's own coordinates, so they just go on. Cars without them use the simple shapes above. */
 const AERO = {
-  "spoiler:gt-wing": [["wing", n => /post/i.test(n) ? "black" : "carbon"]],
   bodykit: [["splitter", () => "carbon"], ["skirts", () => "carbon"], ["diffuser", () => "black"]],
   exhaust: [["exhaust", n => /chrome/i.test(n) ? "chrome" : "black"]],
   "Quad exhaust tips": [["exhaust-quad", n => /chrome/i.test(n) ? "chrome" : "black"]]
