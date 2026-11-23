@@ -14,8 +14,9 @@ const garageCard=c=>`<article class="card"><div class="art${c.photo?" photo":""}
 function renderGarage(){
   const tab=(id,label,n)=>`<button type="button" data-brand="${id}" aria-pressed="${garageBrand===id}">${label} <small>${n}</small></button>`;
   $("garageBrands").innerHTML=tab("all","All brands",CARS.length)+BRANDS.map(b=>tab(b,b,carsOf(b).length)).join("");
-  $("garageGrid").innerHTML=BRANDS.filter(b=>garageBrand==="all"||b===garageBrand).map(b=>
-    `<section class="brand-group" aria-label="${b}"><h2 class="sub">${b} <small>${carsOf(b).length} ${carsOf(b).length===1?"model":"models"}</small></h2><div class="grid">${carsOf(b).map(garageCard).join("")}</div></section>`).join("");
+  // One grid, cars side by side (sorted by brand), rather than a stacked section per brand; the brand tabs above filter it.
+  const shown=BRANDS.filter(b=>garageBrand==="all"||b===garageBrand);
+  $("garageGrid").innerHTML=`<div class="grid garage-all">${shown.flatMap(b=>carsOf(b)).map(garageCard).join("")}</div>`;
 }
 $("garageBrands").addEventListener("click",e=>{const b=e.target.closest("[data-brand]");if(b){garageBrand=b.dataset.brand;renderGarage();}});
 renderGarage();
@@ -56,8 +57,17 @@ function renderPrices(){
   const c=car(),n=partCount(state.mods);
   $("priceBuild").innerHTML=n?`Your build so far on the ${c.make} ${c.model}: <b>${fmt(buildCost(c,state.mods))}</b> in parts and fitting (${n} ${n===1?"part":"parts"}). <a href="#build">See it in the Build tab →</a>`:`Nothing fitted yet. Press "Try it on the car" on any row to see it on the 3D car.`;
   const row=r=>{const on=onCar(r[0]);return `<tr${on?' class="fitted"':""}><td>${r[0]}${on?'<span class="oncar">On your car</span>':tryBtn(r[0])}</td><td class="muted">${r[1]}</td><td class="p">${r[2]}</td></tr>`;};
-  $("priceTable").innerHTML=`<thead><tr><th>Upgrade</th><th>What you get</th><th>Fitted price</th></tr></thead><tbody>`+PRICE_ROWS.concat(extraGroups()).map(([cat,rows])=>`<tr class="cat"><th colspan="3" scope="colgroup">${cat}</th></tr>`+rows.map(row).join("")).join("")+`</tbody>`;
+  // Category tabs above the table, so it shows one group at a time ("All" shows the whole list).
+  const groups=PRICE_ROWS.concat(extraGroups()),label=c=>({"Extra parts: inside the car":"Extras: interior","Extra parts: practical and legal":"Extras: practical","Extra parts: lights":"Extras: lights","Extra parts: engine, wheels and handling":"Extras: mechanical","Extra parts: outside":"Extras: outside","Trim & protection":"Trim & care"})[c]||c;
+  if(priceCat!=="All"&&!groups.some(([c])=>c===priceCat))priceCat=groups[0][0];
+  const tab=(id,txt,n)=>`<button type="button" role="tab" data-pcat="${id}" aria-selected="${priceCat===id}" tabindex="${priceCat===id?0:-1}">${txt}${n?` <small>${n}</small>`:""}</button>`;
+  $("priceCats").innerHTML=groups.map(([c,rs])=>tab(c,label(c),rs.filter(r=>onCar(r[0])).length)).join("")+tab("All","All",0);
+  $("priceTable").innerHTML=`<thead><tr><th>Upgrade</th><th>What you get</th><th>Fitted price</th></tr></thead><tbody>`+groups.filter(([cat])=>priceCat==="All"||cat===priceCat).map(([cat,rows])=>`<tr class="cat"><th colspan="3" scope="colgroup">${cat}</th></tr>`+rows.map(row).join("")).join("")+`</tbody>`;
 }
+let priceCat=PRICE_ROWS[0][0];
+$("priceCats").addEventListener("click",e=>{const b=e.target.closest("[data-pcat]");if(!b)return;priceCat=b.dataset.pcat;renderPrices();const a=$("priceCats").querySelector(`[data-pcat="${CSS.escape(priceCat)}"]`);if(a)a.focus();});
+$("priceCats").addEventListener("keydown",e=>{const t=e.target.closest("[data-pcat]");if(!t||!["ArrowLeft","ArrowRight","Home","End"].includes(e.key))return;
+  const all=[...$("priceCats").querySelectorAll("[data-pcat]")],i=all.indexOf(t),n=e.key==="Home"?0:e.key==="End"?all.length-1:(i+(e.key==="ArrowRight"?1:-1)+all.length)%all.length;e.preventDefault();all[n].click();});
 renderPrices();
 window.addEventListener("hashchange",()=>{if(location.hash==="#prices")renderPrices();});
 $("priceTable").addEventListener("click",e=>{const b=e.target.closest("[data-try]");if(!b)return;const ph=TRY_PHRASE[b.dataset.try];if(!ph)return;

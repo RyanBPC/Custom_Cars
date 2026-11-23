@@ -315,9 +315,39 @@
     if (state.car !== draftCar || (draftMods > 0 && n === 0)) for (const k in drafts) delete drafts[k];
     draftCar = state.car; draftMods = n;
   }
+  // Category tabs above the groups, so the panel shows a short set at a time instead of one long list.
+  // Every group is in one category, and "All" still shows the full list.
+  const CATS = [
+    ["Body", ["Paint and wrap", "Graphic wrap", "Racing stripes", "Bonnet wrap", "Aero", "Styling", "Body & trim", "Grille", "Window trim", "Mirror caps", "Number plates"]],
+    ["Wheels", ["Wheels", "Tyres", "Wheel spacers", "Wheel centre caps", "Caliper paint", "Ride height"]],
+    ["Lights & glass", ["Window tint", "Smoked lights", "Underglow"]],
+    ["Interior", ["Interior", "Steering wheel", "Ambient lighting", "Seat covers", "Dashboard trim", "Floor mats"]],
+    ["Performance", ["Performance"]]
+  ];
+  const catOf = name => (CATS.find(c => c[1].includes(name)) || CATS[0])[0];
+  let optCat = "Body";
+  try { const s = localStorage.getItem("customcars.optcat"); if (s === "All" || CATS.some(c => c[0] === s)) optCat = s; } catch (e) {}
+  box.addEventListener("click", e => {
+    const t = e.target.closest("[data-cat]"); if (!t) return;
+    optCat = t.dataset.cat; try { localStorage.setItem("customcars.optcat", optCat); } catch (err) {}
+    render(); const again = box.querySelector(`[data-cat="${CSS.escape(optCat)}"]`); if (again) again.focus();
+  });
+  function catTabs() {
+    const fitted = name => GROUPS.filter(g => catOf(g.name) === name && !(g.link && !g.row && !g.opts && !g.extras) && groupStatus(g).on).length;
+    const tab = (id, n) => `<button type="button" role="tab" data-cat="${id}" aria-selected="${optCat === id}" tabindex="${optCat === id ? 0 : -1}">${id}${n ? ` <small>${n}</small>` : ""}</button>`;
+    return `<div class="opt-cats" role="tablist" aria-label="Part categories">${CATS.map(c => tab(c[0], fitted(c[0]))).join("")}${tab("All", 0)}</div>`;
+  }
+  // Arrow keys move between the category tabs.
+  box.addEventListener("keydown", e => {
+    const t = e.target.closest("[data-cat]"); if (!t || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+    const all = [...box.querySelectorAll("[data-cat]")], i = all.indexOf(t);
+    const n = e.key === "Home" ? 0 : e.key === "End" ? all.length - 1 : (i + (e.key === "ArrowRight" ? 1 : -1) + all.length) % all.length;
+    e.preventDefault(); all[n].click();
+  });
   function renderPanel() {
     forgetStaleDrafts();
-    box.innerHTML = GROUPS.map((g, gi) => {
+    box.innerHTML = catTabs() + GROUPS.map((g, gi) => {
+      if (optCat !== "All" && catOf(g.name) !== optCat) return "";
       if (g.link && !g.row && !g.opts && !g.extras) return `<section class="opt-group" aria-label="${g.name}"><h3>${g.name}</h3><a class="opt-link" href="${g.link[1]}">${g.link[0]}</a></section>`;
       const st = groupStatus(g), open = g.name in openMemo ? openMemo[g.name] : (st.on || g.name === "Paint and wrap" || g.name === "Wheels");
       return `<details class="opt-group" data-name="${g.name}"${open ? " open" : ""}><summary><h3>${g.name}</h3><span class="opt-cur${st.on ? " on" : ""}">${esc(st.text)}</span></summary>

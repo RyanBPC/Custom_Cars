@@ -6,21 +6,42 @@ const el = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
 
 /* ---------- step bar ---------- */
+// The steps are tabs: one step shows at a time, with Back / Next at the bottom, instead of one long page.
+// Step 2 is its heading plus the 3D studio. The step you were on is remembered in this browser.
 const stepIds = ["flowCar", "flowBuild", "flowParts", "flowPhoto"];
-el("flowSteps").addEventListener("click", e => {
-  const b = e.target.closest("[data-step]"); if (!b) return;
-  el(b.dataset.step).scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+const STEP_NAMES = ["Your car", "Your build", "Parts & prices", "See it on your car"];
+const panels = [[el("flowCar")], [el("flowBuild"), document.querySelector("#studio .studio")], [el("flowParts")], [el("flowPhoto")]];
+panels.forEach((nodes, i) => {
+  nodes.forEach(n => { n.setAttribute("role", "tabpanel"); n.setAttribute("aria-label", `Step ${i + 1}: ${STEP_NAMES[i]}`); });
+  const nav = document.createElement("div");
+  nav.className = "flow-nav";
+  nav.innerHTML = (i > 0 ? `<button type="button" class="btn" data-step-to="${i - 1}">← ${STEP_NAMES[i - 1]}</button>` : "<span></span>")
+    + (i < 3 ? `<button type="button" class="btn primary" data-step-to="${i + 1}">Next: ${STEP_NAMES[i + 1]} →</button>` : "");
+  nodes[nodes.length - 1].after(nav); nodes.push(nav);
 });
-// Light up the step on screen (the one whose top passed the middle of the window last).
-function markStep() {
-  if (!el("flowCar").getClientRects().length) return; // Build page not on show: nothing to measure
-  let cur = stepIds[0];
-  for (const id of stepIds) if (el(id).getBoundingClientRect().top < innerHeight * 0.45) cur = id;
-  el("flowSteps").querySelectorAll("[data-step]").forEach(b => b.dataset.step === cur ? b.setAttribute("aria-current", "step") : b.removeAttribute("aria-current"));
+el("flowSteps").setAttribute("role", "tablist");
+let step = 0;
+try { const s = +localStorage.getItem("customcars.step"); if (s >= 0 && s <= 3) step = s; } catch (e) {}
+function showStep(n, scroll) {
+  step = n;
+  try { localStorage.setItem("customcars.step", n); } catch (e) {}
+  panels.forEach((nodes, i) => nodes.forEach(x => { x.hidden = i !== n; }));
+  el("flowSteps").querySelectorAll("[data-step]").forEach((b, i) => {
+    b.setAttribute("role", "tab"); b.setAttribute("aria-selected", i === n);
+    if (i === n) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+  });
+  if (scroll) { const top = el("flowSteps").getBoundingClientRect().top + scrollY - 70; if (scrollY > top) scrollTo({ top, behavior: "auto" }); }
+  if (n === 2) { partsShown = false; loadShots(); }
 }
-addEventListener("scroll", () => requestAnimationFrame(markStep), { passive: true });
-// Opening the Build page from another page: measure once it's shown (after the router's own hashchange).
-addEventListener("hashchange", () => requestAnimationFrame(() => requestAnimationFrame(markStep)));
+el("flowSteps").addEventListener("click", e => {
+  const b = e.target.closest("[data-step]"); if (b) showStep(stepIds.indexOf(b.dataset.step), true);
+});
+document.querySelector("#studio").addEventListener("click", e => {
+  const b = e.target.closest("[data-step-to]"); if (b) showStep(+b.dataset.stepTo, true);
+});
+// Photo Studio and Interior are views of the 3D studio, so they open on step 2.
+function stepForHash() { if (/^#(photo|interior|ai)\b/.test(location.hash) && step !== 1) showStep(1); }
+addEventListener("hashchange", stepForHash);
 
 /* ---------- step 1: your own photo (kept in this browser only) ---------- */
 const PHOTO_KEY = "customcars.myphoto", RESULT_KEY = "customcars.myresults";
@@ -231,7 +252,7 @@ function showProduct(i, x, items, words) {
 // Only fill in the pictures once step 3 is near the screen (the 3D car is then out of sight, so the turning isn't seen).
 let partsShown = false;
 async function loadShots() {
-  if (partsShown || el("flowParts").getBoundingClientRect().top > innerHeight * 1.5) return;
+  if (partsShown || el("flowParts").hidden) return; // only while the Parts & prices step is open
   partsShown = true; ebayNote = "";
   const list = cards(), key = cardsKey, c = car();
   // 1. Real parts first, all at once.
@@ -306,8 +327,8 @@ function renderMyRender() {
   });
 }
 el("myRender").addEventListener("click", e => {
-  const go = e.target.closest("[data-go]"); if (go) el(go.dataset.go).scrollIntoView({ behavior: "smooth", block: "start" });
-  if (e.target.closest("[data-go3d]")) { el("flowBuild").scrollIntoView({ behavior: "smooth", block: "start" }); const b = document.querySelector('[data-spin="photo"]'); if (b && !b.hidden) setTimeout(() => b.click(), 600); }
+  const go = e.target.closest("[data-go]"); if (go) showStep(stepIds.indexOf(go.dataset.go), true);
+  if (e.target.closest("[data-go3d]")) { showStep(1, true); const b = document.querySelector('[data-spin="photo"]'); if (b && !b.hidden) setTimeout(() => b.click(), 600); }
 });
 
 /* ---------- keep the steps in line with the build ---------- */
@@ -319,5 +340,5 @@ function update() {
   const k = JSON.stringify([state.car, state.mods, !!myPhoto]);
   if (k !== lastPromptKey) { lastPromptKey = k; renderMyPhoto(); }
 }
-update(); markStep();
+update(); showStep(step); stepForHash();
 })();
