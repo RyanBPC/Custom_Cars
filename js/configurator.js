@@ -307,7 +307,16 @@
     return { on: on.length > 0, text: on.join(", ") || (g.pick ? (g.opts[0][0] === "Factory" || g.opts[0][0] === "Stock" ? g.opts[0][0] : "Factory") : "Off") };
   }
   box.addEventListener("toggle", e => { if (e.target.matches && e.target.matches("details.opt-group")) openMemo[e.target.dataset.name] = e.target.open; }, true);
+  // Website #139: "just looking" choices belong to this car and this build. A new car, or the build going back to
+  // stock in one go (Reset, "start again"), forgets them; switching tabs keeps them.
+  let draftCar = state.car, draftMods = Object.keys(state.mods).length;
+  function forgetStaleDrafts() {
+    const n = Object.keys(state.mods).length;
+    if (state.car !== draftCar || (draftMods > 0 && n === 0)) for (const k in drafts) delete drafts[k];
+    draftCar = state.car; draftMods = n;
+  }
   function renderPanel() {
+    forgetStaleDrafts();
     box.innerHTML = GROUPS.map((g, gi) => {
       if (g.link && !g.row && !g.opts && !g.extras) return `<section class="opt-group" aria-label="${g.name}"><h3>${g.name}</h3><a class="opt-link" href="${g.link[1]}">${g.link[0]}</a></section>`;
       const st = groupStatus(g), open = g.name in openMemo ? openMemo[g.name] : (st.on || g.name === "Paint and wrap" || g.name === "Wheels");
