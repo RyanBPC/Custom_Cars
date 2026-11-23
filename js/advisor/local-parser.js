@@ -74,7 +74,7 @@ function cosmeticText(name,t){
 }
 const PARSE_WORDS="bonnet hood spoiler wing ducktail exhaust exhausts wheels wheel rims alloys carbon fibre fiber underglow stripes stripe racing tint tinted windows window lower lowered lowering coilovers suspension brakes brake calipers caliper bodykit widebody splitter diffuser skirts intake turbo remap tune headlights lights smoked wrap paint respray colour color matte satin gloss chrome roof rack snorkel louvres louvers canards visors harness harnesses steering shifter subwoofer speakers interior ambient bucket seats cage mirror mirrors decals graphics flames camo graffiti plate number intercooler scoop vents quad tips bumper sequential indicators eyelids spacers camber terrain tyres tires lift lifted louder faster power stance slammed slam massive spoilers pedestal extension marker flat bottom bottomed machined diamond polished lipped split twin bbs profile lettering letters lightly medium shift chameleon iridescent brushed quilted cloth stitching rubber embroidered badge honeycomb mesh grille trim handles centre center hub painted edging dashboard leather alcantara suede upholstery covers two-tone low-profile stretched sidewalls flare flares arch arches overfenders strip sunstrip banner windscreen belt belts".split(" ");
 // Ordinary words and car names are never "corrected" ("back" must not become "rack", "golf" not "gold").
-const PARSE_KEEP=new Set("wood wooden walnut dash caps mats cash cars word good spacer space serious series dechrome dechromed lose flower flowers slower slowly shower showers tower towers mower blower follower track back side more make take have some also that this then than them they want with like need just love nice cool look looks rear front real full good best feel keep sound wide deep dark does done give here there when what your into onto over under extra every maybe could would should thing things stuff little really super very much many same lets please thanks cheers mate bring check change turn same seat doors door body tail high tall long short lows boot gear gets wants fits tone toned tones limo quiet quieter light lighter bright pale fine time tint ride springs spring bagged bags badge badges badgeless debadge debadged decat decatted stock standard original factory normal glass privacy downpipe downpipes steps wind winds deflector deflectors sport sports towbar towbars strap straps inch inches brace braces limited slip diff diffs quaife roll anti catch cooler coolers quid grand".split(" "));
+const PARSE_KEEP=new Set("line lines wood wooden walnut dash caps mats cash cars word good spacer space serious series dechrome dechromed lose flower flowers slower slowly shower showers tower towers mower blower follower track back side more make take have some also that this then than them they want with like need just love nice cool look looks rear front real full good best feel keep sound wide deep dark does done give here there when what your into onto over under extra every maybe could would should thing things stuff little really super very much many same lets please thanks cheers mate bring check change turn same seat doors door body tail high tall long short lows boot gear gets wants fits tone toned tones limo quiet quieter light lighter bright pale fine time tint ride springs spring bagged bags badge badges badgeless debadge debadged decat decatted stock standard original factory normal glass privacy downpipe downpipes steps wind winds deflector deflectors sport sports towbar towbars strap straps inch inches brace braces limited slip diff diffs quaife roll anti catch cooler coolers quid grand".split(" "));
 function editDistance(a,b){
   const d=[];for(let i=0;i<=a.length;i++){d[i]=[i];for(let j=1;j<=b.length;j++)d[i][j]=i?0:j;}
   for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++){
@@ -101,6 +101,14 @@ function stripeContrast(c){
 }
 function planParts(text){
   let t=" "+fixTypos(text.toLowerCase())+" "; const apply=[],remove=[]; let switchCar=null, reset=false;
+  // "Golf R look", "golf r bumpers", "R-Line", "make it look like an R": the R look kit from existing parts (Car #150), not a car switch.
+  // Only a bare "golf r" asked on another car still switches to the Golf (then fits the kit).
+  const GOLF_R_RE=/\b(?:(?:vw |volkswagen )?golf\s+r(?![a-z0-9])(?:[- ]?line\b)?|r[- ]line\b|(?:look|looks|style)\s+like\s+an?\s+r(?![a-z0-9]))/g;
+  let rLook=null;
+  if(GOLF_R_RE.test(t)){const toGolf=state.car!=="golf"&&/golf/.test(t)&&!/look|style|bumper|kit|skirt|\bline\b/.test(t);
+    rLook=/r[- ]line/.test(t)?"rline":"r";
+    if(/\bblue\b/.test(t)&&!/\b(?:lapiz|estoril|portimao|snapper rocks|miami|baby|navy|sky|light|pale)\s+blue\b/.test(t)) t=t.replace(/\b(?:(?:dark|bright|deep)\s+)?blue\b/g," lapiz blue ");
+    t=(toGolf?" golf ":"")+(rLook==="r"?" quad tips ":"")+" side skirts 19 inch silver wheels , "+t.replace(GOLF_R_RE," ").replace(/\b(?:bumpers?|body ?kit|kit|style|look|wheels?|rims?|alloys?|exhausts?)\b/g," ");}
   for(const c of CARS){if(c.keys.some(k=>new RegExp("(^|[^a-z0-9])"+k.replace(/[-]/g,"\\-")+"([^a-z0-9]|$)").test(t))){switchCar=c.id;break;}}
   // Just the make ("bmw please", "show me the bmw", "switch to the vw") switches car too.
   // Only when that part of the sentence is nothing but the make, so "bmw wheels" on the Golf stays a wheel request.
@@ -149,6 +157,7 @@ function planParts(text){
   if(RESET_RE.test(t)){reset=true;t=t.replace(RESET_RE," ");}
   // UK slang is read before the removal rule, so the "delete"/"remove" in these doesn't take parts off.
   const notes=[...hiddenNote];
+  if(rLook) notes.push(rLook==="r"?"That's the Golf R look: quad exhaust tips, side skirts and 19 inch silver wheels. It's the look only, not the R's 4Motion engine; say \"stage 2\" for more power, or \"make it lapiz blue\" for the R's best-known colour.":"That's the R-Line look (VW's sporty-looking trim): side skirts and 19 inch silver wheels. Say \"golf r look\" to add the R's quad exhaust tips too.");
   // A wheel refurb or kerb-rash repair keeps the car's own wheels (Car #132): the clause is taken out so it can't fit new wheels or a wrap.
   let refurb=null;
   if(REFURB_RE.test(t)){const cl=clauseFor(t,REFURB_RE,/,|;|\band\b|\bplus\b|\bthen\b/),h=colourNear(cl,REFURB_RE)||colourNear(cl,/wheels?|alloys?|rims?|them/), cn=h&&(COLOURS.find(x=>x[1]===h)||[])[0];
