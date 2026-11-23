@@ -179,24 +179,28 @@
   // The text a row's part is fitted with now (custom part), or null.
   const partsOf = g => g.parts || (g.part ? [g.part] : []);
   const rowItem = g => customs().find(c => partsOf(g).includes(c.name));
-  // Current choices of a row: read from the fitted part, else its defaults.
+  // Choices made on a row whose part isn't fitted yet: kept here until "Fit it", so just looking never fits or charges anything.
+  const drafts = {};
+  // Current choices of a row: read from the fitted part, else the draft, else its defaults.
   function rowVals(g) {
     if (g.mod === "wrap") { const w = state.mods.wrap; return w ? { colour: w.colour, finish: w.finish, kind: w.paint ? "paint" : "wrap" } : { ...g.defaults, on: false }; }
     if (g.mod === "wheels") { const w = state.mods.wheels; return w ? { size: String(w.size), style: w.style, finish: w.finish, lip: w.lip ? "yes" : "no" } : { ...g.defaults, on: false }; }
     if (g.mod === "tint") { const w = state.mods.tint; return w ? { vlt: String(w.vlt) } : { ...g.defaults, on: false }; }
     if (g.mod === "stripes") { const s = state.mods.stripes; return s ? { colour: s.colour } : { ...g.defaults, on: false }; }
-    const its = customs().filter(c => partsOf(g).includes(c.name)); if (!its.length) return { ...g.defaults, on: false };
+    const its = customs().filter(c => partsOf(g).includes(c.name)); if (!its.length) return { ...g.defaults, ...(drafts[g.name] || {}), on: false };
     const t = its.map(it => (it.text || it.name).toLowerCase()).join(" and "), v = { on: true }; g.read(t, v, coloursInText(t), its[0].name); return { ...g.defaults, ...v };
   }
   function rowHtml(g, gi) {
     const v = rowVals(g), fitted = v.on !== false;
     return `<div class="opt-row">${g.fields.map(f => f.colour ? (f.when && !f.when(v) ? "" : colourField(gi, f.key, f.label, v[f.key])) : selectField(gi, f.key, f.label, f.opts, v[f.key])).join("")}
       <div class="chips">${fitted ? `<button type="button" class="chip" data-row-off="${gi}">${g.offLabel || "Take it off"}</button>` : `<button type="button" class="chip" data-row-fit="${gi}">${g.fitLabel || "Fit it"}</button>`}</div>
+      ${!fitted && !g.mod ? `<small class="opt-note">Just looking: nothing is fitted or added to the price until you press ${g.fitLabel || "Fit it"}.</small>` : ""}
       ${g.note ? `<small class="opt-note">${g.note}</small>` : ""}</div>`;
   }
   // Applies a row's choices: builds its wording and fits it (replacing the part's previous choice).
   function applyRow(g, v) {
     const text = g.make(v, nameOf);
+    delete drafts[g.name];
     if (!text) return rowOff(g);
     const p = planFor(text);
     if (g.alsoRemove) p.remove = [...(p.remove || []), ...g.alsoRemove];
@@ -210,7 +214,10 @@
     plan.reply = `Taken off: ${what}.`; addUser(`Remove the ${what}`); applyPlan(plan, `${what} off`);
   }
   function rowChange(gi, key, val) {
-    const g = GROUPS[gi], v = rowVals(g); v[key] = val; v.on = true; applyRow(g, v);
+    const g = GROUPS[gi], v = rowVals(g);
+    // Not fitted yet (an extra part): remember the choice and show it, but don't fit it until "Fit it".
+    if (!g.mod && v.on === false) { drafts[g.name] = { ...(drafts[g.name] || {}), [key]: val }; return render(); }
+    v[key] = val; v.on = true; applyRow(g, v);
   }
   function chip(g, gi, o, oi, extra) {
     const on = g.part && !extra ? (o[1] ? !!itemOf(g.part) && itemOf(g.part).text === plannedText(o[1], g.part) : !itemOf(g.part)) : o[1] ? isOn(o[1]) : !state.mods[g.pick];
