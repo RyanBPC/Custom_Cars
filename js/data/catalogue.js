@@ -135,7 +135,7 @@ const EXTRA_PARTS = [
  {re:/smoked? (?:tail|rear) ?lights?|(?:tail|rear) ?lights? (?:smoked|tinted)|tint(?:ed)? (?:the )?(?:tail|rear) ?lights?/,name:"Smoked tail lights",in3d:true,price:120,text:"lightly smoked tail-light lenses"},
  {re:/(?:bonnet|hood) (?:vinyl )?wrap|wrap (?:the |my )?(?:bonnet|hood)|carbon[- ]look (?:bonnet|hood)|(?:gloss|glossy|matte?|satin) (?:[a-z]+ )?(?:bonnet|hood)\b|\b(?:black|white|red|grey|gray) (?:bonnet|hood)\b/,name:"Bonnet wrap",in3d:true,price:250,text:"a gloss black vinyl wrap on the bonnet"},
  {re:/calipers? paint|paint(?:ed)? (?:the |my )?(?:brake )?calipers?|painted (?:brake )?calipers?|calipers? (?:colou?r|painted)/,name:"Caliper paint",in3d:true,price:200,text:"red painted brake calipers"},
- {re:/(?:cent(?:re|er)|wheel|hub) caps?\b/,name:"Centre cap swap",in3d:true,price:60,text:"black wheel centre caps"},
+ {re:/(?:cent(?:re|er)|wheel|hub) ?caps?\b/,name:"Centre cap swap",in3d:true,price:60,text:"black wheel centre caps"},
  {re:/low[- ]?pro(?:file)?\b|stretch(?:ed)? tyres?|thin(?:ner)? (?:side ?walls?|tyres)|\b(?:45|40|35|30)[- ]?(?:profile|series)\b/,name:"Low-profile tyres",in3d:true,price:600,text:"low-profile tyres with thin sidewalls"},
  {re:/honeycomb|mesh grilles?/,name:"Honeycomb mesh grille",in3d:true,price:180,text:"a black honeycomb mesh grille and bumper inserts"},
  {re:/body[- ]colou?r(?:ed)? grilles?|colou?r[- ]coded grilles?/,name:"Body-colour grille",in3d:true,price:250,text:"a grille painted to match the body"},
@@ -145,7 +145,8 @@ const EXTRA_PARTS = [
  {re:/gloss black (?:window )?(?:trim|line)\b/,name:"Gloss black window trim",in3d:true,price:150,text:"a gloss black strip along the bottom of the side windows"},
  {re:/brushed (?:alumin(?:i)?um |metal )?(?:window )?(?:trim|line)\b|alumin(?:i)?um window (?:trim|line)/,name:"Brushed window trim",in3d:true,price:200,text:"a brushed aluminium strip along the bottom of the side windows"},
  {re:/carbon (?:fibre |fiber )?(?:window |exterior )?(?:trim|line)\b/,name:"Carbon window trim",in3d:true,price:250,text:"a carbon-fibre strip along the bottom of the side windows"},
- {re:/seat covers?|re-?upholster|(?:leather|alcantara|suede) (?:seats?|interior|upholstery)|two[- ]?tone seats?|\b(?:tan|red|black|white|grey|gray|blue|brown) (?:leather )?seats?\b/,name:"Seat covers",in3d:true,price:950,text:"black leather seat covers"},
+ {re:/\b(?:colou?red|red|blue|green|yellow|orange|pink|purple|white|grey|gray|tan|brown|gold|lime) seat ?belts?|seat ?belts? in (?:red|blue|green|yellow|orange|pink|purple|white|grey|gray|tan|brown|gold|lime)\b/,name:"Coloured seat belts",in3d:false,price:150,text:"red seat belt webbing"},
+ {re:/seat covers?|re-?upholster|(?:leather|alcantara|suede) (?:seats?|interior|upholstery)|two[- ]?tone seats?|\b(?:tan|red|black|white|grey|gray|blue|brown) (?:leather )?seats?\b(?!\s*belts?)/,name:"Seat covers",in3d:true,price:950,text:"black leather seat covers"},
  {re:/dash(?:board)? (?:trim|inserts?)|(?:carbon|aluminium|aluminum|brushed|piano black) (?:fibre |fiber )?(?:dash(?:board)?|interior trim|trim inserts?)/,name:"Dashboard trim",in3d:true,price:300,text:"carbon-fibre dashboard trim"},
  {re:/(?:floor|car) mats?\b|\bmats\b/,name:"Floor mats",in3d:true,price:80,text:"black floor mats with red edging"},
  // Number plates off: the chat turns "no plates", "remove the front plate" and so on into these (js/advisor/local-parser.js). UK law needs both on the road, so they're for shows.
