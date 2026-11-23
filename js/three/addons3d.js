@@ -274,7 +274,7 @@ const PARTS = {
     const cx = f.frontX - 0.15, cz = f.sideZ - 0.15, n = Math.SQRT1_2;
     return sides(k => {
       const g = new THREE.Group();
-      for (const [dy, sc] of [[0.1, 1], [0.2, 0.8]]) {
+      for (const [dy, sc] of [[0.11, 1.25], [0.21, 1.0]]) {
         const y = f.frontBottomY + dy, hit = probe(rig, [cx + 2 * n, y, k * (cz + 2 * n)], [-n, 0, -k * n]) || V3(cx, y, k * cz);
         const yaw = new THREE.Group(); yaw.position.set(hit.x - 0.004 * n, y, hit.z - k * 0.004 * n); yaw.rotation.y = k * 0.7;
         const pitch = new THREE.Group(); pitch.rotation.z = -0.12; yaw.add(pitch);
@@ -516,11 +516,14 @@ Object.assign(PARTS, {
   },
   Snorkel: (f, rig) => {
     const m = mats(), g = new THREE.Group(), r = 0.042;
-    // Points up the front wing and A-pillar, each pushed out to the measured surface.
-    const path = [[1.25, 0.78], [1.1, 0.95], [0.85, 1.15], [0.6, 1.32], [0.42, 1.42]].map(([x, y]) => { const h = fromSide(rig, x, y, 1, true); return [x, y, (h ? h.z : f.sideZ - (y - 0.8) * 0.4) + r + 0.005]; });
+    // From the front wing just ahead of the windscreen, up along this car's A-pillar to roof height (the head sits level
+    // with the roof, like a real snorkel), each point pushed out to the measured surface.
+    const x0 = f.bonnet.x0, x1 = f.roof.x1 + 0.1, ry = f.roof.y - 0.06;
+    const raw = [[x0 + 0.16, 0.8], [x0 + 0.02, 0.95]]; for (let i = 1; i <= 3; i++) { const t = i / 3; raw.push([x0 + (x1 - x0) * t, 0.97 + (ry - 0.97) * t]); }
+    const path = raw.map(([x, y]) => { const h = fromSide(rig, x, y, 1, true); return [x, y, (h ? h.z : f.sideZ - (y - 0.8) * 0.4) + r + 0.005]; });
     const top = path[path.length - 1];
-    g.add(tube([...path, [top[0], top[1] + 0.1, top[2]]], r, m.black));
-    g.add(box(0.16, 0.09, 0.1, m.black, top[0] + 0.04, top[1] + 0.12, top[2]));
+    g.add(tube([...path, [top[0], top[1] + 0.04, top[2]]], r, m.black));
+    g.add(box(0.16, 0.08, 0.1, m.black, top[0] + 0.04, top[1] + 0.06, top[2])); // the head, facing forward at roof height
     return g;
   },
   "Tow strap": (f, rig) => { const y = f.frontBottomY + 0.08, x = or((fromFront(rig, y, -0.45) || {}).x, f.frontX); const t = mesh(new THREE.TorusGeometry(0.045, 0.006, 6, 24), redMat(), x + 0.02, y, -0.45); t.scale.set(1, 1.6, 0.35); t.rotation.y = Math.PI / 2; return t; },
@@ -1149,6 +1152,7 @@ function aeroPart(rig, files) {
         o.material = k === "paint" ? rig.paints[0] : m[k] || m.carbon;
         o.castShadow = true; o.receiveShadow = true; o.userData.addon = true;
       });
+      if (/^exhaust/.test(file)) c.position.x += 0.04; // tips stick out a couple of centimetres past the bumper, not ten
       g.add(c);
       window.dispatchEvent(new Event("viewer3d-addon-loaded")); // redraw (and refresh photo quality's copy)
     });

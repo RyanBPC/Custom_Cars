@@ -491,7 +491,10 @@ function applyLights(p, b) {
   set(p.lensRear, ledTail ? 0xff1a22 : 0xff1414, ledTail ? 3.2 : 2.4, smokedT);
   // The beams: light on the road ahead and a red wash behind (off by day; dimmer through smoked lenses).
   if (!p.beams) return;
-  p.beams.front.forEach(s => { s.color.set(led ? 0xe6eeff : 0xfff0d8); s.intensity = lightsOn ? 12 * (smoked ? 0.4 : 1) : 0; });
+  p.beams.front.forEach(s => { s.color.set(led ? 0xe6eeff : 0xfff0d8); s.intensity = lightsOn ? 60 * (smoked ? 0.5 : 1) * (led ? 1.3 : 1) : 0; });
+  (p.beams.pools || []).forEach(l => { l.intensity = lightsOn ? 1.6 * (smokedT ? 0.6 : 1) : 0; });
+  if (p.beams.cabin) p.beams.cabin.intensity = lightsOn ? 0.35 : 0;
+  if (p.beams.ambient) { const amb = !!(b && b.addons && b.addons.extras.includes("LED ambient interior lighting")); p.beams.ambient.intensity = lightsOn && amb ? 0.6 : 0; if (amb) p.beams.ambient.color.set(b.addons.ambient || "#3aa8ff"); }
   (p.beams.glows || []).forEach(q => { q.visible = lightsOn; q.material.opacity = q.userData.front ? (smoked ? 0.35 : 0.85) : (smokedT ? 0.45 : ledTail ? 0.95 : 0.75); q.material.color.set(q.userData.front ? (led ? 0xe6f0ff : 0xfff4e2) : 0xff2418); });
   p.beams.rear.forEach(l => { l.intensity = lightsOn ? (ledTail ? 0.16 : 0.12) * (smokedT ? 0.5 : 1) : 0; });
 }
@@ -563,36 +566,36 @@ function refineInterior(rig) {
   });
 }
 function addBeams(rig) {
-  const g = rig.group; g.updateMatrixWorld(true);
-  const boxOf = mats => { const b = new THREE.Box3(); g.traverse(o => { if (o.isMesh && mats.includes(o.material)) b.expandByObject(o); }); return b; };
-  const car = new THREE.Box3().setFromObject(g), size = car.getSize(new THREE.Vector3());
-  const along = size.x >= size.z ? "x" : "z", across = along === "x" ? "z" : "x";
-  const front = boxOf(rig.lensFront);
-  rig.beams = { front: [], rear: [] };
-  const local = v => rig.body.worldToLocal(v.clone());
-  if (!front.isEmpty()) {
-    const c = front.getCenter(new THREE.Vector3()), dir = Math.sign(c[along] - car.getCenter(new THREE.Vector3())[along]) || 1;
-    const w = front.max[across] - front.min[across];
-    for (const side of [front.min[across] + 0.2 * w, front.max[across] - 0.2 * w]) {
-      const at = c.clone(); at[across] = side;
-      const aim = at.clone(); aim[along] += dir * 14; aim.y = 0;
-      const s = new THREE.SpotLight(0xfff0d8, 0, 30, 0.42, 1, 2); s.name = "Headlight_Beam"; s.castShadow = false;
-      s.position.copy(local(at)); s.target.position.copy(local(aim));
-      rig.body.add(s, s.target); rig.beams.front.push(s);
-    }
+  // Real-car lighting, from each car's measured lamp units (fit.lamps), all in the body's own space (front is +x):
+  //  - headlights: a spot light per lamp aimed down the road, bright in the middle with a fairly sharp edge, so the
+  //    road ahead gets a lit pool; a soft glow on each lamp unit
+  //  - tail lights: a small red glow by each lamp, and a soft red pool on the road behind
+  //  - cabin: a soft warm glow from the instruments, and the ambient strips' colour when they're fitted
+  // Everything stays in the scene at zero strength when off, so switching never makes the 3D rebuild its shaders.
+  rig.body.updateMatrixWorld(true);
+  rig.beams = { front: [], rear: [], pools: [], glows: [], cabin: null, ambient: null };
+  const add = (light, x, y, z, tx, ty, tz) => { light.castShadow = false; light.position.set(x, y, z); if (light.target) { light.target.position.set(tx, ty, tz); rig.body.add(light.target); } rig.body.add(light); return light; };
+  for (const lamp of lampsOf(rig, rig.lensFront, true)) {
+    const s = new THREE.SpotLight(0xfff0d8, 0, 45, 0.36, 0.22, 1.6); s.name = "Headlight_Beam";
+    rig.beams.front.push(add(s, lamp.x - 0.05, lamp.y, lamp.z, lamp.x + 16, 0, lamp.z * 1.4)); // dipped: down onto the road ahead
   }
-  rig.beams.glows = [];
   for (const [list, front] of [[rig.lensFront, true], [rig.lensRear, false]]) for (const lamp of lampsOf(rig, list, front)) {
     const mat = new THREE.MeshBasicMaterial({ color: front ? 0xfff4e2 : 0xff2418, map: glowTexture(), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
-    const q = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(0.45, lamp.w * 1.5), Math.min(0.4, lamp.h * 2.2)), mat); // never bigger than a lamp's own glow q.name = "Lamp_Glow"; q.renderOrder = 3;
+    const q = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(0.45, lamp.w * 1.5), Math.min(0.4, lamp.h * 2.2)), mat); // never bigger than a lamp's own glow
+    q.name = "Lamp_Glow"; q.renderOrder = 3;
     q.position.set(lamp.x + (front ? 0.02 : -0.02), lamp.y, lamp.z); q.rotation.y = front ? Math.PI / 2 : -Math.PI / 2; q.visible = false;
     q.userData.front = front; rig.body.add(q); rig.beams.glows.push(q);
   }
-  // Tail lights: one small red glow just behind each lamp unit (found from the lens's own points on each
-  // side of the car), so the red lands on the bumper and road right by the lights, not mid-tailgate.
   for (const lamp of rearLamps(rig)) {
-    const l = new THREE.PointLight(0xff1a14, 0, 1.1, 2); l.name = "Tail_Glow"; l.castShadow = false;
-    l.position.set(lamp.x - 0.12, lamp.y - 0.04, lamp.z); rig.body.add(l); rig.beams.rear.push(l);
+    const l = new THREE.PointLight(0xff1a14, 0, 1.1, 2); l.name = "Tail_Glow";
+    rig.beams.rear.push(add(l, lamp.x - 0.12, lamp.y - 0.04, lamp.z));
+    const pool = new THREE.SpotLight(0xff1410, 0, 6, 0.75, 0.9, 1.8); pool.name = "Tail_Pool";
+    rig.beams.pools.push(add(pool, lamp.x - 0.05, lamp.y, lamp.z, lamp.x - 2.2, 0, lamp.z));
+  }
+  const c = rig.fit && rig.fit.cabin;
+  if (c) {
+    rig.beams.cabin = add(new THREE.PointLight(0xffd9a8, 0, 1.4, 2), c.dashX - 0.12, c.wheel[1] - 0.02, c.wheel[2] * 0.4);      // instrument and screen glow
+    rig.beams.ambient = add(new THREE.PointLight(0x3aa8ff, 0, 2.2, 2), c.frontSeatX - 0.2, (c.roofInY || 1.35) - 0.3, 0);     // ambient strips' colour
   }
 }
 // A soft round glow picture (bright middle fading to nothing), made once.
