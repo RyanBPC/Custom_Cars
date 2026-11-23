@@ -114,6 +114,14 @@
   if (!document.getElementById("optRowCss")) document.head.insertAdjacentHTML("beforeend", `<style id="optRowCss">
     .opt-row{display:grid;gap:10px}.colour-field{display:grid;gap:6px}.cf-label{font-size:12px;color:var(--muted)}
     .chip.sw-only{padding:5px}.chip.sw-only .sw{width:18px;height:18px}.opt-row .plate-style{margin:0}.opt-note{color:var(--muted);font-size:12px}
+    details.opt-group>summary{list-style:none;display:flex;align-items:baseline;gap:10px;cursor:pointer;min-height:24px}
+    details.opt-group>summary::-webkit-details-marker{display:none}
+    details.opt-group>summary h3{margin:0;flex:none}
+    details.opt-group>summary::after{content:"";flex:none;margin-left:auto;align-self:center;width:7px;height:7px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg);transition:transform .15s}
+    details.opt-group[open]>summary::after{transform:rotate(-135deg)}
+    details.opt-group[open]>summary{margin-bottom:10px}
+    details.opt-group>summary:focus-visible{outline:2px solid var(--fg);outline-offset:3px;border-radius:4px}
+    .opt-cur{font-size:12px;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.opt-cur.on{color:var(--fg)}
     .opt-row input[type=color]{width:44px;height:28px;padding:0;border:0;background:none;cursor:pointer}</style>`);
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const customs = () => (state.mods.custom && state.mods.custom.items) || [];
@@ -274,21 +282,41 @@
   function focusBack(m) {
     if (!m) return;
     for (const s of m.sels) { const el = box.querySelector(s); if (el) return el.focus(); }
-    const h = box.querySelectorAll(".opt-group")[m.sec]?.querySelector("h3");
-    if (h) { h.tabIndex = -1; h.focus(); }
+    const grp = box.querySelectorAll(".opt-group")[m.sec], h = grp && (grp.querySelector("summary") || grp.querySelector("h3"));
+    if (h) { if (h.tagName === "H3") h.tabIndex = -1; h.focus(); }
   }
   function render() {
     const memo = focusMemo();
     renderPanel();
     focusBack(memo);
   }
+  // Website #138: each group folds away; its summary shows the current choice so the list stays short on a phone.
+  // Open at first: Paint and wrap, Wheels and anything fitted; after that each group remembers being opened or closed.
+  const openMemo = {};
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  function groupStatus(g) {
+    if (g.row) {
+      const v = rowVals(g);
+      if (v.on === false) return { on: false, text: g.mod || g.offLabel ? "Factory" : "Off" };
+      const t = g.make(v, nameOf); return { on: true, text: t ? t.replace(/custom-([0-9a-f]{6})/g, "#$1") : "Fitted" };
+    }
+    const on = [];
+    if (g.opts) for (const o of g.opts) if (o[1] && isOn(o[1]) && state.mods[g.pick]) on.push(o[0]);
+    if (g.extras) for (const o of g.extras) if (isOn(o[1])) on.push(o[0]);
+    if (g.plateBox) { const reg = privateReg(state.mods); if (reg) on.unshift(reg); if (plateStyleOf(state.mods)) on.push("styled"); }
+    return { on: on.length > 0, text: on.join(", ") || (g.pick ? (g.opts[0][0] === "Factory" || g.opts[0][0] === "Stock" ? g.opts[0][0] : "Factory") : "Off") };
+  }
+  box.addEventListener("toggle", e => { if (e.target.matches && e.target.matches("details.opt-group")) openMemo[e.target.dataset.name] = e.target.open; }, true);
   function renderPanel() {
-    box.innerHTML = GROUPS.map((g, gi) => `<section class="opt-group" aria-label="${g.name}"><h3>${g.name}</h3>
+    box.innerHTML = GROUPS.map((g, gi) => {
+      if (g.link && !g.row && !g.opts && !g.extras) return `<section class="opt-group" aria-label="${g.name}"><h3>${g.name}</h3><a class="opt-link" href="${g.link[1]}">${g.link[0]}</a></section>`;
+      const st = groupStatus(g), open = g.name in openMemo ? openMemo[g.name] : (st.on || g.name === "Paint and wrap" || g.name === "Wheels");
+      return `<details class="opt-group" data-name="${g.name}"${open ? " open" : ""}><summary><h3>${g.name}</h3><span class="opt-cur${st.on ? " on" : ""}">${esc(st.text)}</span></summary>
       ${g.row ? rowHtml(g, gi) : ""}
       ${g.opts && !g.row ? `<div class="chips">${g.opts.map((o, oi) => chip(g, gi, o, oi, false)).join("")}</div>` : ""}
       ${g.extras ? `<div class="chips">${g.extras.map((o, oi) => chip(g, gi, o, oi, true)).join("")}</div>` : ""}
       ${g.plateBox ? plateBox() : ""}
-      ${g.link ? `<a class="opt-link" href="${g.link[1]}">${g.link[0]}</a>` : ""}</section>`).join("")
+      ${g.link ? `<a class="opt-link" href="${g.link[1]}">${g.link[0]}</a>` : ""}</details>`; }).join("")
       + `<p class="opt-foot">Want something not listed? <button type="button" class="linkish" id="toAdvisor">Ask the advisor</button></p>`;
   }
 
