@@ -40,8 +40,12 @@ const BIG_BRAKE_RE=/\bbig\b|\bkit\b|upgrade|\bbbk\b|brembo|\bpot\b|piston|stop b
 const isCaliperPaint=t=>CALIPER_PAINT_RE.test(t)||(/\bcalipers?\b/.test(t)&&!BIG_BRAKE_RE.test(t)&&!/\bbrakes?\b/.test(t));
 const SMOKED_HEAD_RE=/smoked? head ?lights?|head ?lights? (?:smoked|tinted)|tint(?:ed)? (?:the )?head ?lights?/;
 const SMOKED_TAIL_RE=/smoked? (?:tail|rear) ?lights?|(?:tail|rear) ?lights? (?:smoked|tinted)|tint(?:ed)? (?:the )?(?:tail|rear) ?lights?/;
+// The clause of a sentence that's about one part (so "red centre caps, chrome window trim" gives the caps red, not chrome).
+function clauseFor(t,re,seps){const cl=t.split(seps).find(c=>re.test(c)); return cl||t;}
+const PART_CLAUSE_RE=/\b(?:bonnet|hood|trim|caps?|grilles?|mirrors?|seats?|mats?|dash(?:board)?|stitch\w*|markers?|calipers?|edging|tyres?|spacers?|wheels?|rims?|alloys?|head ?lights?|tail ?lights?|stripes?|roof|underglow|steering|ambient)\b/;
 function cosmeticText(name,t){
   if(!COSMETIC_NEAR[name]) return null;
+  t=clauseFor(t,COSMETIC_NEAR[name],["Seat covers","Sport steering wheel","Floor mats"].includes(name)?/,|;/:/,|;|\band\b|\bplus\b/);
   if(name==="Sport steering wheel"){const grip=/carbon/.test(t)?"carbon":/leather/.test(t)&&!/alcantara/.test(t)?"leather":"Alcantara", shape=/round|circular/.test(t)?"round":"flat-bottomed";
     const mk=t.match(/([a-z0-9-]+(?: [a-z0-9-]+)?) (?:top )?marker/), mc=mk&&COLOURS.filter(x=>new RegExp("\\b"+x[0]+"\\b").test(mk[1])).sort((a,b)=>b[0].length-a[0].length)[0];
     const sk=t.match(/([a-z0-9-]+(?: [a-z0-9-]+)?) (?:contrast )?stitch/), sc=sk&&COLOURS.filter(x=>new RegExp("\\b"+x[0]+"\\b").test(sk[1])).sort((a,b)=>b[0].length-a[0].length)[0];
@@ -51,11 +55,11 @@ function cosmeticText(name,t){
   if(name==="Smoked headlights"||name==="Smoked tail lights"){const seg=(t.split(/,|\band\b|\bwith\b/).find(x=>name==="Smoked headlights"?/head/.test(x):/tail|rear/.test(x))||t), lv=/\blight(?:ly)?\s+smok|light smoke/.test(seg)?"light":/dark|heavy|black(?:ed)?[- ]?out/.test(seg)?"dark":"medium"; return lv+(name==="Smoked headlights"?" smoked headlight lenses":" smoked tail-light lenses");}
   const h=colourNear(t,name==="Floor mats"&&/edg/.test(t)?/edging/:COSMETIC_NEAR[name]), c=h&&(COLOURS.find(x=>x[1]===h)||[])[0];
   if(name==="Caliper paint") return (c||"red")+" painted brake calipers";
+  if(name==="Coloured seat belts") return (c&&c!=="black"?c:"red")+" seat belt webbing";
   if(name==="Centre cap swap") return /chrome|silver/.test(t)?"chrome wheel centre caps":(c||"black")+" wheel centre caps";
   if(name==="Coloured mirror caps") return (/body[- ]colou?r/.test(t)?"body-coloured":c||"red")+" wing mirror caps";
   if(name==="Floor mats") return /rubber/.test(t)?"black rubber floor mats"+(/embroider/.test(t)?" with an embroidered badge":""):"black carpet floor mats with "+(c&&c!=="black"?c:"red")+" edging"+(/embroider/.test(t)?" and an embroidered badge":"");
   if(name==="Bonnet wrap") return /carbon/.test(t)?"a carbon-look vinyl wrap on the bonnet":"a "+(/matte?\b/.test(t)?"matte":/satin/.test(t)?"satin":"gloss")+" "+(c||"black")+" vinyl wrap on the bonnet";
-  if(name==="Coloured seat belts") return (c&&c!=="black"?c:"red")+" seat belt webbing";
   if(name==="Dashboard trim") return /alumin|brushed|metal/.test(t)?"brushed aluminium dashboard trim":/piano|gloss black/.test(t)?"piano black dashboard trim":/wood|walnut|oak/.test(t)?"wood dashboard trim":/painted|colou?r/.test(t)&&c?c+" painted dashboard trim":"carbon-fibre dashboard trim";
   // Seat covers: leather or Alcantara, one colour or two-tone (the first colour on the bolsters, the second on the centre panels).
   const mat=/alcantara|suede/.test(t)?"Alcantara":/cloth|fabric/.test(t)?"cloth":/quilt|diamond/.test(t)?"quilted leather":"leather";
@@ -328,8 +332,11 @@ function planParts(text){
   if(!clearL&&!SMOKED_TAIL_RE.test(t)&&!SMOKED_HEAD_RE.test(t)&&/\bsmoked?\b|\b(head|tail) ?lights?\b|\blights\b|\blenses\b|dark(er)? lights|tinted lights/.test(tL2)&&!/light ?bar|underglow|angel|halo|led |dynamic|hid|xenon|brighter|sequential|eyelid|interior light|ambient/.test(t)&&!remove.includes("lights")) add("lights",{});
   // A colour right before a part ("gloss black mirror caps", "black roof", "red calipers") belongs to that part, not the paint.
   const colNames=COLOURS.map(x=>x[0]).sort((x,y)=>y.length-x.length).map(n=>n.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|");
-  const tw=t.replace(new RegExp(String.raw`\b(?:(?:gloss|glossy|matte?|satin|piano)\s+)?(?:`+colNames+String.raw`)\s+(?:wing\s+)?(?:mirror caps?|mirrors?|roof|wheels?|rims?|alloys?|calipers?|brakes?|stripes?|badges?|(?:kidney\s+|front\s+)?grilles?|kidneys?|bonnet|hood|(?:leather\s+|alcantara\s+)?seats?|(?:leather\s+|alcantara\s+)?seat covers?|leather|alcantara|(?:centre|center|wheel|hub)\s+caps?|edging|(?:painted\s+)?dash(?:board)?|(?:top\s+)?markers?|(?:contrast\s+)?stitching|(?:window\s+)?(?:trim|line))\b`,"g")," ")
+  const tw0=t.replace(new RegExp(String.raw`\b(?:(?:gloss|glossy|matte?|satin|piano)\s+)?(?:`+colNames+String.raw`)\s+(?:wing\s+)?(?:mirror caps?|mirrors?|roof|wheels?|rims?|alloys?|calipers?|brakes?|stripes?|badges?|(?:kidney\s+|front\s+)?grilles?|kidneys?|bonnet|hood|(?:leather\s+|alcantara\s+)?seats?|(?:leather\s+|alcantara\s+)?seat covers?|leather|alcantara|(?:centre|center|wheel|hub)\s+caps?|edging|(?:painted\s+)?dash(?:board)?|(?:top\s+)?markers?|(?:contrast\s+)?stitching|(?:window\s+)?(?:trim|line))\b`,"g")," ")
     .replace(/\bpaint(?:ed)? (?:the |my )?(?:brake )?calipers? (?:in )?[a-z]+\b|\btwo[- ]?tone [a-z ]+? and [a-z]+\b/g," ");
+  // The car's paint only comes from clauses about the car: a clause about another part ("chrome window trim",
+  // "gloss black y-spoke wheels", "satin blue bonnet wrap") keeps its colour and finish to that part.
+  const tw=tw0.split(/,|;|\band\b|\bplus\b|\bwith\b/).filter(cl=>!PART_CLAUSE_RE.test(cl)||/\b(?:car|whole|body|respray|full wrap)\b/.test(cl)).join(" , ");
   // "chrome delete" is the trim part, and "chrome turbofan wheels" is the wheels' finish; neither is a chrome wrap.
   const twc=tw.replace(/\bchrome delete\b/g," ").replace(new RegExp(CHROME_WHEELS_RE.source,"g")," ");
   const finish=/colou?r[- ]?shift|chameleon|iridescent|flip ?flop/.test(twc)?"chameleon":/brushed/.test(twc)?"brushed":/carbon[- ](?:look|fibre|fiber)? ?wrap|wrap(?:ped)? (?:it )?in carbon/.test(twc)?"carbon":/matte|matt\b/.test(twc)?"matte":/satin/.test(twc)?"satin":/chrome/.test(twc)?"chrome":/\bpearl(?:escent)?\b/.test(tw)?"pearl":/metallic|metal flake/.test(tw)?"metallic":"gloss";

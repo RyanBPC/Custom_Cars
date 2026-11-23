@@ -124,6 +124,23 @@
     "plates": {
       "front": 0.44,
       "rear": 0.77
+    },
+    "lamps": {
+      "_about": "Lamp units (left side, car's own space): front face x, middle y, side z, width w, height h. Used for the lit-lamp glow.",
+      "head": {
+        "x": 2.16,
+        "y": 0.67,
+        "z": 0.66,
+        "w": 0.3,
+        "h": 0.12
+      },
+      "tail": {
+        "x": -2.13,
+        "y": 0.85,
+        "z": 0.66,
+        "w": 0.3,
+        "h": 0.14
+      }
     }
   },
   "mirrorCabin": [],
@@ -169,5 +186,9 @@
       ],
       "size": 0.1
     }
+  ],
+  "lensRearMats": [
+    "ARm4_taillight_lowhigh",
+    "ARm4_taillight"
   ]
 }

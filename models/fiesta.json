@@ -170,7 +170,24 @@
       ],
       "dashX": 0.5
     },
-    "_plates": "Plate mounts measured from the model (the faces using the plate patch of its texture): their height and angle. Each plate then sits just clear of the panel's most bulging point."
+    "_plates": "Plate mounts measured from the model (the faces using the plate patch of its texture): their height and angle. Each plate then sits just clear of the panel's most bulging point.",
+    "lamps": {
+      "_about": "Lamp units (left side, car's own space): front face x, middle y, side z, width w, height h. Used for the lit-lamp glow.",
+      "head": {
+        "x": 1.8,
+        "y": 0.71,
+        "z": 0.6,
+        "w": 0.3,
+        "h": 0.14
+      },
+      "tail": {
+        "x": -1.82,
+        "y": 0.98,
+        "z": 0.66,
+        "w": 0.14,
+        "h": 0.3
+      }
+    }
   },
   "mirrorCabin": [],
   "aero": "aero/fiesta",

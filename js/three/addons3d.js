@@ -163,7 +163,7 @@ const PARTS = {
   // dropping slightly over the rear window, with a gloss black underside and a thin upturned edge.
   "spoiler:roof-ext": (f, rig) => {
     const e = rearEdge(rig, f, "roof"), g = new THREE.Group();
-    g.add(sweep(e, [[-0.05, 0.002], [0.04, -0.006], [0.12, -0.02], [0.158, -0.026], [0.162, -0.016], [0.12, -0.008], [0.04, 0.008], [-0.05, 0.012]], shine(rig), 0.05));
+    g.add(sweep(e, [[-0.05, 0.002], [0.04, -0.006], [0.12, -0.02], [0.158, -0.026], [0.162, -0.016], [0.12, -0.008], [0.04, 0.008], [-0.05, 0.012]], hasBoot(f) ? mats().black : shine(rig), 0.05));
     g.add(sweep(e, [[-0.02, -0.004], [0.15, -0.03], [0.15, -0.026], [-0.02, 0.0]], mats().black, 0.06));
     return g;
   },
@@ -612,34 +612,38 @@ Object.assign(PARTS, {
       const sh = new THREE.Shape(); sh.moveTo(-W / 2, 0); sh.lineTo(W / 2, 0); sh.lineTo(W / 2, H * 0.62); sh.quadraticCurveTo(W / 2, H * 0.72, 0.17, H * 0.75); sh.lineTo(0.15, H); sh.lineTo(-0.15, H); sh.lineTo(-0.17, H * 0.75); sh.quadraticCurveTo(-W / 2, H * 0.72, -W / 2, H * 0.62); sh.lineTo(-W / 2, 0);
       for (const s2 of [-1, 1]) { const slot = new THREE.Path(); const sx = s2 * 0.09, sy = H * 0.66; slot.moveTo(sx - 0.03, sy - 0.035); slot.lineTo(sx + 0.03, sy - 0.035); slot.lineTo(sx + 0.03, sy + 0.035); slot.lineTo(sx - 0.03, sy + 0.035); sh.holes.push(slot); }
       const back = new THREE.ExtrudeGeometry(sh, { depth: 0.035, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 2 }); back.rotateY(-Math.PI / 2); // shape z->car x
-      seat.add(mesh(back, m.carbon, 0.0, 0, 0));
+      const shell = namedMat("bucketShell", () => new THREE.MeshPhysicalMaterial({ color: 0x141517, roughness: 0.4, clearcoat: 0.6 }));
+      seat.add(mesh(back, shell, 0.0, 0, 0));
       const face = mesh(back.clone(), fabric, 0.03, 0, 0); face.scale.set(0.4, 0.98, 0.94); seat.add(face);
       // Side wings: tall at the shoulders and hips, curving forward round the body.
       for (const s2 of [-1, 1]) {
-        const wing = slab([[0, 0], [0.42, 0.02], [0.44, 0.13], [0.16, 0.2], [0.12, H * 0.45], [0.2, H * 0.6], [0.16, H * 0.72], [0, H * 0.74]], 0.03, m.carbon);
+        const wing = slab([[0, 0], [0.42, 0.02], [0.44, 0.13], [0.16, 0.2], [0.12, H * 0.45], [0.2, H * 0.6], [0.16, H * 0.72], [0, H * 0.74]], 0.03, fabric);
         wing.rotation.y = 0; wing.position.z = s2 * (W / 2 - 0.01); seat.add(wing);
       }
       g.add(seat);
     }
     return g;
   },
-  "Racing harnesses": (f, rig) => {
-    // Four-point harnesses: two shoulder straps over each seat back, through to a buckle, and lap belts; laid just in
-    // front of the measured seat surface so they show over the seat.
-    const c = cabinOf(f), g = new THREE.Group(), red = redMat();
-    const front = (y, z, x0) => { const h = probe(rig, [x0 + 0.7, y, z], [-1, 0, 0]); return h && h.x > x0 - 0.1 && h.x < x0 + 0.6 ? h.x + 0.012 : x0 + 0.15; };
+  "Racing harnesses": (f, rig, s) => {
+    // Four-point harnesses: shoulder straps from the bucket's slots (or the seat back) down to a buckle, and lap belts.
+    // With bucket seats they lie on the shell's face, which leans back; otherwise on the measured seat surface.
+    const c = cabinOf(f), g = new THREE.Group(), red = redMat(), buckets = s && s.extras && s.extras.includes("Bucket seats");
+    const H = c.headrestY + 0.1 - c.seatY, lean = Math.sin(0.14);
+    const faceX = (y, z, x0) => {
+      if (buckets) return c.headrestX - 0.06 + 0.06 - (y - (c.seatY - 0.04)) * lean;
+      const h = probe(rig, [x0 + 0.7, y, z], [-1, 0, 0]); return h && h.x > x0 - 0.1 && h.x < x0 + 0.6 ? h.x + 0.012 : x0 + 0.15;
+    };
     for (const k of [1, -1]) {
-      const zc = k * c.seatZ, xb = c.headrestX, yS = c.headrestY - 0.14, yC = c.seatY + 0.28, yL = c.seatY + 0.07, xl = c.frontSeatX + 0.08;
-      for (const s of [1, -1]) {
-        const a = [front(yS, zc + s * 0.09, xb), yS, zc + s * 0.09], b = [front(yC, zc + s * 0.06, xb), yC, zc + s * 0.06], d = [xl + 0.06, yL + 0.03, zc];
+      const zc = k * c.seatZ, xb = c.headrestX, yS = buckets ? c.seatY - 0.04 + H * 0.66 : c.headrestY - 0.14, yC = c.seatY + 0.28, yL = c.seatY + 0.07, xl = c.frontSeatX + 0.08;
+      for (const s2 of [1, -1]) {
+        const a = [faceX(yS, zc + s2 * 0.09, xb), yS, zc + s2 * 0.09], b = [faceX(yC, zc + s2 * 0.06, xb) + 0.03, yC, zc + s2 * 0.06], d = [xl + 0.06, yL + 0.03, zc];
         g.add(bar(a, b, 0.05, 0.005, red), bar(b, d, 0.05, 0.005, red));
-        g.add(bar([xl - 0.12, yL, zc + s * 0.22], [xl + 0.06, yL + 0.03, zc], 0.05, 0.005, red));
+        g.add(bar([xl - 0.12, yL, zc + s2 * 0.22], [xl + 0.06, yL + 0.03, zc], 0.05, 0.005, red));
       }
       const buckle = mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.014, 20), mats().chrome, xl + 0.07, yL + 0.04, zc); buckle.rotation.z = Math.PI / 2 - 0.4; g.add(buckle);
     }
     return g;
   },
-  // Sport steering wheel: Alcantara, leather or carbon grip; round or flat-bottomed; a coloured top marker; contrast stitching.
   "Sport steering wheel": (f, rig, s) => {
     const t = textOf(s, "Sport steering wheel"), c = cabinOf(f), [x, y, z] = c.wheel, r = c.wheelR || 0.178, tilt = 0.38, g = new THREE.Group();
     const n = V3(-Math.cos(tilt), Math.sin(tilt), 0), up = V3(Math.sin(tilt), Math.cos(tilt), 0), q = new THREE.Quaternion().setFromUnitVectors(V3(0, 0, 1), n);
@@ -686,7 +690,7 @@ function coloursIn(text) {
 const colourIn = (text, fallback) => coloursIn(text)[0] || fallback;
 // Surfaces that aren't paint, glass, lights or wheels: trim, grilles and the cabin.
 function trimTriangles(rig) { return rig.trimTris || (rig.trimTris = copyTriangles(rig, m => !rig.paints.includes(m) && !/Glass|Lens|Rim|Tyre|Caliper|Disc|Hub|Plate/i.test(m.name || ""))); }
-function brushed(g, w, h) { g.fillStyle = "#a9adb2"; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y++) { g.fillStyle = `rgba(${(y * 7919) % 3 ? "255,255,255" : "40,44,48"},${0.05 + ((y * 104729) % 9) / 100})`; g.fillRect(0, y, w, 1); } }
+function brushed(g, w, h) { g.fillStyle = "#8d9196"; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y++) { g.fillStyle = `rgba(${(y * 7919) % 3 ? "255,255,255" : "40,44,48"},${0.05 + ((y * 104729) % 9) / 100})`; g.fillRect(0, y, w, 1); } }
 // Front lip (splitter): traced round the bottom of the front bumper, sticking out about 6 cm past it, with a short
 // upturned front face, in gloss black. Ends taper where the bumper turns back at the corners.
 function frontLip(f, rig) {
@@ -696,7 +700,7 @@ function frontLip(f, rig) {
     const u = up(rig, h.x - 0.05, z), y = u && Math.abs(u.y - y0) < 0.08 ? u.y : y0;
     edge.push(V3(h.x, y - 0.002, z));
   }
-  return sweep(edge, [[0.14, 0], [0.14, -0.016], [-0.05, -0.016], [-0.064, -0.01], [-0.066, 0.018], [-0.056, 0.022], [-0.05, 0.004], [0.0, 0.0]], mats().black, 0.1);
+  return sweep(edge, [[0.14, 0], [0.14, -0.018], [-0.07, -0.018], [-0.084, -0.01], [-0.086, 0.032], [-0.074, 0.036], [-0.066, 0.006], [0.0, 0.0]], mats().black, 0.1);
 }
 // Rear diffuser: a gloss black plate under the back bumper between the exhaust tips, kicking up and out past it, with fins.
 function diffuser(f, rig) {
@@ -751,9 +755,10 @@ function grilleSkin(f, rig, kind) {
     const hex = (cx, cy, r) => { g.beginPath(); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a)); } g.closePath(); g.fill(); };
     for (const [cx, cy] of [[0, 0], [w, 0], [w / 2, h / 2], [0, h], [w, h]]) hex(cx, cy, w * 0.56);
   }, true);
-  const top = f.bonnet ? f.bonnet.minY - 0.02 : 0.75;
-  return skin(rig, (c, n) => n.x > 0.45 && c.x > f.frontX - 0.4 && Math.abs(c.z) < 0.6 && c.y > f.frontBottomY + 0.03 && c.y < top,
-    (x, y, z) => [z / 0.04, y / 0.07], tex, kind === "carbon" || kind[0] === "#" ? { roughness: 0.3 } : { roughness: 0.5, metalness: 0.3, clearcoat: 0 }, trimTriangles(rig));
+  const top = f.bonnet ? f.bonnet.minY - 0.02 : 0.75, pl = f.plates || {}, py = pl.frontAt ? pl.frontAt.at[1] : pl.front || 0.45;
+  const onPlate = c => Math.abs(c.y - py) < 0.085 && Math.abs(c.z) < 0.3;
+  return skin(rig, (c, n) => n.x > 0.45 && c.x > f.frontX - 0.4 && Math.abs(c.z) < 0.6 && c.y > f.frontBottomY + 0.03 && c.y < top && !onPlate(c),
+    (x, y, z) => [z / 0.04, y / 0.07], tex, kind === "carbon" || kind[0] === "#" ? { roughness: 0.3 } : { roughness: 0.5, metalness: 0.3, clearcoat: 0 }, trimTriangles(rig), 0.12);
 }
 // Copies the chosen triangles (lifted slightly off the surface) with a plain material: for re-covering seats.
 // A seat cover picture, one tile about 20 cm across: pleats (leather), diamonds (quilted) or a weave (cloth), stitched.
@@ -776,7 +781,7 @@ function flatSkin(T, keep, mat) {
     if (!keep(c, nn)) continue;
     // Picture coordinates: across the seat (z) by height for upright faces, by length for flat ones (about 20 cm a tile).
     const flat = Math.abs(nn.y) > 0.6;
-    for (let j = 0; j < 9; j += 3) { oP.push(P[t + j] + N[t + j] * 0.002, P[t + j + 1] + N[t + j + 1] * 0.002, P[t + j + 2] + N[t + j + 2] * 0.002); oN.push(N[t + j], N[t + j + 1], N[t + j + 2]); oU.push(P[t + j + 2] / 0.2, (flat ? P[t + j] : P[t + j + 1]) / 0.2); }
+    for (let j = 0; j < 9; j += 3) { oP.push(P[t + j] + N[t + j] * 0.0008, P[t + j + 1] + N[t + j + 1] * 0.0008, P[t + j + 2] + N[t + j + 2] * 0.0008); oN.push(N[t + j], N[t + j + 1], N[t + j + 2]); oU.push(P[t + j + 2] / 0.2, (flat ? P[t + j] : P[t + j + 1]) / 0.2); }
   }
   if (!oP.length) return null;
   const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(oP, 3)); geo.setAttribute("normal", new THREE.Float32BufferAttribute(oN, 3)); geo.setAttribute("uv", new THREE.Float32BufferAttribute(oU, 2));
@@ -843,13 +848,14 @@ Object.assign(PARTS, {
     const kind = /alcantara|suede/.test(t) ? "alcantara" : /cloth/.test(t) ? "cloth" : /quilt|diamond/.test(t) ? "quilted" : "leather", alc = kind === "alcantara" || kind === "cloth";
     const main = /\btan\b|saddle|cognac/.test(t) ? "#9a6236" : cols[0] || "#18191b", second = /two[- ]?tone/.test(t) ? (cols[1] || "#b5121b") : main;
     const stitch = /stitch/.test(st) ? colourIn(st, "#b5121b") : null;
-    const cover = col => new THREE.MeshPhysicalMaterial({ color: 0xffffff, map: seatPicture(kind, col, stitch), roughness: alc ? 0.95 : 0.45, sheen: alc ? 0.6 : 0, sheenColor: new THREE.Color(col), clearcoat: alc ? 0 : 0.15, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    const cover = col => new THREE.MeshPhysicalMaterial({ color: 0xffffff, map: seatPicture(kind, col, stitch), roughness: alc ? 0.95 : 0.45, sheen: alc ? 0.6 : 0, sheenColor: new THREE.Color(col), clearcoat: alc ? 0 : 0.15, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
     const inSeat = p => {
-      const front = p.x > c.headrestX - 0.14 && p.x < c.frontSeatX + 0.34 && Math.abs(Math.abs(p.z) - c.seatZ) < 0.27;
-      const rear = p.x > c.rearSeatX - 0.36 && p.x < c.rearSeatX + 0.32 && Math.abs(p.z) < 0.62;
-      return (front || rear) && p.y > c.seatY - 0.1 && p.y < c.headrestY + 0.08;
+      const front = p.x > c.headrestX - 0.14 && p.x < c.frontSeatX + 0.3 && Math.abs(Math.abs(p.z) - c.seatZ) < 0.23;
+      const rear = p.x > c.rearSeatX - 0.36 && p.x < c.rearSeatX + 0.3 && Math.abs(p.z) < 0.56;
+      const [wx, wy, wz] = c.wheel, nearWheel = Math.hypot(p.x - wx, p.y - wy) < 0.26 && Math.abs(p.z - wz) < 0.25; // the steering wheel
+      return (front || rear) && !nearWheel && p.y > c.seatY - 0.1 && p.y < c.headrestY + 0.06;
     };
-    const lining = (p, n) => n.y < -0.4 && p.y > c.headrestY - 0.05; // the roof lining above the seats isn't seat
+    const lining = (p, n) => (n.y < -0.4 && p.y > c.headrestY - 0.1) || p.y > c.roofInY - 0.12; // the roof lining and pillar tops aren't seat
     // Centre panels: the middle of each front seat and of each outer rear place.
     const centre = p => p.x > c.headrestX - 0.14 ? Math.abs(Math.abs(p.z) - c.seatZ) < 0.12 : Math.abs(Math.abs(p.z) - 0.36) < 0.12;
     const T = trimTriangles(rig), g = new THREE.Group();
@@ -866,8 +872,8 @@ Object.assign(PARTS, {
       if (kind === "wood") { g.fillStyle = "#5a3418"; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y++) { g.fillStyle = `rgba(${y % 7 < 3 ? "30,14,4" : "140,84,40"},${0.18 + 0.12 * Math.sin(y * 0.9)})`; g.fillRect(0, y, w, 1); } return; }
       g.fillStyle = kind === "painted" ? colourIn(t, "#b5121b") : "#050506"; g.fillRect(0, 0, w, h);
     });
-    const props = kind === "brushed" ? { metalness: 0.9, roughness: 0.35, clearcoat: 0 } : kind === "piano" || kind === "painted" ? { roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.02 } : kind === "wood" ? { roughness: 0.25, clearcoat: 1 } : { roughness: 0.3 };
-    return skin(rig, (p, n) => n.x < -0.35 && p.x > c.dashX - 0.3 && p.x < c.dashX + 0.15 && p.y > y0 - 0.03 && p.y < y1 + 0.03 && Math.abs(p.z) < 0.7 && Math.abs(p.z - drv) > 0.2,
+    const props = { side: THREE.DoubleSide, polygonOffsetFactor: -4, polygonOffsetUnits: -4, ...(kind === "brushed" ? { metalness: 0.9, roughness: 0.35, clearcoat: 0 } : kind === "piano" || kind === "painted" ? { roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.02 } : kind === "wood" ? { roughness: 0.25, clearcoat: 1 } : { roughness: 0.3 }) };
+    return skin(rig, (p, n) => n.x < -0.35 && p.x > c.dashX - 0.15 && p.x < c.dashX + 0.15 && p.y > y0 - 0.03 && p.y < y1 + 0.03 && Math.abs(p.z) < 0.7 && Math.abs(p.z) > 0.14 && Math.abs(p.z - drv) > 0.2, // the dash face, not the centre console
       (x, y, z) => [(z + 0.7) / 1.4, (y - y0) / (y1 - y0)], tex, props, trimTriangles(rig));
   },
   // Floor mats: carpet mats in each footwell with a coloured edge, laid on the floor found by measuring.
@@ -924,12 +930,13 @@ function copyTriangles(rig, pick) {
   return { pos: new Float32Array(pos), nrm: new Float32Array(nrm) };
 }
 // keep(centre, normal): which triangles to copy; uv(point): where the picture lands (0-1 = inside the picture).
-function skin(rig, keep, uv, tex, matProps = {}, T = paintTriangles(rig)) {
+function skin(rig, keep, uv, tex, matProps = {}, T = paintTriangles(rig), maxEdge = Infinity) {
   const P = T.pos, N = T.nrm, oP = [], oN = [], oU = [], c = new THREE.Vector3(), nn = new THREE.Vector3();
   for (let t = 0; t < P.length; t += 9) {
     c.set((P[t] + P[t + 3] + P[t + 6]) / 3, (P[t + 1] + P[t + 4] + P[t + 7]) / 3, (P[t + 2] + P[t + 5] + P[t + 8]) / 3);
     nn.set(N[t] + N[t + 3] + N[t + 6], N[t + 1] + N[t + 4] + N[t + 7], N[t + 2] + N[t + 5] + N[t + 8]).normalize();
     if (!keep(c, nn)) continue;
+    if (maxEdge < Infinity && [[0, 3], [3, 6], [6, 0]].some(([a, b]) => Math.hypot(P[t + a] - P[t + b], P[t + a + 1] - P[t + b + 1], P[t + a + 2] - P[t + b + 2]) > maxEdge)) continue;
     const uvs = [0, 3, 6].map(j => uv(P[t + j], P[t + j + 1], P[t + j + 2]));
     if (tex.wrapS !== THREE.RepeatWrapping && (uvs.every(q => q[0] < 0) || uvs.every(q => q[0] > 1) || uvs.every(q => q[1] < 0) || uvs.every(q => q[1] > 1))) continue; // wholly outside the picture (tiled pictures cover everything)
     for (let j = 0; j < 9; j += 3) {
@@ -1097,12 +1104,12 @@ export function updateAddons(rig, spec, f) {
   if (s.spoiler) want.set("spoiler:" + s.spoiler, "");
   for (const k of ["bodykit", "widebody", "exhaust"]) if (s[k] && !(k === "exhaust" && rig.aero && has("Quad exhaust tips"))) want.set(k, "");
   const spacerMm = has("Wheel spacers") ? +((textOf(s, "Wheel spacers").match(/(\d+)\s*mm/) || [0, 20])[1]) : 0;
-  const out = spacerMm / 1000 + (s.widebody ? 0.055 : 0), camber = has("Negative camber setup") ? 0.06 : 0;
+  const out = spacerMm / 1000 + (s.widebody ? 0.08 : 0), camber = has("Negative camber setup") ? 0.06 : 0;
   s.wheelOut = out;
   // A part's key: when it changes, the part is rebuilt (colour, plate text, wheel position).
   const low = has("Low-profile tyres") ? lowFor(textOf(s, "Low-profile tyres")) : 0;
   const keyOf = n => ({ "LED underglow": s.glow, "LED ambient interior lighting": s.ambient, "Number plates": (s.plate || "") + has("Front plate delete") + has("Rear plate delete") + JSON.stringify(s.plateStyle || {}),
-    "All-terrain tyres": String(out) + low, "Raised white letters": String(out) + low, "Centre cap swap": textOf(s, n) + out + low + camber + (rig.wheelKey || "") })[n] ?? textOf(s, n);
+    "All-terrain tyres": String(out) + low, "Raised white letters": String(out) + low, "Racing harnesses": String(has("Bucket seats")), "Centre cap swap": textOf(s, n) + out + low + camber + (rig.wheelKey || "") })[n] ?? textOf(s, n);
   for (const n of s.extras) if (PARTS[n] && !(n === "Side skirts" && s.bodykit)) want.set(n, keyOf(n)); // the aero kit has its own skirts
   // Number plates are on every car unless both are taken off; they show the reg typed in the Studio's plate box, or the car's own.
   want.set("Number plates", keyOf("Number plates")); // always: with a plate off, some cars get a cover over their blank mount

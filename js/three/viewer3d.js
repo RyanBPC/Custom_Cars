@@ -86,6 +86,8 @@ function applyPaint(m, colour, finish) {
   m.color.set(colour); Object.assign(m, s);
   m.iridescence = iridescence; m.iridescenceIOR = finish === "chameleon" ? 1.8 : 1.4; m.iridescenceThicknessRange = finish === "chameleon" ? [150, 900] : [250, 500];
   // Carbon-look: the weave as the paint's picture, tinted by the chosen colour (lightened so the weave shows).
+  // Colour-shift: the panel edges turn to a second colour (the hue a third of the way round), so it changes as you walk round.
+  if (finish === "chameleon") { const hsl = {}; m.color.getHSL(hsl); m.sheen = 1; m.sheenRoughness = 0.35; m.sheenColor = new THREE.Color().setHSL((hsl.h + 0.33) % 1, 0.9, 0.5); } else m.sheen = 0;
   if (!("ownMap" in m.userData)) m.userData.ownMap = m.map || null;
   if (weave) { m.map = weaveTexture(); m.color.lerp(new THREE.Color(0xffffff), 0.55); } else m.map = m.userData.ownMap;
   // Keep a real model's own normal map, and only swap in the flakes for metallic / pearl.
@@ -357,7 +359,7 @@ function loadModel(id, onProgress) {
 
 // Makes one copy of a loaded model with its own materials (so stock and build can differ), sharing the
 // geometry and textures (so memory doesn't double), and finds the parts the mods change.
-function rigFromModel(gltf) {
+function rigFromModel(gltf, manifest = {}) {
   const aniso = renderer.capabilities.getMaxAnisotropy();
   gltf.scene.traverse(o => { if (o.isMesh) for (const k of ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap"]) if (o.material[k]) o.material[k].anisotropy = aniso; }); // crisp textures at angles
   const g = gltf.scene.clone(true); g.name = "Car";
@@ -373,6 +375,7 @@ function rigFromModel(gltf) {
       if (o.material.name === "Paint" && !c.isMeshPhysicalMaterial) { const pm = new THREE.MeshPhysicalMaterial(); THREE.MeshStandardMaterial.prototype.copy.call(pm, c); pm.name = "Paint"; c = pm; }
       copies.set(o.material, c);
       if (lists[c.name]) lists[c.name].push(c);
+      else if ((manifest.lensRearMats || []).includes(c.name)) rig.lensRear.push(c); // a model's own tail-lamp parts named differently (BMW)
       return c;
     })();
   });
@@ -429,7 +432,7 @@ function showCar(id) {
       message(text);
       setTimeout(() => { if (token === loadToken && lastMessage === text) message(""); }, 8000); // leave any newer message alone
     } else message("");
-    if (found) { const a = rigFromModel(found.gltf), b = rigFromModel(found.gltf); a.fit = b.fit = found.manifest.fit || STANDIN_FIT; a.aero = b.aero = found.manifest.aero || null; a.carId = b.carId = id; addBadges(a, found.manifest.badges); addBadges(b, found.manifest.badges); setCars(a, b); }
+    if (found) { const a = rigFromModel(found.gltf, found.manifest), b = rigFromModel(found.gltf, found.manifest); a.fit = b.fit = found.manifest.fit || STANDIN_FIT; a.aero = b.aero = found.manifest.aero || null; a.carId = b.carId = id; addBadges(a, found.manifest.badges); addBadges(b, found.manifest.badges); setCars(a, b); }
     else if (!stockCar.standIn) setCars(makeStandInCar(), makeStandInCar());
     window.dispatchEvent(new CustomEvent("viewer3d-model", {
       detail: found ? { standIn: false, credit: found.manifest.credit, notShown: found.manifest.notShown || [] } : { standIn: true }
@@ -529,7 +532,7 @@ function addBeams(rig) {
   rig.beams.glows = [];
   for (const [list, front] of [[rig.lensFront, true], [rig.lensRear, false]]) for (const lamp of lampsOf(rig, list, front)) {
     const mat = new THREE.MeshBasicMaterial({ color: front ? 0xfff4e2 : 0xff2418, map: glowTexture(), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
-    const q = new THREE.Mesh(new THREE.PlaneGeometry(lamp.w * 1.5, lamp.h * 2.2), mat); q.name = "Lamp_Glow"; q.renderOrder = 3;
+    const q = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(0.45, lamp.w * 1.5), Math.min(0.4, lamp.h * 2.2)), mat); // never bigger than a lamp's own glow q.name = "Lamp_Glow"; q.renderOrder = 3;
     q.position.set(lamp.x + (front ? 0.02 : -0.02), lamp.y, lamp.z); q.rotation.y = front ? Math.PI / 2 : -Math.PI / 2; q.visible = false;
     q.userData.front = front; rig.body.add(q); rig.beams.glows.push(q);
   }
@@ -551,6 +554,8 @@ function glowTexture() {
 }
 // Each lamp unit (one per side) from a lens list: its outermost face along the car, middle height and side, and size.
 function lampsOf(rig, list, front) {
+  const fl = rig.fit && rig.fit.lamps && rig.fit.lamps[front ? "head" : "tail"];
+  if (fl) return [1, -1].map(k => ({ x: fl.x, y: fl.y, z: k * fl.z, w: fl.w, h: fl.h })); // measured lamp units
   const inv = rig.body.matrixWorld.clone().invert(), p = new THREE.Vector3(), sides = { 1: [], [-1]: [] };
   rig.group.traverse(o => {
     if (!o.isMesh || !list.includes(o.material)) return;
@@ -568,6 +573,8 @@ function lampsOf(rig, list, front) {
 // Where each rear lamp is, in the body's own space: the middle of the lens points on each side of the car,
 // weighted towards the outer half (where the bright part of most tail lights is). Car front is +x.
 function rearLamps(rig) {
+  const fl = rig.fit && rig.fit.lamps && rig.fit.lamps.tail;
+  if (fl) return [1, -1].map(k => ({ x: fl.x, y: fl.y, z: k * fl.z }));
   const inv = rig.body.matrixWorld.clone().invert(), p = new THREE.Vector3(), sides = { 1: [], [-1]: [] };
   rig.group.traverse(o => {
     if (!o.isMesh || !rig.lensRear.includes(o.material)) return;
@@ -624,6 +631,17 @@ function applyBase(p, b) {
     if (m.transparent) m.opacity = on ? Math.max(m.userData.op0, SMOKE_OPACITY[on]) : m.userData.op0;
   };
   const hl = smokeLevel(b, "Smoked headlights"), tl = smokeLevel(b, "Smoked tail lights");
+  // Smoke film: a dark see-through copy of each lens laid just over it, so the smoke shows even on clear lens covers.
+  if (!p.smokeFilms) {
+    p.smokeFilms = [];
+    p.group.traverse(o => {
+      if (!o.isMesh || o.userData.film) return;
+      const front = p.lensFront.includes(o.material), rear = p.lensRear.includes(o.material); if (!front && !rear) return;
+      const film = new THREE.Mesh(o.geometry, new THREE.MeshPhysicalMaterial({ color: rear ? 0x1a0204 : 0x050607, roughness: 0.08, clearcoat: 1, transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+      film.userData.film = true; film.userData.front = front; film.visible = false; film.renderOrder = 2; o.add(film); p.smokeFilms.push(film);
+    });
+  }
+  for (const f of p.smokeFilms) { const lv = f.userData.front ? hl : tl; f.visible = lv > 0; f.material.opacity = [0, 0.42, 0.62, 0.8][lv]; }
   p.lensFront.forEach((m, i) => { m.color.copy(st.lensFront[i]).multiplyScalar(SMOKE_HEAD[hl]); smoke(m, hl); });
   p.lensRear.forEach((m, i) => { m.color.copy(st.lensRear[i]).multiplyScalar(tl ? SMOKE_TAIL[tl] : hasLedTails(b) ? 0.55 : 1); smoke(m, tl); });
 }
