@@ -84,6 +84,7 @@ const EXTRA_PARTS = [
  {re:/(?:gloss |piano )?black (?:wing )?mirror(?:s| caps?)\b/,name:"Gloss black mirror caps",in3d:true,price:120,text:"gloss-black wing mirror caps"},
  {re:/(?<!black (?:wing )?)mirror caps?|carbon (?:wing )?mirrors?/,name:"Carbon mirror caps",in3d:true,price:180,text:"carbon-fibre wing mirror caps"},
  {re:/\b(?:red|blue|white|yellow|green|orange|pink|purple|grey|gray|silver|gold|bronze|teal|lime|navy|brown|custom-[0-9a-f]{6}|body[- ]colou?r(?:ed)?)\b[a-z -]{0,14}?(?:wing )?mirror caps?\b/,name:"Coloured mirror caps",in3d:true,price:150,text:"painted wing mirror caps"},
+ {re:/\balloy wheel refurb\b/,name:"Alloy wheel refurb",in3d:false,price:400,text:"your own four alloys refurbished, kerb rash repaired"},
  {re:/(wheel )?spacers?/,name:"Wheel spacers",in3d:true,price:150,text:"wheel spacers so the wheels sit flush with the arches"},
  {re:/bucket seats?|racing seats?|sports? seats?/,name:"Bucket seats",in3d:true,price:1800,text:"carbon racing bucket seats visible through the windows"},
  {re:/roll ?cage/,name:"Roll cage",in3d:true,price:2500,text:"a roll cage visible through the windows"},

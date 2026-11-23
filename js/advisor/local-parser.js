@@ -19,6 +19,7 @@ function starterIdeas(t,car){
   const lead=n!==null?`Good first mods for the ${car.model} under ${money(n)}:`:cheap?`Cheapest good first mods for the ${car.model}:`:`Good first mods for the ${car.model}:`;
   return `${lead} ${list.map(i=>`${i.say} (about ${money(i.price)})`).join(", ")}. Say one to try it on, e.g. "${list[0].say}", or try one of the gallery builds.`;
 }
+const REFURB_RE=/\brefurb\w*|\b(?:kerb|curb)(?:ed| rash| damage)\b|\b(?:repair|fix) (?:my |the )?(?:kerbed |scuffed )?(?:wheels|alloys|rims)\b|\bscuffed (?:wheels|alloys|rims)\b/;
 function colourNear(t,re){
   const m=t.match(re); if(!m) return null;
   let before=t.slice(Math.max(0,m.index-32),m.index);
@@ -148,6 +149,13 @@ function planParts(text){
   if(RESET_RE.test(t)){reset=true;t=t.replace(RESET_RE," ");}
   // UK slang is read before the removal rule, so the "delete"/"remove" in these doesn't take parts off.
   const notes=[...hiddenNote];
+  // A wheel refurb or kerb-rash repair keeps the car's own wheels (Car #132): the clause is taken out so it can't fit new wheels or a wrap.
+  let refurb=null;
+  if(REFURB_RE.test(t)){const cl=clauseFor(t,REFURB_RE,/,|;|\band\b|\bplus\b|\bthen\b/),h=colourNear(cl,REFURB_RE)||colourNear(cl,/wheels?|alloys?|rims?|them/), cn=h&&(COLOURS.find(x=>x[1]===h)||[])[0];
+    const fin=cn?((/\bgloss\b/.test(cl)?"gloss ":/\bsatin\b/.test(cl)?"satin ":/\bmatte?\b/.test(cl)?"matte ":"")+cn):/diamond[- ]?cut|machined/.test(cl)?"diamond-cut":null;
+    refurb={name:"Alloy wheel refurb",price:400,text:fin?"your own four alloys refurbished in "+fin:"your own four alloys refurbished, kerb rash repaired"};
+    notes.push("Your own wheels stay on: a refurb repairs kerb rash and refinishes all four, usually about £80-£120 a wheel."+(fin?" Shown as a note for now; the 3D wheels keep their colour.":""));
+    t=t.replace(cl," ");}
   if(quiet) notes.push("The standard exhaust is the quietest: every aftermarket exhaust is louder.");
   if(notLoud&&!quiet) notes.push("For a sportier sound that isn't too loud, the valved cat-back is the one: louder than standard, but keep the valves shut for a quiet cruise, and it stays under the MOT noise limit.");
   if(carbonGrille) notes.push("The studio shows the gloss black grille; real carbon fibre grilles look similar and cost a bit more (about £250).");
@@ -363,6 +371,7 @@ function planParts(text){
   if(plateBack.length) items=items.filter(i=>!plateBack.includes(i.name));
   if(regPlate) items=[...items.filter(i=>i.name!=="Private number plate"),{name:"Private number plate",in3d:true,price:250,text:"",reg:regPlate}];
   if(plateStyle){const it=plateStyleItem(plateStyle); items=[...items.filter(i=>i.name!=="Styled number plates"),...(it?[it]:[])];}
+  if(refurb) items=[...items.filter(i=>i.name!==refurb.name),refurb];
   const removedCustom=items.length<had.length;
   // A cosmetic part asked for again in a new colour or finish ("tan seats" after "black seats") is changed, not doubled.
   for(const e of EXTRA_PARTS) if(COSMETIC_NEAR[e.name]&&e.re.test(t)&&items.some(i=>i.name===e.name&&i.text!==cosmeticText(e.name,t))) items=items.filter(i=>i.name!==e.name);
