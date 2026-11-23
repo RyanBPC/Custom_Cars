@@ -15,7 +15,7 @@ function perf(car,m){
   if(m.drop){const mm=m.drop.mm;grip+=mm<=30?5+mm/10:Math.max(5,8-(mm-30)*.05);} // best around 30mm; lower runs out of travel
   if(m.widebody){grip+=4;kg+=12;}
   if(m.bodykit){grip+=2;kg+=6;down+=25;}
-  if(m.spoiler){const s={lip:[10,1,0],ducktail:[25,2,1],"gt-wing":[90,5,4]}[m.spoiler.type];down+=s[0];kg+=s[1];grip+=s[2];}
+  if(m.spoiler){const s={lip:[10,1,0],ducktail:[25,2,1],"gt-wing":[90,5,4],"roof-ext":[5,1,0],pedestal:[40,3,2]}[m.spoiler.type];down+=s[0];kg+=s[1];grip+=s[2];}
   if(m.brakes){brake+=14;kg+=2;}
   ((m.custom&&m.custom.items)||[]).forEach(i=>{const e=EXTRA_PERF[i.name];if(!e||(e.turbo&&!car.turbo))return;kg+=e.kg||0;grip+=e.grip||0;hp+=e.hp||0;});
   const HP=Math.round(car.hp*(1+hp)), NM=Math.round(car.nm*(1+nm));

@@ -175,11 +175,11 @@ function carSVG(car,mods,o){
   if(E.spoiler){
     const sp=g.spoiler; let sv="";
     if(sp.kind==="roof"){
-      if(E.spoiler==="lip") sv=`<path d="M${sp.x+16} ${sp.y-1} L${sp.x-22} ${sp.y+2} L${sp.x-46} ${sp.y+9} L${sp.x-12} ${sp.y+8} Z" fill="${paintNew}" stroke="#000" stroke-opacity=".3"/>`;
+      if(E.spoiler==="lip"||E.spoiler==="roof-ext") sv=`<path d="M${sp.x+16} ${sp.y-1} L${sp.x-22} ${sp.y+2} L${sp.x-46} ${sp.y+9} L${sp.x-12} ${sp.y+8} Z" fill="${paintNew}" stroke="#000" stroke-opacity=".3"/>`;
       else if(E.spoiler==="ducktail") sv=`<path d="M${sp.x+24} ${sp.y-1} Q${sp.x-20} ${sp.y-6} ${sp.x-58} ${sp.y-2} L${sp.x-30} ${sp.y+12} L${sp.x-6} ${sp.y+6} Z" fill="${paintNew}" stroke="#000" stroke-opacity=".3"/>`;
       else sv=`<path d="M${sp.x-10} ${sp.y} L${sp.x-22} ${sp.y-30} M${sp.x+28} ${sp.y-1} L${sp.x+18} ${sp.y-30}" stroke="#1b1e22" stroke-width="5"/><path d="M${sp.x-74} ${sp.y-30} Q${sp.x-10} ${sp.y-46} ${sp.x+40} ${sp.y-36} L${sp.x+40} ${sp.y-28} Q${sp.x-10} ${sp.y-34} ${sp.x-74} ${sp.y-24} Z" fill="url(#${u}cf)"/><rect x="${sp.x-78}" y="${sp.y-44}" width="6" height="24" rx="1.5" fill="#1b1e22"/>`;
     } else {
-      if(E.spoiler==="lip") sv=`<path d="M${sp.x+44} ${sp.y-1} L${sp.x-6} ${sp.y-1} L${sp.x-14} ${sp.y-9} Z" fill="${paintNew}" stroke="#000" stroke-opacity=".3"/>`;
+      if(E.spoiler==="lip"||E.spoiler==="roof-ext") sv=`<path d="M${sp.x+44} ${sp.y-1} L${sp.x-6} ${sp.y-1} L${sp.x-14} ${sp.y-9} Z" fill="${paintNew}" stroke="#000" stroke-opacity=".3"/>`;
       else if(E.spoiler==="ducktail") sv=`<path d="M${sp.x+76} ${sp.y-2} Q${sp.x+20} ${sp.y-6} ${sp.x-16} ${sp.y-22} L${sp.x-10} ${sp.y-1} Z" fill="${paintNew}" stroke="#000" stroke-opacity=".3"/>`;
       else sv=`<path d="M${sp.x+46} ${sp.y-2} L${sp.x+30} ${sp.y-42} M${sp.x+10} ${sp.y-1} L${sp.x-4} ${sp.y-42}" stroke="#1b1e22" stroke-width="5"/><path d="M${sp.x-46} ${sp.y-42} Q${sp.x+20} ${sp.y-58} ${sp.x+80} ${sp.y-46} L${sp.x+80} ${sp.y-38} Q${sp.x+20} ${sp.y-46} ${sp.x-46} ${sp.y-35} Z" fill="url(#${u}cf)"/><rect x="${sp.x-50}" y="${sp.y-56}" width="6" height="26" rx="1.5" fill="#1b1e22"/>`;
     }

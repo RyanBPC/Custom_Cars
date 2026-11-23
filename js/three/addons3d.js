@@ -28,16 +28,7 @@ function mats() {
   MAT.chrome = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, metalness: 1, roughness: 0.08 });
   MAT.soot = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 1, side: THREE.DoubleSide });
   MAT.led = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const gc = document.createElement("canvas"); gc.width = gc.height = 128; const gg = gc.getContext("2d");
-  const grad = gg.createRadialGradient(64, 64, 4, 64, 64, 64); grad.addColorStop(0, "rgba(255,255,255,1)"); grad.addColorStop(0.55, "rgba(255,255,255,0.45)"); grad.addColorStop(1, "rgba(255,255,255,0)");
-  gg.fillStyle = grad; gg.fillRect(0, 0, 128, 128);
-  MAT.glowTex = new THREE.CanvasTexture(gc);
-  MAT.glow = {};
   return MAT;
-}
-function glowMat(hex) {
-  const m = mats();
-  return m.glow[hex] || (m.glow[hex] = new THREE.MeshBasicMaterial({ color: hex, map: m.glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
 }
 
 // LED light is bright and saturated, so a paint-like colour ("purple" #5b2d86) is lifted to its LED version.
@@ -72,6 +63,7 @@ function probe(rig, o, d, withGlass = false) {
   _rc.set(new THREE.Vector3(...o).applyMatrix4(m), new THREE.Vector3(...d).transformDirection(m));
   const meshes = withGlass ? rig.probeMeshes : rig.probeMeshes.filter(x => !/Glass/.test(x.material.name));
   const h = _rc.intersectObjects(meshes, false)[0], r = h ? h.point.clone().applyMatrix4(inv) : null;
+  if (r) r.glass = /Glass/.test(h.object.material.name || ""); // the edge finder needs to know when it reaches a window
   rig.probes.set(key, r); return r;
 }
 const down = (rig, x, z, glass) => probe(rig, [x, 3, z], [0, -1, 0], glass);
@@ -83,10 +75,110 @@ const or = (v, d) => (v === null || v === undefined || Number.isNaN(v) ? d : v);
 
 function bonnetY(f, x) { const p = f.bonnet.pts; if (x <= p[0][0]) return p[0][1]; for (let i = 1; i < p.length; i++) if (x <= p[i][0]) { const t = (x - p[i - 1][0]) / (p[i][0] - p[i - 1][0]); return p[i - 1][1] + t * (p[i][1] - p[i - 1][1]); } return p[p.length - 1][1]; }
 
+/* ---------- spoilers shaped to the car's own rear edge ----------
+   A spoiler on a real car follows the edge it's fitted to: the curve of the boot lid or the roof spoiler seen
+   from above, and its height. rearEdge() finds that edge by walking rays back along the body until the surface
+   drops away, at several points across the car; sweep() then runs a cross-section (the spoiler's side profile)
+   along it, tapering neatly at both ends. */
+// Saloons and coupés have a boot deck behind the rear window; hatchbacks don't.
+const hasBoot = f => f.rearGlass && f.rearGlass.bottom[0] - f.rearX > 0.3;
+// where: "roof" (the roof's back edge or roof spoiler, above the rear window) or "boot" (the boot lid's back edge).
+function rearEdge(rig, f, where, n = 13) {
+  const roof = where === "roof", half = roof ? f.rearGlass.halfW + 0.03 : Math.min(f.sideZ - 0.16, 0.72);
+  const x0 = roof ? f.roofEdge.x + 0.1 : f.rearGlass.bottom[0] - 0.08, pts = [];
+  for (let i = 0; i < n; i++) {
+    const z = -half + (2 * half * i) / (n - 1);
+    let prev = down(rig, x0, z, true), found = null;
+    if (!prev) continue;
+    for (let x = x0 - 0.03; x > x0 - 0.5; x -= 0.03) {
+      const h = down(rig, x, z, true);
+      if (!h || prev.y - h.y > 0.04 || (h.glass && !prev.glass)) { // the surface dropped away, or became the window: home in on the edge
+        let a = prev.x, b = x;
+        for (let k = 0; k < 4; k++) { const mid = (a + b) / 2, hm = down(rig, mid, z, true); if (hm && prev.y - hm.y <= 0.04 && (!hm.glass || prev.glass)) { a = mid; prev = hm; } else b = mid; }
+        found = prev; break;
+      }
+      prev = h;
+    }
+    // No clear edge (a coupé roof that runs smoothly into the glass): use the measured roof edge.
+    if (!found) found = roof ? (down(rig, f.roofEdge.x, z, true) || V3(f.roofEdge.x, f.roofEdge.y, z)) : prev;
+    pts.push(V3(found.x, found.y, z));
+  }
+  // Keep the run of points across the middle that stays on the same edge: going outwards, stop where it
+  // suddenly jumps (the measuring slipped off the end of the spoiler onto the window or a lamp).
+  const same = (a, b) => Math.abs(a.y - b.y) < 0.1 && Math.abs(a.x - b.x) < 0.08;
+  // A single odd point between two that agree is something on the roof (like a shark-fin aerial): drop it.
+  for (let i = pts.length - 2; i > 0; i--) if (!same(pts[i], pts[i - 1]) && !same(pts[i], pts[i + 1]) && same(pts[i - 1], pts[i + 1])) pts.splice(i, 1);
+  const mid = Math.floor(pts.length / 2); let lo = mid, hi = mid;
+  while (lo > 0 && same(pts[lo - 1], pts[lo])) lo--;
+  while (hi < pts.length - 1 && same(pts[hi + 1], pts[hi])) hi++;
+  pts.splice(hi + 1); pts.splice(0, lo);
+  // Smooth out small bumps from the measuring, keeping the ends.
+  return pts.map((p, i) => i === 0 || i === pts.length - 1 ? p : V3((pts[i - 1].x + 2 * p.x + pts[i + 1].x) / 4, (pts[i - 1].y + 2 * p.y + pts[i + 1].y) / 4, p.z));
+}
+/* Runs a closed side profile (points [back, up] in metres, back = towards the rear of the car) along edge points
+   that go across the car. The profile shrinks over the last `taper` of each end, so the ends are rounded off
+   instead of cut square. */
+function sweep(edge, prof, mat, taper = 0.08) {
+  if (edge.length < 2) return new THREE.Group(); // couldn't measure the edge on this car
+  const n = edge.length, m = prof.length, pos = [], uv = [], idx = [];
+  const cu = prof.reduce((s, p) => s + p[0], 0) / m, cv = prof.reduce((s, p) => s + p[1], 0) / m;
+  // More rings near the ends for the taper: resample the edge at finer steps there.
+  const ts = []; for (let i = 0; i <= 60; i++) { const s = i / 60; ts.push(0.5 - 0.5 * Math.cos(Math.PI * s)); }
+  const at = t => { const f = t * (n - 1), i = Math.min(n - 2, Math.floor(f)), r = f - i; return edge[i].clone().lerp(edge[i + 1], r); };
+  const rings = ts.map(t => {
+    const e = at(t), s = Math.min(1, Math.min(t, 1 - t) / taper), k = 0.15 + 0.85 * Math.sqrt(s);
+    return prof.map(([u, v]) => V3(e.x - (cu + (u - cu) * k), e.y + cv + (v - cv) * k, e.z));
+  });
+  const span = edge[0].distanceTo(edge[n - 1]);
+  rings.forEach((r, ri) => r.forEach((p, j) => { pos.push(p.x, p.y, p.z); uv.push(ts[ri] * span * 4, j / m); })); // carbon weave about 4 repeats a metre
+  const P = i => V3(pos[3 * i], pos[3 * i + 1], pos[3 * i + 2]);
+  const centreOf = r => rings[r].reduce((s, p) => s.add(p), V3(0, 0, 0)).divideScalar(m);
+  // Each triangle is wound so its face points away from `inside` (a point inside the part).
+  const tri = (a, b, c, inside) => { const n_ = P(b).sub(P(a)).cross(P(c).sub(P(a))); if (n_.dot(P(a).sub(inside)) >= 0) idx.push(a, b, c); else idx.push(a, c, b); };
+  for (let r = 0; r < rings.length - 1; r++) {
+    const ctr = centreOf(r).add(centreOf(r + 1)).multiplyScalar(0.5);
+    for (let j = 0; j < m; j++) { const a = r * m + j, b = r * m + (j + 1) % m, c = a + m, d = b + m; tri(a, b, d, ctr); tri(a, d, c, ctr); }
+  }
+  for (const [r, dz] of [[0, 1], [rings.length - 1, -1]]) { // end caps
+    const ctr = centreOf(r), ci = pos.length / 3; pos.push(ctr.x, ctr.y, ctr.z); uv.push(ts[r] * span * 4, 0.5);
+    const inside = ctr.clone(); inside.z += dz;
+    for (let j = 0; j < m; j++) tri(ci, r * m + j, r * m + (j + 1) % m, inside);
+  }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx);
+  geo.computeVertexNormals();
+  return mesh(geo, mat);
+}
+const shine = rig => rig.paints[0]; // body-coloured parts use the car's own paint
+
 /* ---------- the parts. Each returns a shape in the car's own space (front is +x, ground is y = 0). ---------- */
 const PARTS = {
-  "spoiler:lip": (f, rig) => { const m = mats(), e = down(rig, f.roofEdge.x + 0.02, 0), y = e ? e.y : f.roofEdge.y; const p = box(0.12, 0.012, 2 * f.rearGlass.halfW - 0.05, m.carbon, f.roofEdge.x - 0.04, y - 0.004, 0); p.rotation.z = -0.1; return p; },
-  "spoiler:ducktail": (f, rig) => { const p = slab([[0.02, 0], [-0.22, 0.04], [-0.24, 0.075], [0.02, 0.035]], 2 * f.rearGlass.halfW, rig.paints[0]); const e = down(rig, f.roofEdge.x + 0.02, 0); p.position.set(f.roofEdge.x + 0.02, (e ? e.y : f.roofEdge.y) - 0.03, 0); return p; },
+  // Lip: a slim carbon blade (about 5 cm deep, a few mm thick) along the back edge, flicked up slightly.
+  // Hatchbacks: on the roof spoiler's edge. Saloons and coupés: on the boot lid's edge.
+  "spoiler:lip": (f, rig) => sweep(rearEdge(rig, f, hasBoot(f) ? "boot" : "roof"),
+    [[-0.03, -0.002], [0.02, 0.004], [0.052, 0.012], [0.056, 0.016], [0.05, 0.017], [0.02, 0.009], [-0.03, 0.005]], mats().carbon, 0.04),
+  // Ducktail: a body-coloured kick-up that grows out of the edge, curving up to a sharp lip.
+  "spoiler:ducktail": (f, rig) => sweep(rearEdge(rig, f, hasBoot(f) ? "boot" : "roof"),
+    [[-0.14, -0.01], [-0.06, 0.004], [0.0, 0.016], [0.05, 0.036], [0.085, 0.058], [0.092, 0.064], [0.084, 0.064], [0.04, 0.046], [-0.04, 0.022], [-0.14, 0.006]], shine(rig), 0.1),
+  // Roof spoiler extension (hatchbacks especially): a gloss black blade carrying the roof line further back,
+  // angled down over the rear window, with a thin upturned edge.
+  "spoiler:roof-ext": (f, rig) => sweep(rearEdge(rig, f, "roof"),
+    [[-0.04, -0.004], [0.04, -0.018], [0.11, -0.036], [0.124, -0.03], [0.122, -0.024], [0.06, -0.01], [-0.04, 0.006]], mats().black, 0.06),
+  // Pedestal wing: a body-coloured wing on two short stands, mid-height above the boot or tailgate.
+  "spoiler:pedestal": (f, rig) => {
+    const g = new THREE.Group(), boot = hasBoot(f), legZ = Math.min(0.42, f.rearGlass.halfW - 0.12);
+    const bx = boot ? (f.rearGlass.bottom[0] + f.rearX) / 2 + 0.05 : f.rearGlass.bottom[0] - 0.03;
+    const feet = [1, -1].map(k => down(rig, bx, k * legZ) || V3(bx, f.rearGlass.bottom[1], k * legZ));
+    const footY = Math.min(feet[0].y, feet[1].y), y = footY + 0.13, x = bx - 0.03, span = Math.min(1.3, 2 * f.rearGlass.halfW + 0.05);
+    const edge = []; for (let i = 0; i <= 8; i++) { const z = -span / 2 + span * i / 8; edge.push(V3(x - 0.012 * (z * z) / (span * span / 4), y, z)); } // slight sweep back at the tips
+    g.add(sweep(edge, [[-0.07, 0.0], [-0.04, 0.016], [0.02, 0.022], [0.08, 0.02], [0.11, 0.028], [0.115, 0.024], [0.09, 0.008], [0.02, -0.004], [-0.05, -0.004]], shine(rig), 0.03));
+    for (const k of [1, -1]) {
+      const foot = feet[k > 0 ? 0 : 1], h = y - foot.y + 0.004;
+      // A stand: wider at the foot, narrowing to the wing, leaning back slightly.
+      const st = slab([[0.07, 0], [-0.06, 0], [-0.03, h], [0.04, h]], 0.022, shine(rig));
+      st.position.set(foot.x - 0.01, foot.y - 0.006, k * legZ); g.add(st);
+    }
+    return g;
+  },
   "spoiler:gt-wing": (f, rig) => {
     const m = mats(), g = new THREE.Group(), span = Math.min(1.55, 2 * f.sideZ - 0.2), legZ = 0.4;
     // The legs stand on the boot lid (hatchbacks: the tailgate just below the rear window).
@@ -722,8 +814,6 @@ export function measureWheels(rig) {
    They're saved in the car's own coordinates, so they just go on. Cars without them use the simple shapes above. */
 const AERO = {
   "spoiler:gt-wing": [["wing", n => /post/i.test(n) ? "black" : "carbon"]],
-  "spoiler:lip": [["lip", () => "carbon"]],
-  "spoiler:ducktail": [["ducktail", () => "paint"]],
   bodykit: [["splitter", () => "carbon"], ["skirts", () => "carbon"], ["diffuser", () => "black"]],
   exhaust: [["exhaust", n => /chrome/i.test(n) ? "chrome" : "black"]],
   "Quad exhaust tips": [["exhaust-quad", n => /chrome/i.test(n) ? "chrome" : "black"]]

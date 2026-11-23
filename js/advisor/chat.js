@@ -35,7 +35,7 @@ function catalogueText(){
 - brakes: caliper "red"|"yellow"|"black"|"blue"|"gold"|"green"|"orange"
 - bodykit: no params (splitter, skirts, diffuser)
 - widebody: no params (arch flares)
-- spoiler: type "lip"|"ducktail"|"gt-wing"
+- spoiler: type "lip"|"ducktail"|"gt-wing"|"roof-ext" (roof spoiler extension)|"pedestal" (mid-height wing on two short stands)
 - wrap: colour (hex like "#16181c"), finish "gloss"|"satin"|"matte"|"chrome"|"metallic"|"pearl" (metallic = fine flake, pearl = pearlescent colour shift; use these when the user says metallic, pearl or pearlescent)
 - stripes: colour (hex)
 - tint: vlt 5|20|35|50 (rear windows only, UK law)

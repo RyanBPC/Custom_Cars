@@ -160,7 +160,7 @@ function modPrice(id,p,car){
     case "brakes": return small?1300:six?3800:3400;
     case "bodykit": return small?850:1800;
     case "widebody": return small?4500:six?7500:6500;
-    case "spoiler": return ({lip:small?200:350,ducktail:small?400:650,"gt-wing":small?1200:1900})[p.type];
+    case "spoiler": return ({lip:small?200:350,ducktail:small?400:650,"gt-wing":small?1200:1900,"roof-ext":small?250:350,pedestal:small?600:850})[p.type];
     case "wrap": return p.paint?(small?3000:six?4500:4000):p.finish==="chrome"?(small?3800:5200):(small?1900:six?2900:2600);
     case "stripes": return 380;
     case "tint": return 220;
@@ -175,7 +175,7 @@ function modLabel(id,p){
     case "tune": return p.stage===3?"Stage 3 power upgrade":"Stage "+p.stage+" remap";
     case "wheels": return p.size+"″ "+p.finish+" "+p.style+" wheels";
     case "drop": return p.air?"Air suspension, aired out":p.springs?"Lowering springs, −"+p.mm+"mm":"Coilovers, −"+p.mm+"mm";
-    case "spoiler": return ({lip:"Lip spoiler",ducktail:"Ducktail spoiler","gt-wing":"GT wing"})[p.type];
+    case "spoiler": return ({lip:"Lip spoiler",ducktail:"Ducktail spoiler","gt-wing":"GT wing","roof-ext":"Roof spoiler extension",pedestal:"Pedestal wing"})[p.type];
     case "wrap": return p.finish[0].toUpperCase()+p.finish.slice(1)+" "+colourName(p.colour).toLowerCase()+(p.paint?" respray":" wrap");
     case "tint": return p.vlt+"% rear window tint";
     case "brakes": return "Big brakes, "+p.caliper+" calipers";
@@ -199,7 +199,7 @@ function modInfo(id,p,car){
     case "brakes": return {what:"Larger discs with six-piston front calipers.",effect:"Shorter stopping distances and less fade on track days.",spec:"6-pot front, 380mm two-piece discs, "+p.caliper+" calipers"};
     case "bodykit": return {what:"Front splitter, side skirts and a rear diffuser.",effect:"Sharper, lower look and a little front-end grip at speed.",spec:"Gloss carbon-look ABS, bolt-on"};
     case "widebody": return {what:"Bolt-on arch flares that widen the body to fit wider wheels and tyres.",effect:"A much more aggressive stance with room for a wider track.",spec:"+50mm per side, FRP, bolt-on"};
-    case "spoiler": return ({lip:{what:"A small lip on the boot or roof edge.",effect:"Subtle styling change with a touch of rear stability.",spec:"Carbon-look, adhesive fit"},ducktail:{what:"A raised, swept-up tail spoiler.",effect:"Classic look and modest rear downforce.",spec:"Painted to body colour"},"gt-wing":{what:"A swan-neck rear wing on tall uprights.",effect:"Real rear downforce at speed. Best on track days.",spec:"Carbon, adjustable angle, about 90kg downforce at 100mph"}})[p.type];
+    case "spoiler": return ({lip:{what:"A small lip on the boot or roof edge.",effect:"Subtle styling change with a touch of rear stability.",spec:"Carbon-look, adhesive fit"},ducktail:{what:"A raised, swept-up tail spoiler.",effect:"Classic look and modest rear downforce.",spec:"Painted to body colour"},"gt-wing":{what:"A swan-neck rear wing on tall uprights.",effect:"Real rear downforce at speed. Best on track days.",spec:"Carbon, adjustable angle, about 90kg downforce at 100mph"},"roof-ext":{what:"A gloss black blade that carries the roof spoiler further back over the rear window.",effect:"Sportier profile, a hot-hatch favourite. Little real downforce.",spec:"Gloss black ABS, bolts or tapes to the roof spoiler"},pedestal:{what:"A body-coloured wing on two short stands, mid-height above the boot or tailgate.",effect:"Bold look with some rear downforce, without a full GT wing.",spec:"Painted to body colour, bolted through the boot lid or tailgate"}})[p.type];
     case "wrap": if(p.paint) return {what:"A full respray in "+p.finish+" "+colourName(p.colour).toLowerCase()+".",effect:"New paint all over, done in a body shop. Permanent, so tell your insurer about the colour change and update the V5C with the DVLA.",spec:"Quality UK respray, about £3,000-£6,000"};
     return {what:"A full-body vinyl wrap in "+p.finish+" "+colourName(p.colour).toLowerCase()+".",effect:"Completely changes the colour and protects the paint underneath. Removable.",spec:"Cast vinyl, about 5-7 year life"};
     case "stripes": return {what:"A shoulder-line racing stripe in "+colourName(p.colour).toLowerCase()+".",effect:"Motorsport styling. Removable without paint damage.",spec:"Cast vinyl, 90mm"};

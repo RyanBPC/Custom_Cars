@@ -100,7 +100,7 @@ const UNSEEN = { tune: "Under the bonnet", intake: "Under the bonnet" };
 const SEARCH = {
   tune: "ECU remap", intake: "cold air intake", exhaust: "cat back exhaust", wheels: p => `${p.size} inch ${p.style.replace("-", " ")} alloy wheels`,
   drop: p => p.air ? "air suspension kit" : p.springs ? "lowering springs" : "coilovers", brakes: "big brake kit", bodykit: "front splitter side skirts diffuser",
-  widebody: "wide arch kit", spoiler: p => ({ lip: "boot lip spoiler", ducktail: "ducktail spoiler", "gt-wing": "GT wing spoiler" })[p.type],
+  widebody: "wide arch kit", spoiler: p => ({ lip: "boot lip spoiler", ducktail: "ducktail spoiler", "gt-wing": "GT wing spoiler", "roof-ext": "roof spoiler extension", pedestal: "pedestal boot wing spoiler" })[p.type],
   wrap: p => p.paint ? "" : "vinyl wrap film", stripes: "racing stripes vinyl", tint: "window tint film", lights: "smoked headlight film"
 };
 const q = s => encodeURIComponent(s).replace(/%20/g, "+");

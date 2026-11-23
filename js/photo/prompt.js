@@ -18,7 +18,7 @@ function photoPartText(id, p) {
     case "brakes": return `large brake discs with ${p.caliper} six-piston calipers visible through the wheel spokes`;
     case "bodykit": return "a carbon-look front splitter, side skirts and rear diffuser";
     case "widebody": return "bolt-on widebody wheel-arch flares, about 50mm wider on each side, painted to match";
-    case "spoiler": return ({ lip: "a small lip spoiler on the boot or roof edge", ducktail: "a ducktail rear spoiler painted to match", "gt-wing": "a large carbon swan-neck GT wing on tall uprights" })[p.type];
+    case "spoiler": return ({ lip: "a small lip spoiler on the boot or roof edge", ducktail: "a ducktail rear spoiler painted to match", "gt-wing": "a large carbon swan-neck GT wing on tall uprights", "roof-ext": "a gloss black roof spoiler extension over the rear window", pedestal: "a body-coloured pedestal wing on two short stands above the boot" })[p.type];
     case "wrap": if(p.paint) return `a full ${p.finish} ${colourName(p.colour).toLowerCase()} respray, factory-quality paint replacing the original colour`; return `a full ${p.finish} ${colourName(p.colour).toLowerCase()} vinyl wrap replacing the paint colour`;
     case "stripes": return `twin ${colourName(p.colour).toLowerCase()} racing stripes running front to back over the bonnet, roof and boot lid, each about 13 cm wide with a 10 cm gap between them`;
     case "tint": return `dark tint on the rear windows only, letting through ${p.vlt}% of light (front windows stay clear, as UK law requires)`;
