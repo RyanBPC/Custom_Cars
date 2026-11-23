@@ -158,6 +158,18 @@ if (location.protocol === "file:") {
               <button type="button" class="btn sm" data-spin="mode" title="Switch between looking all around the place and a sharp photo background">Photoshoot</button>
               <button type="button" class="btn sm" data-spin="inside" title="Sit inside the car and look around">Interior</button>
               <button type="button" class="btn sm" data-spin="lights" aria-pressed="false" title="Switch the car's head and tail lights on or off, to compare LED or smoked lights">Lights</button>
+              <!-- The car's other lamps, each on its own like a real car (shown once the 3D car supports them) -->
+              <details class="lampmenu" id="lampMenu" hidden>
+                <summary class="btn sm" title="Full beam, fog lights, reverse lights and indicators">Light options</summary>
+                <div class="lampmenu-list" role="group" aria-label="Light options">
+                  <label><input type="checkbox" data-lamp="full"> Full beam</label>
+                  <label><input type="checkbox" data-lamp="fog"> Fog lights</label>
+                  <label><input type="checkbox" data-lamp="reverse"> Reverse lights</label>
+                  <label><input type="checkbox" data-lamp="left"> Left indicator</label>
+                  <label><input type="checkbox" data-lamp="right"> Right indicator</label>
+                  <label><input type="checkbox" data-lamp="hazard"> Hazard lights</label>
+                </div>
+              </details>
               <button type="button" class="btn sm" data-spin="pt" aria-pressed="false" title="When you stop moving, the car sharpens into a photo-quality picture (real light simulation)">Photo quality</button>
               <button type="button" class="btn sm" data-spin="save" title="Save this view of your build as a picture on your computer">Save picture</button>
               <button type="button" class="btn sm primary" data-spin="photo" title="Turn this exact 3D view into a realistic AI photo">Make it a photo</button>

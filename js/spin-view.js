@@ -133,6 +133,29 @@ window.addEventListener("viewer3d-lights", e => {
   document.querySelector('[data-spin="lights"]').setAttribute("aria-pressed", e.detail.on);
   $("spinLive").textContent = e.detail.on ? "Lights on" : "Lights off";
 });
+// Light options: full beam, fogs, reverse, indicators and hazards, each switched on its own.
+// Shown only once the 3D car can light them (Viewer3D.setLamp), and kept in step with the car (viewer3d-lamps).
+const LAMP_SAY = { full: "Full beam", fog: "Fog lights", reverse: "Reverse lights", left: "Left indicator", right: "Right indicator", hazard: "Hazard lights" };
+function syncLampMenu() {
+  const v = window.Viewer3D, menu = $("lampMenu"), ok = !!(v && typeof v.setLamp === "function" && typeof v.lamps === "function");
+  menu.hidden = !ok; if (!ok) return;
+  const on = v.lamps() || {};
+  menu.querySelectorAll("[data-lamp]").forEach(c => { c.checked = !!on[c.dataset.lamp]; });
+  const n = Object.values(on).filter(Boolean).length;
+  menu.querySelector("summary").textContent = n ? `Light options (${n})` : "Light options";
+}
+window.addEventListener("viewer3d-ready", syncLampMenu);
+window.addEventListener("viewer3d-lamps", syncLampMenu);
+$("lampMenu").addEventListener("change", e => {
+  const c = e.target.closest("[data-lamp]"), v = window.Viewer3D; if (!c || !v || !v.setLamp) return;
+  v.setLamp(c.dataset.lamp, c.checked);
+  $("spinLive").textContent = `${LAMP_SAY[c.dataset.lamp]} ${c.checked ? "on" : "off"}`;
+  syncLampMenu();
+});
+// Close the menu on Escape or a click elsewhere.
+document.addEventListener("click", e => { const m = $("lampMenu"); if (m.open && !m.contains(e.target)) m.open = false; });
+$("lampMenu").addEventListener("keydown", e => { if (e.key === "Escape" && $("lampMenu").open) { e.preventDefault(); $("lampMenu").open = false; $("lampMenu").querySelector("summary").focus(); } });
+syncLampMenu();
 // Photo quality progress, shown at the top of the 3D view.
 // Photo quality just quietly sharpens the car when you stop moving; only a problem is worth a note.
 window.addEventListener("viewer3d-pt", e => {

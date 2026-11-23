@@ -768,3 +768,15 @@ nav.main .wip-mark{font-size:0;width:7px;height:7px;padding:0;margin-left:4px;ba
 .flow-steps button[aria-selected="true"] b{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .garage-all{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
 .price-cats{border-bottom:0;margin-bottom:10px}
+
+/* Light options menu next to the Lights button (js/spin-view.js) */
+.lampmenu{position:relative}
+.lampmenu>summary{list-style:none;cursor:pointer}
+.lampmenu>summary::-webkit-details-marker{display:none}
+.lampmenu>summary::after{content:"";width:6px;height:6px;margin-left:2px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg) translateY(-2px)}
+.lampmenu[open]>summary{border-color:var(--accent);color:var(--accent)}
+.lampmenu-list{position:absolute;right:0;top:calc(100% + 6px);z-index:30;min-width:190px;display:grid;gap:2px;padding:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.lampmenu-list label{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:7px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.lampmenu-list label:hover{background:rgba(255,255,255,.06)}
+.lampmenu-list input{accent-color:var(--accent);width:16px;height:16px;margin:0}
+@media (max-width:600px){.lampmenu{flex:1;display:flex}.lampmenu>summary{flex:1}.lampmenu-list{left:0;right:auto}}
