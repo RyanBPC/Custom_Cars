@@ -198,7 +198,7 @@ function colourName(hex){const f=COLOURS.find(c=>c[1].toLowerCase()===String(hex
 function registerCustomColours(text){for(const m of String(text||"").toLowerCase().matchAll(/custom-([0-9a-f]{6})\b/g)){const n="custom-"+m[1];if(!COLOURS.some(c=>c[0]===n))COLOURS.push([n,"#"+m[1]]);}}
 function modLabel(id,p){
   switch(id){
-    case "tune": return p.stage===3?"Stage 3 power upgrade":"Stage "+p.stage+" remap";
+    case "tune": return (p.stage===3?"Stage 3 power upgrade":"Stage "+p.stage+" remap")+(p.pops?" with pops and bangs":"");
     case "wheels": return p.size+"″ "+p.finish.replace("-"," ")+" "+(p.style==="bbs-mesh"?"BBS-style mesh":p.style)+" wheels"+(p.lip?" with polished lip":"");
     case "drop": return p.air?"Air suspension, aired out":p.springs?"Lowering springs, −"+p.mm+"mm":"Coilovers, −"+p.mm+"mm";
     case "spoiler": return ({lip:"Lip spoiler",ducktail:"Ducktail spoiler","gt-wing":"GT wing","roof-ext":"Roof spoiler extension",pedestal:"Pedestal wing"})[p.type];

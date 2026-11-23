@@ -11,7 +11,7 @@ class Engine{
     }
     if(this.on) this.stop(true);
     const x=this.ctx; x.resume&&x.resume();
-    this.p={cyl:c.cyl,turbo:c.turbo||(m.tune&&m.tune.stage===3),v8:c.cyl===8,ex:!!m.exhaust,red:c.redline,int:!!m.intake,stage:m.tune?m.tune.stage:0};
+    this.p={cyl:c.cyl,turbo:c.turbo||(m.tune&&m.tune.stage===3),v8:c.cyl===8,ex:!!m.exhaust,red:c.redline,int:!!m.intake,stage:m.tune?m.tune.stage:0,pops:!!(m.tune&&m.tune.pops)};
     const out=x.createDynamicsCompressor(); out.connect(x.destination);
     const master=x.createGain(); master.gain.value=0; master.connect(out);
     const filt=x.createBiquadFilter(); filt.type="lowpass"; filt.Q.value=4; filt.connect(master);
@@ -41,7 +41,7 @@ class Engine{
     n.master.gain.setTargetAtTime(this.vol(load),t,.05);
     n.ng.gain.setTargetAtTime(load*(p.int?.06:.03)*(rpm/p.red),t,.05);
     if(n.tg){n.to.frequency.setTargetAtTime(2400+rpm*.7,t,.2);n.tg.gain.setTargetAtTime(load*.012*(rpm/p.red)*(p.stage>=2?1.6:1),t,.25);}
-    if(this.lastLoad>.5&&load<.1){ if(p.turbo&&rpm>3000) this.burst(.25,2500,.08); if(p.ex&&rpm>3800) for(let i=0;i<5;i++) setTimeout(()=>this.burst(.05+Math.random()*.04,400,.22),80+i*90+Math.random()*60); }
+    if(this.lastLoad>.5&&load<.1){ if(p.turbo&&rpm>3000) this.burst(.25,2500,.08); if(p.pops&&rpm>3800) for(let i=0;i<5;i++) setTimeout(()=>this.burst(.05+Math.random()*.04,400,.22),80+i*90+Math.random()*60); }
     this.lastLoad=load;
   }
   burst(dur,hp,amp){

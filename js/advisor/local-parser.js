@@ -299,7 +299,7 @@ function planParts(text){
   if(/wide ?body|widebody|wider|flare|arches|wide arch|over ?fenders?|fat|chunky/.test(t)&&!remove.includes("widebody")) add("widebody",{});
   // "No pops and bangs" asks for them to stay off, so it adds nothing.
   const NOPOPS_RE=/\b(?:no|without|remove|lose|get rid of|turn off|switch off)\s+(?:the\s+)?(?:pops|bangs|crackles?)(?:\s+(?:and|n|&)\s+bangs)?\b/g;
-  if(NOPOPS_RE.test(t)){t=t.replace(NOPOPS_RE," ");notes.push("No pops and bangs: they're a remap setting, and a tuner can switch them off.");}
+  const noPops=NOPOPS_RE.test(t); if(noPops){t=t.replace(NOPOPS_RE," ");notes.push("No pops and bangs: they're a remap setting, and a tuner can switch them off.");}
   if(/exhaust|louder|\bloud\b|noisier|pops|bangs|crackle|burble|growl|straight pipe|sounds? (better|meaner|angrier|nastier|sportier)|better sound/.test(t.replace(QUAD_TIPS_RE," "))&&!remove.includes("exhaust")) add("exhaust",{});
   if(/intake|induction|air filter|cold air/.test(t)) add("intake",{});
   // Pops and bangs are a remap setting (an overrun map), not just an exhaust part.
@@ -319,6 +319,10 @@ function planParts(text){
   else if(/(much|way|really|insanely|seriously) (faster|quicker|more power)|max power|loads of power/.test(t)) add("tune",{stage:2});
   else if((/faster|quicker|more power|remap|tune|chip|more hp|horsepower|bhp|\bspeed\b|more pull|more torque|\bfast\b|power up/.test(t)||pops)&&!remove.includes("tune")) add("tune",{stage:1});
   if(pops&&apply.some(a=>a.id==="tune")) notes.push("Pops and bangs come from the remap, so that's on too. Keep it quiet near homes.");
+  // Pops are stored on the remap (they crackle in the engine sound); a new stage keeps them, "no pops and bangs" switches them off.
+  {const oldTune=!(reset||(switchCar&&switchCar!==state.car))&&state.mods.tune, tu=apply.find(a=>a.id==="tune");
+   if(tu){if(pops||(!noPops&&oldTune&&oldTune.pops)) tu.params.pops=true;}
+   else if(noPops&&oldTune&&oldTune.pops&&!remove.includes("tune")) add("tune",{stage:oldTune.stage});}
   if(/brake|caliper|stop better|stopping power/.test(t)&&!isCaliperPaint(t)&&!remove.includes("brakes")){const cc=colourNear(t,/brake|caliper/);const name=cc?(COLOURS.find(x=>x[1]===cc)||[""])[0]:"red";add("brakes",{caliper:Object.keys(CALIPER).find(k=>name.includes(k))||"red"});}
   // "tinted headlights" means smoked lights only, so hide tint words next to a lights word before looking for window tint.
   const tT=t.replace(/\btint(?:ed)?\s+(?:the\s+|my\s+)?(?:(?:head|tail|rear|front|fog)\s?)?lights?\b|\b(?:(?:head|tail|rear|front|fog)\s?)?lights?\s+tinted\b/g," ");

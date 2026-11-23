@@ -20,7 +20,7 @@ function toColour(v,fallback){
 function sanitize(id,p,c){
   p=p||{};
   switch(id){
-    case "tune": {const st=parseInt(p.stage,10);return {stage:[1,2,3].includes(st)?st:1};}
+    case "tune": {const st=parseInt(p.stage,10),o={stage:[1,2,3].includes(st)?st:1};if(p.pops===true)o.pops=true;return o;}
     case "wheels": return {size:nearest([17,18,19,20,21],parseInt(p.size,10)||c.wheel+1),style:WHEEL_STYLES.includes(p.style)?p.style:"multi-spoke",finish:RIM_FINISH[p.finish]?p.finish:"gunmetal",...(p.lip===true?{lip:true}:{})};
     case "drop": {const d={mm:Math.max(15,Math.min(50,Math.round((parseInt(p.mm,10)||30)/5)*5))}; if(p.air===true) d.air=true; else if(p.springs===true) d.springs=true; return d;}
     case "brakes": return {caliper:CALIPER[p.caliper]?p.caliper:"red"};
