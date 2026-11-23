@@ -157,6 +157,16 @@
     const s = g.querySelector("summary"); if (s) s.focus({ preventScroll: true });
   }
 
+  // Opening a guide by hand gives it its own link (#journal/mot) to copy or bookmark; closing it goes back to #journal.
+  // replaceState, so Back still goes to the page you came from. ("toggle" doesn't bubble, so listen in the capture phase.)
+  document.addEventListener("toggle", e => {
+    const d = e.target;
+    if (current !== "journal" || !d || d.tagName !== "DETAILS" || !d.id || d.id.indexOf("guide-") !== 0 || !d.closest("#posts")) return;
+    const h = "#journal/" + d.id.slice(6);
+    if (d.open) { if (location.hash !== h) history.replaceState(null, "", h); }
+    else if (location.hash === h) history.replaceState(null, "", "#journal");
+  }, true);
+
   window.addEventListener("hashchange", () => { show(tabOf(), true); openGuide(); });
   // The 3D view arrives after the page: put it in the tab's mode once it's ready.
   window.addEventListener("viewer3d-ready", () => setTimeout(() => setViewer(current), 0));
