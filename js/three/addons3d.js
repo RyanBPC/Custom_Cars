@@ -284,7 +284,7 @@ const PARTS = {
     const cx = f.frontX - 0.15, cz = f.sideZ - 0.15, n = Math.SQRT1_2;
     return sides(k => {
       const g = new THREE.Group();
-      for (const [dy, sc] of [[0.11, 1.6], [0.21, 1.3]]) {
+      for (const [dy, sc] of [[0.17, 1.6], [0.27, 1.3]]) { // up on the painted corner, where dark carbon shows
         const y = f.frontBottomY + dy, x = f.frontX - 0.13 + dy * 0.3, side = fromSide(rig, x, y, k), hit = side ? V3(x, y, side.z) : (probe(rig, [cx + 2 * n, y, k * (cz + 2 * n)], [-n, 0, -k * n]) || V3(cx, y, k * cz));
         const yaw = new THREE.Group(); yaw.position.set(hit.x, y, hit.z - k * 0.006); yaw.rotation.y = k * 0.65; // root just inside the bumper skin, pointing out across the corner
         const pitch = new THREE.Group(); pitch.rotation.z = -0.12; yaw.add(pitch);

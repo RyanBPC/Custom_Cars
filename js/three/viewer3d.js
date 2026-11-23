@@ -502,7 +502,7 @@ function applyLights(p, b) {
   if (p.beams.cabin) p.beams.cabin.intensity = lightsOn ? 0.35 : 0;
   if (p.beams.ambient) { const amb = !!(b && b.addons && b.addons.extras.includes("LED ambient interior lighting")); p.beams.ambient.intensity = lightsOn && amb ? 0.6 : 0; if (amb) p.beams.ambient.color.set(b.addons.ambient || "#3aa8ff"); }
   (p.beams.glows || []).forEach(q => { q.visible = lightsOn; q.material.opacity = q.userData.front ? (smoked ? 0.35 : 0.85) : (smokedT ? 0.45 : ledTail ? 0.95 : 0.75); q.material.color.set(q.userData.front ? (led ? 0xe6f0ff : 0xfff4e2) : 0xff2418); });
-  p.beams.rear.forEach(l => { l.intensity = lightsOn ? (ledTail ? 0.32 : 0.25) * (smokedT ? 0.5 : 1) : 0; });
+  p.beams.rear.forEach(l => { l.intensity = lightsOn ? (ledTail ? 0.14 : 0.1) * (smokedT ? 0.5 : 1) : 0; });
 }
 // The "LED tail lights" extra: a lighter smoked tail lens (smoked lights stay darker) that glows brighter.
 function hasLedTails(b) { return !!(b && b.addons && b.addons.extras.includes("LED tail lights")); }
@@ -589,7 +589,9 @@ function addBeams(rig) {
     const mat = new THREE.MeshBasicMaterial({ color: front ? 0xfff4e2 : 0xff2418, map: glowTexture(), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
     const q = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(0.4, lamp.w * 1.3), Math.min(0.22, lamp.h * 1.4)), mat); // never bigger than a lamp's own glow
     q.name = "Lamp_Glow"; q.renderOrder = 3;
-    q.position.set(lamp.x + (front ? -0.03 : 0.03), lamp.y, lamp.z); // just inside the lamp, behind its clear cover q.rotation.y = front ? Math.PI / 2 : -Math.PI / 2; q.visible = false;
+    // Just inside the lamp's real surface (measured with a ray from in front or behind), so the glow never floats in the air.
+    const surf = lampSurface(rig, front, lamp.y, lamp.z), gx = surf !== null ? surf + (front ? -0.012 : 0.012) : lamp.x + (front ? -0.03 : 0.03);
+    q.position.set(gx, lamp.y, lamp.z); q.rotation.y = front ? Math.PI / 2 : -Math.PI / 2; q.visible = false;
     q.userData.front = front; rig.body.add(q); rig.beams.glows.push(q);
   }
   for (const lamp of rearLamps(rig)) {
@@ -603,6 +605,13 @@ function addBeams(rig) {
     rig.beams.cabin = add(new THREE.PointLight(0xffd9a8, 0, 1.4, 2), c.dashX - 0.12, c.wheel[1] - 0.02, c.wheel[2] * 0.4);      // instrument and screen glow
     rig.beams.ambient = add(new THREE.PointLight(0x3aa8ff, 0, 2.2, 2), c.frontSeatX - 0.2, (c.roofInY || 1.35) - 0.3, 0);     // ambient strips' colour
   }
+}
+// The front-most (or rear-most) surface of the car at a height and side, in the body's own space, or null.
+function lampSurface(rig, front, y, z) {
+  const rc = new THREE.Raycaster(), meshes = []; rig.body.traverse(o => { if (o.isMesh && !o.userData.addon && !o.userData.film) meshes.push(o); });
+  rig.body.updateMatrixWorld(true); const M = rig.body.matrixWorld;
+  rc.set(new THREE.Vector3(front ? 4 : -4, y, z).applyMatrix4(M), new THREE.Vector3(front ? -1 : 1, 0, 0).transformDirection(M));
+  const h = rc.intersectObjects(meshes, false)[0]; return h ? rig.body.worldToLocal(h.point.clone()).x : null;
 }
 // A soft round glow picture (bright middle fading to nothing), made once.
 let glowTex = null;
