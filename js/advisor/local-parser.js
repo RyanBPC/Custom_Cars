@@ -550,6 +550,17 @@ function comfortReply(low){
   if(car.id==="golf") r.push("Adaptive dampers (DCC) are a factory option on the Golf GTI that let you pick a Comfort mode.");
   return {reply:r.join(" "),...none,remove:d&&!d.air?["drop"]:[]};
 }
+/* "change the colour", "new colour", "what colours can i have" with no colour named: list some choices, fit nothing (Car #143).
+   Colour on another part ("colour of the wheels", "stitching colour") is left to the normal rules. */
+const COLOUR_ASK=/\bcolou?rs?\b|\brespray\b|\bpaint ?job\b/;
+const COLOUR_ASK_NOT=/\b(?:wheels?|rims?|alloys?|calipers?|callipers?|seats?|stitching|interior|lights?|underglow|glow|tint|windows?|stripes?|roof|mirrors?|bonnet|belts?|wrap|matte|satin|gloss|chrome|carbon)\b|custom-[0-9a-f]{6}/;
+function colourAskReply(low){
+  if(!COLOUR_ASK.test(low)||COLOUR_ASK_NOT.test(low)||PRICE_Q.test(low)) return null;
+  if(COLOURS.some(c=>new RegExp("\\b"+c[0]+"\\b").test(low))) return null;
+  const car=CARS.find(x=>x.id===state.car), w=(state.mods||{}).wrap;
+  const now=w&&w.colour?`It's ${(w.finish?w.finish+" ":"")+colourName(w.colour).toLowerCase()} now (${w.paint?"a respray":"a wrap"}).`:`It's in the factory ${car.colourName||colourName(car.colour)} now.`;
+  return {reply:`${now} Popular UK choices: Nardo grey, white, black, red, blue, British racing green, midnight purple or baby blue, and real factory colours like Kings Red or Estoril Blue work too. Say "paint it nardo grey" for a respray or "wrap it satin black" for a wrap (cheaper, and it peels off). You can also pick one on the Options panel under Paint and wrap. Nothing has been changed.`,switchCar:null,reset:false,apply:[],remove:[],notes:{}};
+}
 function localPlan(text){
   // Your own colour: "#ff8800" is read as the colour name "custom-ff8800" (see registerCustomColours).
   text=String(text).replace(/#([0-9a-f]{6})\b/gi,(m,h)=>"custom-"+h.toLowerCase()); registerCustomColours(text);
@@ -558,6 +569,7 @@ function localPlan(text){
   if(priceAsked&&ADD_IT.test(low)){const asked=priceAsked; priceAsked=null; return planParts(asked);}
   if(VALUE_Q.test(low)&&!VALUE_NOT.test(low)) return {reply:VALUE_REPLY,switchCar:null,reset:false,apply:[],remove:[],notes:{}};
   if((COMFORT_Q.test(low)||MPG_Q.test(low))&&!PRICE_Q.test(low)) return comfortReply(low);
+  {const c=colourAskReply(low); if(c) return c;}
   if(!PRICE_Q.test(low)&&!adviceAsked(low)){const q=questionReply(low); if(q) return q;}
   if(!PRICE_Q.test(low)||adviceAsked(low)) return planParts(text);
   const money=v=>"£"+Math.round(v).toLocaleString("en-GB");
