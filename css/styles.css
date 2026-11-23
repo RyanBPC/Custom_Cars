@@ -438,6 +438,7 @@ section{padding-block:64px}
 .msg.ai{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.07)}
 .suggest button{font-size:13px;padding:6px 12px;border-color:rgba(255,255,255,.1)}
 .suggest button:hover{border-color:color-mix(in srgb,var(--accent) 60%,transparent);color:var(--fg)}
+.suggest button.surprise{color:var(--fg);border-color:color-mix(in srgb,var(--accent) 55%,transparent);font-weight:600}
 /* Stats and build sheet: clearer labels and numbers. */
 .statcard{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.07);padding:12px 14px}
 .statcard.build{border-color:color-mix(in srgb,var(--accent) 40%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 8%,transparent),rgba(255,255,255,.02))}

@@ -21,7 +21,7 @@ function modCard(id,notes){
   el.append(t,dl);return el;
 }
 const SUGGESTIONS=["Lower it on coilovers with 19-inch bronze wheels","Make it faster and louder","Full track build","Satin black wrap with a GT wing and red calipers","Switch to the BMW 440i with a widebody kit"];
-$("suggest").innerHTML=SUGGESTIONS.map(s=>`<button type="button">${s}</button>`).join("");
+$("suggest").innerHTML=`<button type="button" class="surprise" title="Fits one of the ready-made looks for this car">🎲 Surprise me</button>`+SUGGESTIONS.map(s=>`<button type="button">${s}</button>`).join("");
 $("suggest").addEventListener("click",e=>{const b=e.target.closest("button");if(b){$("askInput").value=b.textContent;$("askForm").requestSubmit();}});
 $("askForm").addEventListener("submit",e=>{e.preventDefault();if(busy){busy.abort();return;}const t=$("askInput").value.trim();if(!t)return;$("askInput").value="";ask(t);});
 
@@ -76,9 +76,27 @@ function undoLast(){
 }
 function dropUndoBtn(label){if(!undoBtn)return;if(label){undoBtn.disabled=true;undoBtn.textContent=label;}else undoBtn.remove();undoBtn=null;}
 
+/* ---------- "Surprise me": fit a ready-made look for a beginner who doesn't know what to ask ---------- */
+// Picks one of this car's builds from js/data/builds.js (never the same one twice in a row), starting from stock.
+const SURPRISE_RE=/^\s*(?:please\s+)?(?:🎲\s*)?(?:surprise me(?: with (?:something|a build|a look))?|random build|(?:give me |do )?a random (?:build|look)|pick (?:one |something )?for me|you (?:choose|pick|decide)|dealer'?s choice)\s*(?:please)?[.!]*\s*$/i;
+let lastSurprise=null;
+function surprisePlan(){
+  const c=car(), mine=BUILDS.filter(b=>b.car===state.car);
+  if(!mine.length) return null;
+  const pool=mine.length>1?mine.filter(b=>b.id!==lastSurprise):mine;
+  const b=pool[Math.floor(Math.random()*pool.length)]; lastSurprise=b.id;
+  const keep=state.mods; let plan;
+  try{ state.mods={}; plan=localPlan(b.text)||{}; } finally{ state.mods=keep; }
+  const mods={}; (Array.isArray(plan.apply)?plan.apply:[]).forEach(a=>{if(a&&MODS[a.id])mods[a.id]=sanitize(a.id,a.params,c);});
+  const cost=Math.round(buildCost(c,sanitizeAll(mods,c))/100)*100;
+  return {apply:plan.apply||[],remove:[],reset:true,switchCar:null,notes:plan.notes,
+    reply:`Surprise! Your ${c.model} now has the "${b.name}" look: ${b.tags.join(", ")}.${cost>0?` That's about £${cost.toLocaleString("en-GB")} fitted.`:""} Press Surprise me again for another look, say "undo" to go back, or change any part you like.`};
+}
+
 async function ask(text){
   addUser(text);
   if(UNDO_RE.test(text)){undoLast();return;}
+  if(SURPRISE_RE.test(text)){const sp=surprisePlan();if(sp){applyPlan(sp,text);return;}}
   const think=document.createElement("div");think.className="msg ai thinking";think.textContent="Working on it";msgs.appendChild(think);scrollMsgs();
   const btn=$("askBtn");btn.textContent="Stop";
   let plan=null;
