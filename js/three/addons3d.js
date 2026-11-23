@@ -630,8 +630,10 @@ Object.assign(PARTS, {
     const c = cabinOf(f), g = new THREE.Group(), red = redMat(), buckets = s && s.extras && s.extras.includes("Bucket seats");
     const H = c.headrestY + 0.1 - c.seatY, lean = Math.sin(0.14);
     const faceX = (y, z, x0) => {
-      if (buckets) return c.headrestX - 0.06 + 0.06 - (y - (c.seatY - 0.04)) * lean;
-      const h = probe(rig, [x0 + 0.7, y, z], [-1, 0, 0]); return h && h.x > x0 - 0.1 && h.x < x0 + 0.6 ? h.x + 0.012 : x0 + 0.15;
+      // In front of whichever is further forward: the bucket shell's face, or the car's own seat (which can show through it).
+      const shell = buckets ? c.headrestX - 0.03 - (y - (c.seatY - 0.04)) * lean : -Infinity;
+      const h = probe(rig, [x0 + 0.7, y, z], [-1, 0, 0]), own = h && h.x > x0 - 0.1 && h.x < x0 + 0.6 ? h.x : x0 + 0.13;
+      return Math.max(shell, own) + 0.015;
     };
     for (const k of [1, -1]) {
       const zc = k * c.seatZ, xb = c.headrestX, yS = buckets ? c.seatY - 0.04 + H * 0.66 : c.headrestY - 0.14, yC = c.seatY + 0.28, yL = c.seatY + 0.07, xl = c.frontSeatX + 0.08;
