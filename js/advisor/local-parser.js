@@ -561,12 +561,26 @@ function colourAskReply(low){
   const now=w&&w.colour?`It's ${(w.finish?w.finish+" ":"")+colourName(w.colour).toLowerCase()} now (${w.paint?"a respray":"a wrap"}).`:`It's in the factory ${car.colourName||colourName(car.colour)} now.`;
   return {reply:`${now} Popular UK choices: Nardo grey, white, black, red, blue, British racing green, midnight purple or baby blue, and real factory colours like Kings Red or Estoril Blue work too. Say "paint it nardo grey" for a respray or "wrap it satin black" for a wrap (cheaper, and it peels off). You can also pick one on the Options panel under Paint and wrap. Nothing has been changed.`,switchCar:null,reset:false,apply:[],remove:[],notes:{}};
 }
+/* "all wheel drive", "awd", "4wd", "rear wheel drive": the car's real drive, nothing fitted (Car #144).
+   The wheels rule reads any "wheel", so this has to come first. */
+const DRIVE_Q=/\b(?:all|four|4|front|rear|two|2)[- ]?wheel[- ]?drive\b|\bwheel[- ]drive\b|\b(?:awd|4wd|4x4|fwd|rwd|2wd|4motion|xdrive|quattro)\b/;
+function driveReply(){
+  const car=CARS.find(x=>x.id===state.car);
+  const say={FWD:"front-wheel drive",RWD:"rear-wheel drive",AWD:"all-wheel drive"}[car.drive]||"front-wheel drive";
+  const r=[`The ${car.model} is ${say}.`];
+  if(car.id==="golf") r.push("The all-wheel drive Golf is the Golf R (4Motion), a different car from the factory.");
+  r.push("Changing which wheels are driven isn't a bolt-on mod: it means a new gearbox, driveshafts, rear axle and floor, so it's cheaper to buy a car that already has it.");
+  if(car.drive==="FWD") r.push(`For more grip out of corners, ${car.id==="golf"?'a limited slip diff helps (say "add an lsd")':"good tyres help most"}, and coilovers or anti-roll bars make it sharper.`);
+  r.push("Nothing has been changed.");
+  return {reply:r.join(" "),switchCar:null,reset:false,apply:[],remove:[],notes:{}};
+}
 function localPlan(text){
   // Your own colour: "#ff8800" is read as the colour name "custom-ff8800" (see registerCustomColours).
   text=String(text).replace(/#([0-9a-f]{6})\b/gi,(m,h)=>"custom-"+h.toLowerCase()); registerCustomColours(text);
   // priceAsked is cleared by applyPlan (chat.js) on the next real message, so behind-the-scenes checks can't wipe it.
   const low=" "+fixTypos(String(text).toLowerCase())+" ";
   if(priceAsked&&ADD_IT.test(low)){const asked=priceAsked; priceAsked=null; return planParts(asked);}
+  if(DRIVE_Q.test(low)&&!PRICE_Q.test(low)) return driveReply();
   if(VALUE_Q.test(low)&&!VALUE_NOT.test(low)) return {reply:VALUE_REPLY,switchCar:null,reset:false,apply:[],remove:[],notes:{}};
   if((COMFORT_Q.test(low)||MPG_Q.test(low))&&!PRICE_Q.test(low)) return comfortReply(low);
   {const c=colourAskReply(low); if(c) return c;}
