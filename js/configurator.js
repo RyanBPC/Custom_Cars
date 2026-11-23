@@ -16,11 +16,33 @@
       fields: [{ key: "pattern", label: "Pattern", opts: [["camo", "Camo"], ["flames", "Flames"], ["graffiti", "Graffiti / full print"]] }],
       read: (t, v) => { v.pattern = /camo/.test(t) ? "camo" : /graffiti|tribal|print/.test(t) ? "graffiti" : "flames"; },
       make: v => `${v.pattern === "graffiti" ? "graffiti" : v.pattern} wrap` },
-    { name: "Wheels", pick: "wheels", opts: [["Factory", null], ["18″ black mesh", "18 inch black mesh wheels"], ["19″ silver multi-spoke", "19 inch silver multi-spoke wheels"], ["19″ gunmetal forged", "19 inch gunmetal forged wheels"], ["19″ bronze deep dish", "19 inch bronze deep dish wheels"], ["20″ turbofan", "20 inch chrome turbofan wheels"]], extras: [["Low-profile tyres", "low profile tyres"]] },
+    { name: "Wheels", row: true, mod: "wheels", offLabel: "Back to factory wheels", fitLabel: "Fit these wheels", defaults: { size: "19", style: "multi-spoke", finish: "gunmetal", lip: "no" },
+      fields: [{ key: "size", label: "Size", opts: [["17", "17 inch"], ["18", "18 inch"], ["19", "19 inch"], ["20", "20 inch"], ["21", "21 inch"]] },
+        { key: "style", label: "Style", opts: [["multi-spoke", "Multi-spoke"], ["5-spoke", "5-spoke"], ["y-spoke", "Y-spoke"], ["split-spoke", "Split-spoke"], ["mesh", "Mesh"], ["bbs-mesh", "BBS-style cross-spoke mesh"], ["monoblock", "Forged monoblock"], ["deep-dish", "Deep dish"], ["turbofan", "Turbofan"]] },
+        { key: "finish", label: "Finish", opts: [["silver", "Silver"], ["gunmetal", "Gunmetal"], ["black", "Gloss black"], ["matte-black", "Matte black"], ["white", "White"], ["bronze", "Bronze"], ["gold", "Gold"], ["machined", "Machined (diamond-cut)"], ["chrome", "Chrome"]] },
+        { key: "lip", label: "Lip", opts: [["no", "Same as the face"], ["yes", "Polished lip (two-tone)"]] }],
+      // The finish goes right before "wheels", so its colour is read as the wheels' (not the paint's).
+      make: v => `${v.size} inch ${{ "bbs-mesh": "bbs style cross spoke", monoblock: "forged monoblock", "deep-dish": "deep dish" }[v.style] || v.style} ${{ "matte-black": "matte black", black: "gloss black", machined: "machined" }[v.finish] || v.finish} wheels${v.lip === "yes" ? " with a polished lip" : ""}` },
+    { name: "Tyres", row: true, part: "Low-profile tyres", offLabel: "Factory tyres", fitLabel: "Fit low-profile tyres", defaults: { profile: "35" },
+      fields: [{ key: "profile", label: "Sidewall profile", opts: [["45", "45 series"], ["40", "40 series"], ["35", "35 series"], ["30", "30 series"]] }],
+      read: (t, v) => { const m = t.match(/(45|40|35|30)-profile/); if (m) v.profile = m[1]; }, make: v => `${v.profile} profile tyres`,
+      extras: [["Raised white letters", "raised white letter tyres"]] },
+    { name: "Wheel spacers", row: true, part: "Wheel spacers", defaults: { mm: "20" },
+      fields: [{ key: "mm", label: "Thickness (each side)", opts: [["5", "5mm"], ["10", "10mm"], ["15", "15mm"], ["20", "20mm"], ["25", "25mm"]] }],
+      read: (t, v) => { const m = t.match(/(\d+)mm/); if (m) v.mm = m[1]; }, make: v => `${v.mm}mm wheel spacers` },
     { name: "Ride height", pick: "drop", opts: [["Factory", null], ["−20mm", "lower it 20mm"], ["−35mm", "lower it 35mm"], ["Slammed −50mm", "slammed"], ["Air ride", "air ride"]] },
     { name: "Aero", pick: "spoiler", opts: [["No spoiler", null], ["Lip", "lip spoiler"], ["Ducktail", "ducktail spoiler"], ["Roof extension", "roof spoiler extension"], ["Pedestal wing", "pedestal wing"], ["GT wing", "gt wing"]], extras: [["Body kit", "body kit"], ["Widebody", "widebody"]] },
-    { name: "Styling", extras: [["20% tint", "20% tint"], ["Smoked lights", "smoked lights"], ["Big brakes", "big brakes"]] },
-    { name: "Body & trim", extras: [["Side skirts", "side skirts"], ["Smoked tail lights", "smoked tail lights"], ["Honeycomb grille", "honeycomb mesh grille"], ["Carbon grille", "carbon grille"], ["Chrome window trim", "chrome window trim"], ["Carbon window trim", "carbon window trim"]] },
+    { name: "Styling", extras: [["Big brakes", "big brakes"]] },
+    { name: "Window tint", row: true, mod: "tint", defaults: { vlt: "35" },
+      fields: [{ key: "vlt", label: "Rear windows (light let through)", opts: [["70", "70% (lightest)"], ["50", "50%"], ["35", "35%"], ["20", "20%"], ["5", "5% (limo)"]] }],
+      make: v => `${v.vlt}% tint`, note: "UK law: the windscreen must let through at least 75% of light and the front side windows 70%, so dark tint goes on the rear windows only (shown here)." },
+    { name: "Smoked lights", row: true, parts: ["Smoked headlights", "Smoked tail lights"], alsoRemove: ["lights"], offLabel: "Clear lights", fitLabel: "Smoke them", defaults: { head: "medium", tail: "medium" },
+      fields: [{ key: "head", label: "Headlights", opts: [["off", "Clear"], ["light", "Light smoke"], ["medium", "Medium smoke"], ["dark", "Dark smoke"]] },
+        { key: "tail", label: "Tail lights", opts: [["off", "Clear"], ["light", "Light smoke"], ["medium", "Medium smoke"], ["dark", "Dark smoke"]] }],
+      read: (t, v) => { const h = t.match(/(light|medium|dark) smoked headlight/), tl = t.match(/(light|medium|dark) smoked tail/); v.head = h ? h[1] : "off"; v.tail = tl ? tl[1] : "off"; },
+      make: v => [v.head !== "off" && `${v.head === "light" ? "lightly" : v.head} smoked headlights`, v.tail !== "off" && `${v.tail === "light" ? "lightly" : v.tail} smoked tail lights`].filter(Boolean).join(" and "),
+      note: "Lights must still pass the MOT brightness test; dark smoke is for shows." },
+    { name: "Body & trim", extras: [["Side skirts", "side skirts"], ["Honeycomb grille", "honeycomb mesh grille"], ["Carbon grille", "carbon grille"], ["Chrome window trim", "chrome window trim"], ["Carbon window trim", "carbon window trim"]] },
     { name: "Racing stripes", row: true, mod: "stripes", defaults: { colour: "#ecebe6" }, fields: [{ key: "colour", label: "Colour", colour: true }],
       make: (v, n) => `${n(v.colour)} racing stripes` },
     { name: "Bonnet wrap", row: true, part: "Bonnet wrap", defaults: { finish: "gloss", colour: "#16181c" },
@@ -141,9 +163,11 @@
   // Current choices of a row: read from the fitted part, else its defaults.
   function rowVals(g) {
     if (g.mod === "wrap") { const w = state.mods.wrap; return w ? { colour: w.colour, finish: w.finish, kind: w.paint ? "paint" : "wrap" } : { ...g.defaults, on: false }; }
+    if (g.mod === "wheels") { const w = state.mods.wheels; return w ? { size: String(w.size), style: w.style, finish: w.finish, lip: w.lip ? "yes" : "no" } : { ...g.defaults, on: false }; }
+    if (g.mod === "tint") { const w = state.mods.tint; return w ? { vlt: String(w.vlt) } : { ...g.defaults, on: false }; }
     if (g.mod === "stripes") { const s = state.mods.stripes; return s ? { colour: s.colour } : { ...g.defaults, on: false }; }
-    const it = rowItem(g); if (!it) return { ...g.defaults, on: false };
-    const t = (it.text || it.name).toLowerCase(), v = { on: true }; g.read(t, v, coloursInText(t), it.name); return { ...g.defaults, ...v };
+    const its = customs().filter(c => partsOf(g).includes(c.name)); if (!its.length) return { ...g.defaults, on: false };
+    const t = its.map(it => (it.text || it.name).toLowerCase()).join(" and "), v = { on: true }; g.read(t, v, coloursInText(t), its[0].name); return { ...g.defaults, ...v };
   }
   function rowHtml(g, gi) {
     const v = rowVals(g), fitted = v.on !== false;
@@ -154,13 +178,16 @@
   // Applies a row's choices: builds its wording and fits it (replacing the part's previous choice).
   function applyRow(g, v) {
     const text = g.make(v, nameOf);
+    if (!text) return rowOff(g);
     const p = planFor(text);
+    if (g.alsoRemove) p.remove = [...(p.remove || []), ...g.alsoRemove];
     p.apply = (p.apply || []).map(a => a.id !== "custom" ? a : { id: "custom", params: { items: [...customs().filter(c => !a.params.items.some(i => i.name === c.name) && !partsOf(g).includes(c.name)), ...a.params.items] } });
     addUser(text); applyPlan(p, text);
   }
   function rowOff(g) {
     const what = g.name.toLowerCase();
     const plan = g.mod ? { remove: [g.mod] } : customPlan(customs().filter(c => !partsOf(g).includes(c.name)));
+    if (g.alsoRemove) plan.remove = [...(plan.remove || []), ...g.alsoRemove];
     plan.reply = `Taken off: ${what}.`; addUser(`Remove the ${what}`); applyPlan(plan, `${what} off`);
   }
   function rowChange(gi, key, val) {

@@ -423,8 +423,11 @@ function letterTextures(text, st, W, H) {
   return (plateCache[key] = { mask, normal });
 }
 // Writing around a tyre's sidewall (like raised white letters).
-let tyreTex = null;
-function tyreLetters(r0, r1) {
+let tyreTex = null; const tyreTexts = {};
+function tyreLetters(r0, r1, words) {
+  if (words) { // other lettering, made once per wording
+    if (!tyreTexts[words]) { const c = document.createElement("canvas"); c.width = 1024; c.height = 48; const g = c.getContext("2d"); g.fillStyle = "#f2f0ea"; g.font = "bold 34px Arial, sans-serif"; g.textBaseline = "middle"; for (let i = 0; i < 2; i++) g.fillText(words, 20 + i * 512, 26); tyreTexts[words] = new THREE.CanvasTexture(c); tyreTexts[words].colorSpace = THREE.SRGBColorSpace; }
+  }
   if (!tyreTex) {
     const c = document.createElement("canvas"); c.width = 1024; c.height = 48; const g = c.getContext("2d");
     g.fillStyle = "#e9e6dc"; g.font = "bold 34px Arial, sans-serif"; g.textBaseline = "middle";
@@ -435,7 +438,7 @@ function tyreLetters(r0, r1) {
   for (let i = 0; i <= seg; i++) { const a = i / seg * Math.PI * 2; for (const [r, v] of [[r0, 0], [r1, 1]]) { pos.push(Math.cos(a) * r, Math.sin(a) * r, 0); uv.push(i / seg, v); } }
   for (let i = 0; i < seg; i++) idx.push(2 * i, 2 * i + 2, 2 * i + 1, 2 * i + 1, 2 * i + 2, 2 * i + 3);
   const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx);
-  const m = mesh(geo, new THREE.MeshStandardMaterial({ map: tyreTex, transparent: true, roughness: 0.8, side: THREE.DoubleSide })); m.castShadow = false; return m;
+  const m = mesh(geo, new THREE.MeshStandardMaterial({ map: words ? tyreTexts[words] : tyreTex, transparent: true, roughness: 0.8, side: THREE.DoubleSide })); m.castShadow = false; return m;
 }
 function cabinOf(f) { return f.cabin || { seatY: 0.62, frontSeatX: -0.2, rearSeatX: -0.95, seatZ: 0.36, headrestX: -0.45, headrestY: 1.3, roofInY: 1.4, wheel: [0.35, 1.0, 0.36], dashX: 0.6 }; }
 function namedMat(key, make) { const m = mats(); return m[key] || (m[key] = make()); }
@@ -573,6 +576,11 @@ Object.assign(PARTS, {
       else if (pl.cover) g.add(place(rear, yy, at, rig.paints[0], W + 0.02, H + 0.015));
     }
     return g; // materials aren't disposed with the part: the cover uses the car's own paint
+  },
+  "Raised white letters": (f, rig, s) => {
+    const g = new THREE.Group(), out = s.wheelOut || 0;
+    for (const w of rig.wheelInfo.list) { const k = Math.sign(w.z), t = tyreLetters(w.r * 0.86, w.r * 0.95, "PERFORMANCE  ·  RADIAL  "); t.position.set(w.x, w.y, k * (f.tyreZ || f.sideZ) + k * (out + 0.004)); if (k < 0) t.rotation.y = Math.PI; g.add(t); }
+    g.userData.ground = true; g.userData.ownMaterials = true; return g;
   },
   "All-terrain tyres": (f, rig, s) => {
     const g = new THREE.Group(), out = s.wheelOut || 0;
@@ -871,7 +879,7 @@ Object.assign(PARTS, {
 
 // Extra parts shown by changing the paint, wheels or ride height instead of adding a shape.
 const PAINT_EXTRAS = ["Carbon-fibre bonnet", "Carbon roof", "Two-tone black roof", "Bonnet vents", "Wing vents", "Racing numbers", "Decals and graphics", "Carbon mirror caps", "Gloss black mirror caps", "Custom graphic wrap", "Paint protection film", "Ceramic coating", "Windscreen sun strip"];
-const OTHER_EXTRAS = ["Low-profile tyres", "Caliper paint", "Smoked tail lights", "Wheel spacers", "Negative camber setup", "Chrome wheel finish", "Lift kit", "Chrome delete and black badges", "Gloss black grille", "Front plate delete", "Rear plate delete", "Private number plate", "Styled number plates"];
+const OTHER_EXTRAS = ["Smoked headlights", "Low-profile tyres", "Caliper paint", "Smoked tail lights", "Wheel spacers", "Negative camber setup", "Chrome wheel finish", "Lift kit", "Chrome delete and black badges", "Gloss black grille", "Front plate delete", "Rear plate delete", "Private number plate", "Styled number plates"];
 // Every extra part (by its name in EXTRA_PARTS) that the 3D view can show.
 export const SHOWN_EXTRAS = [...Object.keys(PARTS).filter(k => !k.includes(":") && !/^(bodykit|widebody|exhaust)$/.test(k)), ...PAINT_EXTRAS, ...OTHER_EXTRAS];
 
@@ -1071,12 +1079,13 @@ export function updateAddons(rig, spec, f) {
   const s = spec || { extras: [] }, has = n => s.extras.includes(n), want = new Map();
   if (s.spoiler) want.set("spoiler:" + s.spoiler, "");
   for (const k of ["bodykit", "widebody", "exhaust"]) if (s[k] && !(k === "exhaust" && rig.aero && has("Quad exhaust tips"))) want.set(k, "");
-  const out = (has("Wheel spacers") ? 0.02 : 0) + (s.widebody ? 0.055 : 0), camber = has("Negative camber setup") ? 0.06 : 0;
+  const spacerMm = has("Wheel spacers") ? +((textOf(s, "Wheel spacers").match(/(\d+)\s*mm/) || [0, 20])[1]) : 0;
+  const out = spacerMm / 1000 + (s.widebody ? 0.055 : 0), camber = has("Negative camber setup") ? 0.06 : 0;
   s.wheelOut = out;
   // A part's key: when it changes, the part is rebuilt (colour, plate text, wheel position).
-  const low = has("Low-profile tyres") ? LOW_PRO : 0;
+  const low = has("Low-profile tyres") ? lowFor(textOf(s, "Low-profile tyres")) : 0;
   const keyOf = n => ({ "LED underglow": s.glow, "LED ambient interior lighting": s.ambient, "Number plates": (s.plate || "") + has("Front plate delete") + has("Rear plate delete") + JSON.stringify(s.plateStyle || {}),
-    "All-terrain tyres": String(out) + low, "Centre cap swap": textOf(s, n) + out + low + camber + (rig.wheelKey || "") })[n] ?? textOf(s, n);
+    "All-terrain tyres": String(out) + low, "Raised white letters": String(out) + low, "Centre cap swap": textOf(s, n) + out + low + camber + (rig.wheelKey || "") })[n] ?? textOf(s, n);
   for (const n of s.extras) if (PARTS[n] && !(n === "Side skirts" && s.bodykit)) want.set(n, keyOf(n)); // the aero kit has its own skirts
   // Number plates are on every car unless both are taken off; they show the reg typed in the Studio's plate box, or the car's own.
   want.set("Number plates", keyOf("Number plates")); // always: with a plate off, some cars get a cover over their blank mount
@@ -1086,7 +1095,7 @@ export function updateAddons(rig, spec, f) {
     "fx:mirrorCaps": (has("Carbon mirror caps") && "1") || (has("Gloss black mirror caps") && "black"), "fx:sunStrip": has("Windscreen sun strip") && (s.sunStrip || "GTI"), "fx:graphic": has("Custom graphic wrap") && (s.graphic || "flames") };
   for (const k in fx) if (fx[k]) want.set(k, String(fx[k]));
   // Rebuild only the parts that changed.
-  for (const [k, part] of rig.fx.parts) if (!want.has(k) || want.get(k) !== part.userData.key) { part.parent.remove(part); part.traverse(o => { if (o.isMesh) { if (!rig.aero || !AERO[k]) o.geometry.dispose(); if (part.userData.ownMaterials || o.parent && o.parent.userData.ownMaterials) { if (o.material.map && o.material.map !== tyreTex) o.material.map.dispose(); o.material.dispose(); } } }); rig.fx.parts.delete(k); }
+  for (const [k, part] of rig.fx.parts) if (!want.has(k) || want.get(k) !== part.userData.key) { part.parent.remove(part); part.traverse(o => { if (o.isMesh) { if (!rig.aero || !AERO[k]) o.geometry.dispose(); if (part.userData.ownMaterials || o.parent && o.parent.userData.ownMaterials) { if (o.material.map && o.material.map !== tyreTex && !Object.values(tyreTexts).includes(o.material.map)) o.material.map.dispose(); o.material.dispose(); } } }); rig.fx.parts.delete(k); }
   for (const [k, key] of want) if (!rig.fx.parts.has(k)) {
     const part = k.startsWith("fx:") ? SKINS[k.slice(3)](f, rig, s, key === "black") : rig.aero && AERO[k] ? aeroPart(rig, AERO[k]) : PARTS[k](f, rig, s); part.userData.key = key;
     (part.userData.ground ? rig.group : rig.body).add(part); rig.fx.parts.set(k, part);
@@ -1140,5 +1149,6 @@ export function updateAddons(rig, spec, f) {
   return (has("Lift kit") ? 0.06 : 0) - low; // how much the body goes up
 }
 
-// How much smaller (in radius) a low-profile tyre is than the car's own: its sidewall is about this much thinner.
+// How much smaller (in radius) a low-profile tyre is than the car's own, by its profile (45, 40, 35 or 30 series).
 export const LOW_PRO = 0.012;
+export function lowFor(text) { const p = +((String(text).match(/\b(45|40|35|30)-profile/) || [0, 35])[1]); return { 45: 0.004, 40: 0.008, 35: 0.012, 30: 0.018 }[p] || LOW_PRO; }

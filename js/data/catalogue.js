@@ -40,9 +40,9 @@ const COLOURS = [
  ["gunmetal","#50565e"],["black","#16181c"],["white","#ecebe6"],["silver","#c5c8cc"],["grey","#6f757c"],["gray","#6f757c"],["red","#b5121b"],["blue","#2459c2"],
  ["green","#2f7a45"],["yellow","#e0b400"],["orange","#d9601e"],["purple","#5b2d86"],["pink","#d8608f"],["teal","#1d8a86"],["gold","#b8964e"],["bronze","#8c6a3f"],["lime","#7fc241"],["burgundy","#5e1422"],["brown","#5a3d2b"]
 ];
-const RIM_FINISH = {silver:"#c9cdd2",gunmetal:"#545a62",black:"#1c1e22",bronze:"#8c6a3f",gold:"#b8964e",white:"#e8e8e4"};
+const RIM_FINISH = {silver:"#c9cdd2",gunmetal:"#545a62",black:"#1c1e22","matte-black":"#202226",bronze:"#8c6a3f",gold:"#b8964e",white:"#e8e8e4",machined:"#d9dde0",chrome:"#f2f2f2"};
 const CALIPER = {red:"#c41d24",yellow:"#e1b400",black:"#26282c",blue:"#2459c2",gold:"#b8964e",green:"#2f7a45",orange:"#d9601e"};
-const WHEEL_STYLES = ["multi-spoke","mesh","monoblock","deep-dish","turbofan"];
+const WHEEL_STYLES = ["multi-spoke","mesh","monoblock","deep-dish","turbofan","5-spoke","y-spoke","split-spoke","bbs-mesh"];
 
 const MODS = {
  tune:{name:"Engine remap",cat:"Performance",order:1},
@@ -130,11 +130,13 @@ const EXTRA_PARTS = [
  {re:/interior lights?|ambient lighting|led interior/,name:"LED ambient interior lighting",in3d:true,price:250,text:""},
  // Cosmetic extras (Ryan's list): each has its own 3D version; the colour or finish chosen goes in its text (js/advisor/local-parser.js).
  {re:/\bside ?skirts?\b/,name:"Side skirts",in3d:true,price:450,text:"carbon-look side skirts between the wheels"},
+ {re:/smoked? head ?lights?|head ?lights? (?:smoked|tinted)|tint(?:ed)? (?:the )?head ?lights?/,name:"Smoked headlights",in3d:true,price:150,text:"medium smoked headlight lenses"},
+ {re:/raised white letter(?:s|ing)?|white[- ]letter(?:ed|ing)? tyres?|\brwl\b|white lettering/,name:"Raised white letters",in3d:true,price:250,text:"tyres with raised white lettering"},
  {re:/smoked? (?:tail|rear) ?lights?|(?:tail|rear) ?lights? (?:smoked|tinted)|tint(?:ed)? (?:the )?(?:tail|rear) ?lights?/,name:"Smoked tail lights",in3d:true,price:120,text:"lightly smoked tail-light lenses"},
  {re:/(?:bonnet|hood) (?:vinyl )?wrap|wrap (?:the |my )?(?:bonnet|hood)|carbon[- ]look (?:bonnet|hood)|(?:gloss|glossy|matte?|satin) (?:[a-z]+ )?(?:bonnet|hood)\b|\b(?:black|white|red|grey|gray) (?:bonnet|hood)\b/,name:"Bonnet wrap",in3d:true,price:250,text:"a gloss black vinyl wrap on the bonnet"},
  {re:/calipers? paint|paint(?:ed)? (?:the |my )?(?:brake )?calipers?|painted (?:brake )?calipers?|calipers? (?:colou?r|painted)/,name:"Caliper paint",in3d:true,price:200,text:"red painted brake calipers"},
  {re:/(?:cent(?:re|er)|wheel|hub) caps?\b/,name:"Centre cap swap",in3d:true,price:60,text:"black wheel centre caps"},
- {re:/low[- ]?pro(?:file)?\b|stretch(?:ed)? tyres?|thin(?:ner)? (?:side ?walls?|tyres)/,name:"Low-profile tyres",in3d:true,price:600,text:"low-profile tyres with thin sidewalls"},
+ {re:/low[- ]?pro(?:file)?\b|stretch(?:ed)? tyres?|thin(?:ner)? (?:side ?walls?|tyres)|\b(?:45|40|35|30)[- ]?(?:profile|series)\b/,name:"Low-profile tyres",in3d:true,price:600,text:"low-profile tyres with thin sidewalls"},
  {re:/honeycomb|mesh grilles?/,name:"Honeycomb mesh grille",in3d:true,price:180,text:"a black honeycomb mesh grille and bumper inserts"},
  {re:/carbon (?:fibre |fiber )?grilles?/,name:"Carbon grille",in3d:true,price:350,text:"a carbon-fibre grille and bumper inserts"},
  {re:/chrome (?:window )?(?:trim|line|surrounds?)\b|chrome (?:door )?handles?/,name:"Chrome window trim",in3d:true,price:150,text:"a chrome strip along the bottom of the side windows"},
@@ -170,7 +172,7 @@ function modPrice(id,p,car){
     case "tune": return ({1:small?250:six?650:450,2:small?900:six?2600:1900,3:car.turbo?(six?7500:5500):4500})[p.stage];
     case "intake": return small?150:six?400:320;
     case "exhaust": return small?450:six?2200:1600;
-    case "wheels": return 1500+(p.size-17)*260+(p.style==="monoblock"?1400:0)+(p.style==="deep-dish"?500:0);
+    case "wheels": return 1500+(p.size-17)*260+(p.style==="monoblock"?1400:0)+(p.style==="deep-dish"?500:0)+(p.style==="bbs-mesh"?600:0)+(p.finish==="chrome"?600:p.finish==="machined"?250:0)+(p.lip?200:0);
     case "drop": return p.air?3500:p.springs?(small?220:300):small?750:six?1500:1350;
     case "brakes": return small?1300:six?3800:3400;
     case "bodykit": return small?850:1800;
@@ -191,7 +193,7 @@ function registerCustomColours(text){for(const m of String(text||"").toLowerCase
 function modLabel(id,p){
   switch(id){
     case "tune": return p.stage===3?"Stage 3 power upgrade":"Stage "+p.stage+" remap";
-    case "wheels": return p.size+"″ "+p.finish+" "+p.style+" wheels";
+    case "wheels": return p.size+"″ "+p.finish.replace("-"," ")+" "+(p.style==="bbs-mesh"?"BBS-style mesh":p.style)+" wheels"+(p.lip?" with polished lip":"");
     case "drop": return p.air?"Air suspension, aired out":p.springs?"Lowering springs, −"+p.mm+"mm":"Coilovers, −"+p.mm+"mm";
     case "spoiler": return ({lip:"Lip spoiler",ducktail:"Ducktail spoiler","gt-wing":"GT wing","roof-ext":"Roof spoiler extension",pedestal:"Pedestal wing"})[p.type];
     case "wrap": return p.finish[0].toUpperCase()+p.finish.slice(1)+" "+colourName(p.colour).toLowerCase()+(p.paint?" respray":" wrap");

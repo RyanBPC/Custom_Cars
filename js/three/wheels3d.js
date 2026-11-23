@@ -7,7 +7,50 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 const cache = {};
 const FLIP = new Set(["deepdish"]); // models whose face came out on the other side
+
+/* ---------- modelled-in-code rims: 5-spoke, Y-spoke, split-spoke and BBS-style cross-spoke mesh ----------
+   Same layout as the downloaded rims: axle along Z, face towards +Z, outer diameter 1, centred on its depth.
+   A barrel with flanges, a hub with five bolts and a dark centre cap, and spokes from the hub to the barrel. */
+const PROCEDURAL = { "5spoke": 1, yspoke: 1, splitspoke: 1, bbsmesh: 1 };
+function bar2D(ax, ay, bx, by, wa, wb) {
+  const dx = bx - ax, dy = by - ay, l = Math.hypot(dx, dy), nx = -dy / l, ny = dx / l, s = new THREE.Shape();
+  s.moveTo(ax + nx * wa / 2, ay + ny * wa / 2); s.lineTo(bx + nx * wb / 2, by + ny * wb / 2); s.lineTo(bx - nx * wb / 2, by - ny * wb / 2); s.lineTo(ax - nx * wa / 2, ay - ny * wa / 2); s.closePath();
+  return s;
+}
+const at = (r, a) => [r * Math.cos(a), r * Math.sin(a)];
+function spokeShapes(style) {
+  const out = [], hub = 0.11, rim = 0.468;
+  for (let i = 0; i < 5; i++) {
+    const a = Math.PI / 2 + i * 2 * Math.PI / 5;
+    if (style === "5spoke") out.push(bar2D(...at(hub, a), ...at(rim, a), 0.1, 0.13));
+    if (style === "splitspoke") for (const d of [-0.075, 0.075]) out.push(bar2D(...at(hub, a + d * 0.6), ...at(rim, a + d * 0.45), 0.045, 0.055));
+    if (style === "yspoke") { const mid = 0.27; out.push(bar2D(...at(hub, a), ...at(mid, a), 0.075, 0.07)); for (const d of [-0.2, 0.2]) out.push(bar2D(...at(mid - 0.01, a), ...at(rim, a + d), 0.05, 0.055)); }
+    if (style === "bbsmesh") {
+      for (const d of [0, Math.PI / 5]) out.push(bar2D(...at(hub, a + d), ...at(rim, a + d), 0.04, 0.03));
+      for (let j = 0; j < 4; j++) { const b = a + j * Math.PI / 10; out.push(bar2D(...at(0.2, b), ...at(rim, b + 0.32), 0.022, 0.02), bar2D(...at(0.2, b), ...at(rim, b - 0.32), 0.022, 0.02)); }
+    }
+  }
+  return out;
+}
+function proceduralRim(style) {
+  const D = 0.42, g = new THREE.Group();
+  const metal = new THREE.MeshStandardMaterial({ name: "Rim", color: 0xc9cdd2, metalness: 0.8, roughness: 0.3 });
+  const dark = new THREE.MeshStandardMaterial({ name: "cap", color: 0x111214, metalness: 0.3, roughness: 0.5 });
+  const bolt = new THREE.MeshStandardMaterial({ name: "bolt", color: 0xb8bcc0, metalness: 1, roughness: 0.25 });
+  // Barrel: (radius, depth) round the axle; the face is at z = 0, the back at -D.
+  const prof = [[0.455, -D], [0.5, -D + 0.008], [0.5, -D + 0.03], [0.462, -D + 0.05], [0.455, -0.07], [0.47, -0.045], [0.5, -0.02], [0.5, -0.004], [0.488, 0.0], [0.462, -0.012]];
+  const barrel = new THREE.LatheGeometry(prof.map(([r, z]) => new THREE.Vector2(r, z)), 96); barrel.rotateX(Math.PI / 2);
+  g.add(new THREE.Mesh(barrel, metal));
+  const spokes = new THREE.ExtrudeGeometry(spokeShapes(style), { depth: 0.05, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.006, bevelSegments: 2, curveSegments: 4 });
+  spokes.translate(0, 0, style === "5spoke" ? -0.075 : -0.07); g.add(new THREE.Mesh(spokes, metal));
+  const hubG = new THREE.CylinderGeometry(0.125, 0.13, 0.07, 40); hubG.rotateX(Math.PI / 2); hubG.translate(0, 0, -0.055); g.add(new THREE.Mesh(hubG, metal));
+  const cap = new THREE.CylinderGeometry(0.058, 0.06, 0.012, 32); cap.rotateX(Math.PI / 2); cap.translate(0, 0, -0.016); g.add(new THREE.Mesh(cap, dark));
+  for (let i = 0; i < 5; i++) { const [x, y] = at(0.09, i * 2 * Math.PI / 5); const b = new THREE.CylinderGeometry(0.012, 0.012, 0.014, 6); b.rotateX(Math.PI / 2); b.translate(x, y, -0.018); g.add(new THREE.Mesh(b, bolt)); }
+  g.traverse(o => { if (o.isMesh) o.geometry.computeVertexNormals(); });
+  const holder = new THREE.Group(); g.position.z = D / 2; holder.add(g); return holder; // centred on its depth
+}
 function loadRim(style) {
+  if (PROCEDURAL[style]) return (cache[style] = cache[style] || Promise.resolve(proceduralRim(style)));
   // Blender's up (Z) arrives as Y here, so the axle comes in along Y; turn it onto Z with the face towards +Z.
   if (!(style in cache)) cache[style] = new GLTFLoader().loadAsync(`models/wheels/${style}.glb`).then(g => { g.scene.rotation.x = Math.PI / 2; if (FLIP.has(style)) g.scene.rotation.z = Math.PI; const holder = new THREE.Group(); holder.add(g.scene); return holder; }).catch(e => { console.warn("Wheel model missing:", style, e); return null; });
   return cache[style];
@@ -24,6 +67,7 @@ function makeTyre(rimR, outerR, width) {
   return geo;
 }
 const rubber = new THREE.MeshStandardMaterial({ color: 0x141518, roughness: 0.88, metalness: 0 });
+const lipChrome = new THREE.MeshStandardMaterial({ color: 0xf2f2f2, metalness: 1, roughness: 0.06 });
 
 // The usual UK tyre size for a Golf on each rim size, as moulded on the sidewall (no brand names).
 // The per-rim tyre table lives in js/data/catalogue.js so the info card and the sidewall agree.
@@ -94,7 +138,7 @@ function removeFitted(w) {
    Returns a promise that resolves when the wheels are on (the caller redraws). */
 export async function fitWheels(rig, spec, low = 0) {
   if (rig.standIn) return false;
-  const key = (spec ? [spec.style, spec.inch, spec.colour, !!spec.chrome, rig.carId].join("|") : "") + (low ? "|low" + low : "");
+  const key = (spec ? [spec.style, spec.inch, spec.colour, !!spec.chrome, spec.matte, spec.machined, spec.lip, rig.carId].join("|") : "") + (low ? "|low" + low : "");
   if (rig.wheelKey === key) return false;
   rig.wheelKey = key;
   if (!spec) {
@@ -106,7 +150,11 @@ export async function fitWheels(rig, spec, low = 0) {
   if (!model || rig.wheelKey !== key) return false; // missing file, or changed again while loading
   measure(rig);
   // The rim's own materials, recoloured in the chosen finish (bolts and centre caps keep theirs).
-  const finish = new THREE.MeshPhysicalMaterial({ color: spec.chrome ? 0xf2f2f2 : spec.colour, metalness: spec.chrome ? 1 : 0.75, roughness: spec.chrome ? 0.06 : 0.32, clearcoat: spec.chrome ? 0 : 0.6, clearcoatRoughness: 0.15 });
+  // Finishes: gloss paint, matte (no clear coat), machined (bright diamond-cut metal) or mirror chrome.
+  const finish = new THREE.MeshPhysicalMaterial(spec.chrome ? { color: 0xf2f2f2, metalness: 1, roughness: 0.06 }
+    : spec.machined ? { color: 0xd9dde0, metalness: 0.95, roughness: 0.14, clearcoat: 0.6, clearcoatRoughness: 0.05 }
+    : spec.matte ? { color: spec.colour, metalness: 0.3, roughness: 0.72, clearcoat: 0 }
+    : { color: spec.colour, metalness: 0.75, roughness: 0.32, clearcoat: 0.6, clearcoatRoughness: 0.08 });
   const recolour = m => /bolt|cap|logo|silver/i.test(m.name) ? m : Object.assign(finish.clone(), { normalMap: m.normalMap || null, name: "Rim" });
   // The car's own tyre size(s) at its stock rim size; staggered cars (BMW 440i) get front and rear sizes.
   const own = typeof tyreForId === "function" ? tyreForId(rig.carId, spec.inch) : null;
@@ -131,6 +179,8 @@ export async function fitWheels(rig, spec, low = 0) {
     const tyreRimR = spec.inch * 0.0254 / 2 + 0.008;
     const tyre = new THREE.Mesh(makeTyre(tyreRimR, t.outerR - low, t.width * (low ? 0.95 : 1)), rubber);
     tyre.position.copy(t.centre); tyre.quaternion.copy(turn); tyre.castShadow = true; tyre.userData.wheelPart = tyre.userData.ownGeo = true;
+    // Polished lip: a bright ring round the outer edge of the rim (two-tone wheels).
+    if (spec.lip) { const lip = new THREE.Mesh(new THREE.TorusGeometry(rimD / 2 - 0.012, 0.009, 10, 96), lipChrome); lip.quaternion.copy(turn); lip.position.copy(t.centre).addScaledVector(t.outward, t.width / 2 - 0.014); lip.userData.wheelPart = lip.userData.ownGeo = true; g.add(lip); }
     tyre.add(sidewallLabel(tyreRimR, t.outerR - low, t.width * (low ? 0.95 : 1), spec.inch, Array.isArray(own) ? own[isFront(w) ? 0 : 1] : own)); // size lettering on the outer sidewall
     g.add(rim, tyre);
     w.group.add(g); w.fitted = g;

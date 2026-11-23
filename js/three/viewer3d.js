@@ -9,7 +9,7 @@ import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
 import { GroundedSkybox } from "three/addons/objects/GroundedSkybox.js";
 import { WebGLPathTracer, DenoiseMaterial } from "three-gpu-pathtracer";
 import { FullScreenQuad } from "three/addons/postprocessing/Pass.js";
-import { STANDIN_FIT, measureWheels, updateAddons, LOW_PRO } from "./addons3d.js";
+import { STANDIN_FIT, measureWheels, updateAddons, lowFor } from "./addons3d.js";
 import { fitWheels } from "./wheels3d.js";
 import { addBadges } from "./badges3d.js";
 
@@ -447,7 +447,7 @@ function applyBuild(b, stock) {
   applyTo(buildCar, b); applyTo(stockCar, stock || b);
   requestRender();
 }
-const TINT_OPACITY = { 5: 0.97, 20: 0.93, 35: 0.85, 50: 0.75 };
+const TINT_OPACITY = { 5: 0.97, 20: 0.93, 35: 0.85, 50: 0.75, 70: 0.62 };
 function applyTo(p, b) {
   applyBase(p, b);
   // Add-on parts and paint effects go on after the base colours (chrome wheels override the rim colour).
@@ -455,8 +455,9 @@ function applyTo(p, b) {
   applyLights(p, b);
   // Real aftermarket wheels (modelled rims at the chosen size, with a tyre to fit); the car's own otherwise.
   const chrome = !!(b.addons && b.addons.extras.includes("Chrome wheel finish"));
-  const low = b.addons && b.addons.extras.includes("Low-profile tyres") ? LOW_PRO : 0;
-  fitWheels(p, b.wheelsChanged && b.wheelStyle ? { style: b.wheelStyle.replace("-", ""), inch: b.wheelIn, colour: b.rimColour, chrome } : null, low)
+  const low = b.addons && b.addons.extras.includes("Low-profile tyres") ? lowFor((b.addons.extraText || {})["Low-profile tyres"] || "") : 0;
+  fitWheels(p, b.wheelsChanged && b.wheelStyle ? { style: b.wheelStyle.replace(/-/g, ""), inch: b.wheelIn, colour: b.rimColour, chrome: chrome || b.rimFinish === "chrome",
+    matte: b.rimFinish === "matte-black", machined: b.rimFinish === "machined", lip: !!b.rimLip } : null, low)
     .then(changed => {
       if (!changed) return;
       // Centre caps sit on the wheel face, so they're measured again on the new wheels (the body height is already set).
@@ -474,7 +475,7 @@ let lightsOn = false;
 let userLights = false, nightLights = false;
 function syncLights() { setLightsOn(userLights || nightLights); }
 function applyLights(p, b) {
-  const smoked = !!(b && b.smoked), led = !!(b && b.addons && b.addons.extras.includes("LED headlight upgrade"));
+  const smoked = smokeLevel(b, "Smoked headlights") > 0, led = !!(b && b.addons && b.addons.extras.includes("LED headlight upgrade"));
   const ledTail = hasLedTails(b), smokedT = smokedTails(b);
   const set = (list, colour, strength, smoked) => list.forEach(m => {
     const day = m.userData.day || (m.userData.day = { e: m.emissive.clone(), i: m.emissiveIntensity });
@@ -493,8 +494,15 @@ function applyLights(p, b) {
 }
 // The "LED tail lights" extra: a lighter smoked tail lens (smoked lights stay darker) that glows brighter.
 function hasLedTails(b) { return !!(b && b.addons && b.addons.extras.includes("LED tail lights")); }
-// Smoked tail lights: the smoked-lights mod (head and tail), or the "Smoked tail lights" extra on its own.
-function smokedTails(b) { return !!(b && (b.smoked || (b.addons && b.addons.extras.includes("Smoked tail lights")))); }
+// Smoke on the lenses: 0 (clear), or how dark (light 1, medium 2, dark 3). The smoked-lights mod is medium on both;
+// the "Smoked headlights" and "Smoked tail lights" extras carry their own level in their wording.
+function smokeLevel(b, name) {
+  const t = b && b.addons && b.addons.extras.includes(name) ? ((b.addons.extraText || {})[name] || "medium") : null;
+  const lv = t ? (/^light/.test(t) ? 1 : /^dark/.test(t) ? 3 : 2) : 0;
+  return Math.max(lv, b && b.smoked ? 2 : 0);
+}
+function smokedTails(b) { return smokeLevel(b, "Smoked tail lights") > 0; }
+const SMOKE_HEAD = [1, 0.5, 0.3, 0.16], SMOKE_TAIL = [1, 0.72, 0.55, 0.35], SMOKE_OPACITY = [0, 0.6, 0.72, 0.85];
 /* Gives a car two headlight beams (spot lights aimed a few metres ahead and slightly down) and a small red
    light low behind it, placed from where its lenses are. They sit on the body so they drop with it, and stay
    in the scene at zero strength when off, so switching them never makes the 3D rebuild its shaders. Cars
@@ -613,10 +621,11 @@ function applyBase(p, b) {
   });
   const smoke = (m, on, dark) => {
     if (m.userData.op0 === undefined) m.userData.op0 = m.opacity;
-    if (m.transparent) m.opacity = on ? Math.max(m.userData.op0, 0.72) : m.userData.op0;
+    if (m.transparent) m.opacity = on ? Math.max(m.userData.op0, SMOKE_OPACITY[on]) : m.userData.op0;
   };
-  p.lensFront.forEach((m, i) => { m.color.copy(st.lensFront[i]).multiplyScalar(b.smoked ? 0.22 : 1); smoke(m, b.smoked); });
-  p.lensRear.forEach((m, i) => { m.color.copy(st.lensRear[i]).multiplyScalar(smokedTails(b) ? 0.55 : hasLedTails(b) ? 0.55 : 1); smoke(m, smokedTails(b)); });
+  const hl = smokeLevel(b, "Smoked headlights"), tl = smokeLevel(b, "Smoked tail lights");
+  p.lensFront.forEach((m, i) => { m.color.copy(st.lensFront[i]).multiplyScalar(SMOKE_HEAD[hl]); smoke(m, hl); });
+  p.lensRear.forEach((m, i) => { m.color.copy(st.lensRear[i]).multiplyScalar(tl ? SMOKE_TAIL[tl] : hasLedTails(b) ? 0.55 : 1); smoke(m, tl); });
 }
 
 
