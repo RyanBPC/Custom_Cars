@@ -284,9 +284,9 @@ const PARTS = {
     const cx = f.frontX - 0.15, cz = f.sideZ - 0.15, n = Math.SQRT1_2;
     return sides(k => {
       const g = new THREE.Group();
-      for (const [dy, sc] of [[0.11, 1.25], [0.21, 1.0]]) {
-        const y = f.frontBottomY + dy, x = f.frontX - 0.24 + dy * 0.4, side = fromSide(rig, x, y, k), hit = side ? V3(x, y, side.z) : (probe(rig, [cx + 2 * n, y, k * (cz + 2 * n)], [-n, 0, -k * n]) || V3(cx, y, k * cz));
-        const yaw = new THREE.Group(); yaw.position.set(hit.x, y, hit.z - k * 0.006); yaw.rotation.y = k * 0.45; // root just inside the bumper skin
+      for (const [dy, sc] of [[0.11, 1.6], [0.21, 1.3]]) {
+        const y = f.frontBottomY + dy, x = f.frontX - 0.13 + dy * 0.3, side = fromSide(rig, x, y, k), hit = side ? V3(x, y, side.z) : (probe(rig, [cx + 2 * n, y, k * (cz + 2 * n)], [-n, 0, -k * n]) || V3(cx, y, k * cz));
+        const yaw = new THREE.Group(); yaw.position.set(hit.x, y, hit.z - k * 0.006); yaw.rotation.y = k * 0.65; // root just inside the bumper skin, pointing out across the corner
         const pitch = new THREE.Group(); pitch.rotation.z = -0.12; yaw.add(pitch);
         const c = mesh(geo, m.carbon); c.rotation.x = k * Math.PI / 2; c.scale.setScalar(sc); pitch.add(c);
         g.add(yaw);
@@ -295,7 +295,8 @@ const PARTS = {
     });
   },
   "Bonnet vents": (f, rig) => {
-    const m = mats(), g = new THREE.Group(), b = f.bonnet, mid = (b.x0 + b.x1) / 2, L = 0.24, W = 0.24, soot = m.soot;
+    const g = new THREE.Group(), b = f.bonnet, mid = (b.x0 + b.x1) / 2, L = 0.24, W = 0.24, soot = mats().soot;
+    const m = { black: namedMat("ventLip", () => new THREE.MeshStandardMaterial({ color: 0x0d0e10, roughness: 0.7 })) };
     for (const k of [1, -1]) {
       const zc = k * 0.34, pts = [[L / 2, W / 2], [L / 2, -W / 2], [-L / 2, W / 2], [-L / 2, -W / 2], [0, 0]].map(([dx, dz]) => down(rig, mid + dx, zc + dz));
       if (pts.some(q => !q)) continue;
@@ -305,7 +306,7 @@ const PARTS = {
       vent.rotation.order = "ZXY"; vent.rotation.z = Math.atan2((fl.y + fr.y) / 2 - (bl.y + br.y) / 2, L); vent.rotation.x = -Math.atan2((fl.y + bl.y) / 2 - (fr.y + br.y) / 2, W);
       vent.add(box(L, 0.004, W, soot, 0, 0.002, 0));                                        // the dark opening
       for (const s2 of [-1, 1]) { vent.add(box(L + 0.03, 0.018, 0.016, m.black, 0, 0.009, s2 * (W / 2 + 0.008))); vent.add(box(0.016, 0.018, W + 0.032, m.black, s2 * (L / 2 + 0.008), 0.009, 0)); } // raised lip round it
-      const slat = namedMat("ventSlat", () => new THREE.MeshPhysicalMaterial({ color: 0x1b1c1f, roughness: 0.3, clearcoat: 0.8 }));
+      const slat = namedMat("ventSlat2", () => new THREE.MeshStandardMaterial({ color: 0x15161a, roughness: 0.6 }));
       for (let i = 0; i < 7; i++) { const sl = box(0.034, 0.004, W - 0.006, slat, -L / 2 + 0.025 + i * (L - 0.04) / 6, 0.013, 0); sl.rotation.z = -0.6; vent.add(sl); } // louvres, open towards the windscreen
       g.add(vent);
     }

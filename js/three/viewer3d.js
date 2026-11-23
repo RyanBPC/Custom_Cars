@@ -437,7 +437,8 @@ function showCar(id) {
       message(text);
       setTimeout(() => { if (token === loadToken && lastMessage === text) message(""); }, 8000); // leave any newer message alone
     } else message("");
-    if (found) { const a = rigFromModel(found.gltf, found.manifest), b = rigFromModel(found.gltf, found.manifest); a.fit = b.fit = found.manifest.fit || STANDIN_FIT; a.aero = b.aero = found.manifest.aero || null; a.carId = b.carId = id; addBadges(a, found.manifest.badges); addBadges(b, found.manifest.badges); setCars(a, b); }
+    if (found) { const a = rigFromModel(found.gltf, found.manifest), b = rigFromModel(found.gltf, found.manifest);
+      if (found.manifest.paintOutsideOnly) for (const r of [a, b]) r.paints.forEach(m => { m.side = THREE.FrontSide; m.needsUpdate = true; }); a.fit = b.fit = found.manifest.fit || STANDIN_FIT; a.aero = b.aero = found.manifest.aero || null; a.carId = b.carId = id; addBadges(a, found.manifest.badges); addBadges(b, found.manifest.badges); setCars(a, b); }
     else if (!stockCar.standIn) setCars(makeStandInCar(), makeStandInCar());
     window.dispatchEvent(new CustomEvent("viewer3d-model", {
       detail: found ? { standIn: false, credit: found.manifest.credit, notShown: found.manifest.notShown || [] } : { standIn: true }
@@ -497,11 +498,11 @@ function applyLights(p, b) {
   // The beams: light on the road ahead and a red wash behind (off by day; dimmer through smoked lenses).
   if (!p.beams) return;
   p.beams.front.forEach(s => { s.color.set(led ? 0xe6eeff : 0xfff0d8); s.intensity = lightsOn ? 60 * (smoked ? 0.5 : 1) * (led ? 1.3 : 1) : 0; });
-  (p.beams.pools || []).forEach(l => { l.intensity = lightsOn ? 1.6 * (smokedT ? 0.6 : 1) : 0; });
+  (p.beams.pools || []).forEach(l => { l.intensity = lightsOn ? 7 * (smokedT ? 0.6 : 1) : 0; });
   if (p.beams.cabin) p.beams.cabin.intensity = lightsOn ? 0.35 : 0;
   if (p.beams.ambient) { const amb = !!(b && b.addons && b.addons.extras.includes("LED ambient interior lighting")); p.beams.ambient.intensity = lightsOn && amb ? 0.6 : 0; if (amb) p.beams.ambient.color.set(b.addons.ambient || "#3aa8ff"); }
   (p.beams.glows || []).forEach(q => { q.visible = lightsOn; q.material.opacity = q.userData.front ? (smoked ? 0.35 : 0.85) : (smokedT ? 0.45 : ledTail ? 0.95 : 0.75); q.material.color.set(q.userData.front ? (led ? 0xe6f0ff : 0xfff4e2) : 0xff2418); });
-  p.beams.rear.forEach(l => { l.intensity = lightsOn ? (ledTail ? 0.16 : 0.12) * (smokedT ? 0.5 : 1) : 0; });
+  p.beams.rear.forEach(l => { l.intensity = lightsOn ? (ledTail ? 0.32 : 0.25) * (smokedT ? 0.5 : 1) : 0; });
 }
 // The "LED tail lights" extra: a lighter smoked tail lens (smoked lights stay darker) that glows brighter.
 function hasLedTails(b) { return !!(b && b.addons && b.addons.extras.includes("LED tail lights")); }
@@ -556,7 +557,7 @@ function refineInterior(rig) {
     if (/chrome|alumin|metal/i.test(n)) { // real metal trim: brushed aluminium or chrome
       const chrome = /chrome/i.test(n); m.color.set(chrome ? 0xd8dadd : 0xb9bdc2); m.metalness = 1; m.roughness = chrome ? 0.12 : 0.32; m.needsUpdate = true; return;
     }
-    if (/screen|display|lcd|navi/i.test(n)) return; // screens stay glossy
+    if (/screen|display|lcd|navi/i.test(n)) { if (!m.map) { m.color.set(0x07090c); m.roughness = 0.12; m.metalness = 0; m.emissive.set(0x0b1420); m.emissiveIntensity = 1; m.needsUpdate = true; } return; } // screens: dark glossy glass
     // Printed parts with no picture (gauges, symbols, seams, belts...) came out flat white: give them their real dark finish.
     if (!m.map && hsl.l > 0.7) { m.color.set(/belt/i.test(n) ? 0x1a1b1e : /seam/i.test(n) ? 0x2a2b2e : 0x141518); m.metalness = 0; m.roughness = /belt/i.test(n) ? 0.85 : 0.6; }
     const leather = /leather|seat|alcnt|alcantara/i.test(n), cloth = /cloth|fabric|carpet|etkc|alcnt|alcantara/i.test(n);
@@ -586,9 +587,9 @@ function addBeams(rig) {
   }
   for (const [list, front] of [[rig.lensFront, true], [rig.lensRear, false]]) for (const lamp of lampsOf(rig, list, front)) {
     const mat = new THREE.MeshBasicMaterial({ color: front ? 0xfff4e2 : 0xff2418, map: glowTexture(), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
-    const q = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(0.45, lamp.w * 1.5), Math.min(0.4, lamp.h * 2.2)), mat); // never bigger than a lamp's own glow
+    const q = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(0.4, lamp.w * 1.3), Math.min(0.22, lamp.h * 1.4)), mat); // never bigger than a lamp's own glow
     q.name = "Lamp_Glow"; q.renderOrder = 3;
-    q.position.set(lamp.x + (front ? 0.02 : -0.02), lamp.y, lamp.z); q.rotation.y = front ? Math.PI / 2 : -Math.PI / 2; q.visible = false;
+    q.position.set(lamp.x + (front ? -0.03 : 0.03), lamp.y, lamp.z); // just inside the lamp, behind its clear cover q.rotation.y = front ? Math.PI / 2 : -Math.PI / 2; q.visible = false;
     q.userData.front = front; rig.body.add(q); rig.beams.glows.push(q);
   }
   for (const lamp of rearLamps(rig)) {

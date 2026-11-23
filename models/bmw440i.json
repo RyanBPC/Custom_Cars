@@ -191,5 +191,6 @@
   "lensRearMats": [
     "ARm4_taillight_lowhigh",
     "ARm4_taillight"
-  ]
+  ],
+  "paintOutsideOnly": true
 }
