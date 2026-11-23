@@ -440,6 +440,62 @@ function tyreLetters(r0, r1, words) {
   const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx);
   const m = mesh(geo, new THREE.MeshStandardMaterial({ map: words ? tyreTexts[words] : tyreTex, transparent: true, roughness: 0.8, side: THREE.DoubleSide })); m.castShadow = false; return m;
 }
+// ---- the bucket seat's shapes ----
+// Shell width (half, w) and bolster depth (d) up the seat, from the hips (0) to the top of the headrest (1).
+const BUCKET = [[0, 0.27, 0.17], [0.12, 0.275, 0.17], [0.3, 0.25, 0.11], [0.5, 0.265, 0.13], [0.62, 0.27, 0.15], [0.72, 0.2, 0.08], [0.78, 0.15, 0.06], [0.86, 0.145, 0.09], [0.96, 0.135, 0.08], [1, 0.1, 0.05]];
+function bucketAt(t) { for (let i = 1; i < BUCKET.length; i++) if (t <= BUCKET[i][0]) { const [a, w0, d0] = BUCKET[i - 1], [b, w1, d1] = BUCKET[i], f = (t - a) / (b - a), e = f * f * (3 - 2 * f); return [w0 + (w1 - w0) * e, d0 + (d1 - d0) * e]; } return [0.1, 0.05]; }
+const headTilt = t => 0.05 * Math.pow(Math.max(0, (t - 0.72) / 0.28), 2); // the headrest leans forward a little
+// The back: a U across the seat (round the back, forward to the bolster tips) swept up its height.
+// inset moves it inside the shell (for the padded insert); spread and the height range trim it.
+function bucketBack(H, inset, spread, t0, t1) {
+  const N = 30, M = 32, pos = [], uv = [], idx = [];
+  for (let r = 0; r <= N; r++) {
+    const t = t0 + (t1 - t0) * r / N, [w, d] = bucketAt(t), y = t * H;
+    for (let q = 0; q <= M; q++) {
+      const u = q / M, th = (u * 2 - 1) * spread * Math.PI / 2;
+      const ww = Math.max(0.05, w - inset), dd = Math.max(0.01, d - inset * 0.6);
+      pos.push(inset + dd * (1 - Math.cos(th)) + headTilt(t), y, ww * Math.sin(th)); uv.push(u, (t - t0) / (t1 - t0));
+    }
+  }
+  for (let r = 0; r < N; r++) for (let q = 0; q < M; q++) { const a = r * (M + 1) + q, b = a + 1, c2 = a + M + 1, d2 = c2 + 1; idx.push(a, c2, b, b, c2, d2); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals();
+  return geo;
+}
+// The shell's front edge on one side, up the bolster tips and over the top.
+function bucketEdge(H, side) {
+  const pts = [];
+  for (let i = 0; i <= 20; i++) { const t = i / 20, [w, d] = bucketAt(t); pts.push(V3(d + headTilt(t), t * H, side * w)); }
+  for (let i = 1; i <= 6; i++) { const th = side * (Math.PI / 2) * (1 - i / 6), [w, d] = bucketAt(1); pts.push(V3(d * (1 - Math.cos(th)) + headTilt(1), H, w * Math.sin(th))); }
+  return pts;
+}
+// Cushion: a padded seat with raised side bolsters and a rolled front edge, on a gloss shell pan.
+function bucketCushion(c, xb, zc, pad, shell) {
+  const L = c.frontSeatX + 0.36 - xb, W = 0.27, y0 = c.seatY + 0.0, N = 16, M = 24, pos = [], uv = [], idx = [];
+  for (let r = 0; r <= N; r++) {
+    const a = r / N, x = xb + 0.02 + a * L, roll = a > 0.85 ? Math.pow((a - 0.85) / 0.15, 2) * 0.04 : 0;
+    for (let q = 0; q <= M; q++) {
+      const u = q / M, z = (u * 2 - 1) * W, e = Math.abs(u * 2 - 1), bol = e > 0.6 ? Math.pow((e - 0.6) / 0.4, 1.5) * 0.08 * (1 - a * 0.4) : 0;
+      const drop = e > 0.97 ? (e - 0.97) / 0.03 * 0.07 : 0; // the outer edge turns down
+      pos.push(x, y0 + 0.07 + bol - roll - drop, zc + z); uv.push(u, a);
+    }
+  }
+  for (let r = 0; r < N; r++) for (let q = 0; q < M; q++) { const a = r * (M + 1) + q, b = a + 1, c2 = a + M + 1, d2 = c2 + 1; idx.push(a, b, c2, b, d2, c2); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals();
+  const g = new THREE.Group(); g.add(mesh(geo, pad));
+  g.add(box(L, 0.05, 2 * W + 0.02, shell, xb + 0.02 + L / 2, y0 + 0.01, zc)); // the shell's seat pan under it
+  return g;
+}
+// Fabric: black, with a darker grey stitched centre panel (red stitching) and pleats.
+function bucketFabric() {
+  return picture(256, 256, (g, w, h) => {
+    g.fillStyle = "#1c1d20"; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 3000; i++) { g.fillStyle = i % 2 ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.08)"; g.fillRect((i * 97) % w, (i * 57) % h, 2, 2); }
+    const x0 = w * 0.34, x1 = w * 0.66; g.fillStyle = "#2f3136"; g.fillRect(x0, 0, x1 - x0, h);
+    for (let y = 12; y < h; y += 22) { g.fillStyle = "rgba(0,0,0,0.35)"; g.fillRect(x0, y, x1 - x0, 2); }
+    g.strokeStyle = "#c8161d"; g.lineWidth = 2; g.setLineDash([5, 4]);
+    for (const x of [x0 - 4, x1 + 4]) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
+  });
+}
 function cabinOf(f) { return f.cabin || { seatY: 0.62, frontSeatX: -0.2, rearSeatX: -0.95, seatZ: 0.36, headrestX: -0.45, headrestY: 1.3, roofInY: 1.4, wheel: [0.35, 1.0, 0.36], dashX: 0.6 }; }
 function namedMat(key, make) { const m = mats(); return m[key] || (m[key] = make()); }
 const redMat = () => namedMat("red", () => new THREE.MeshStandardMaterial({ color: 0xc8161d, roughness: 0.7 }));
@@ -601,30 +657,22 @@ Object.assign(PARTS, {
     return g;
   },
   "Bucket seats": (f, rig) => {
-    // One-piece racing shells over the front seats: a tall back with a head section and two harness slots, big side
-    // wings round the shoulders and hips, and bolsters either side of the cushion. Black fabric facing, carbon shell.
-    const c = cabinOf(f), g = new THREE.Group(), m = mats(), fabric = namedMat("bucketFabric", () => new THREE.MeshStandardMaterial({ color: 0x1b1c1f, roughness: 0.95 }));
-    const H = c.headrestY + 0.1 - c.seatY, W = 0.56;
+    // Fixed-back FIA-style buckets over the front seats: one rounded gloss shell wrapping the shoulders and hips, a tall
+    // headrest tilted slightly forward, harness slots at shoulder height, a padded fabric insert with a stitched centre
+    // panel, and a padded cushion with raised sides. The back reclines a little; the car's own seats are hidden.
+    const c = cabinOf(f), g = new THREE.Group(), H = c.headrestY + 0.12 - c.seatY;
+    const shell = namedMat("bucketShell", () => new THREE.MeshPhysicalMaterial({ color: 0x0d0e10, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.08, side: THREE.DoubleSide }));
+    const pad = namedMat("bucketPad", () => new THREE.MeshStandardMaterial({ map: bucketFabric(), roughness: 0.95, side: THREE.DoubleSide }));
+    const slotMat = namedMat("bucketSlot", () => new THREE.MeshBasicMaterial({ color: 0x020203 }));
     for (const k of [1, -1]) {
-      const zc = k * c.seatZ, xb = c.headrestX - 0.06;
-      const seat = new THREE.Group(); seat.position.set(xb, c.seatY - 0.04, zc); seat.rotation.z = 0.14; // reclined back (top towards the rear)
-      // Back shell, seen from the front: wide at the hips, shoulders, then a narrower head section; two harness slots.
-      const sh = new THREE.Shape(); sh.moveTo(-W / 2, 0); sh.lineTo(W / 2, 0); sh.lineTo(W / 2, H * 0.62); sh.quadraticCurveTo(W / 2, H * 0.72, 0.17, H * 0.75); sh.lineTo(0.15, H); sh.lineTo(-0.15, H); sh.lineTo(-0.17, H * 0.75); sh.quadraticCurveTo(-W / 2, H * 0.72, -W / 2, H * 0.62); sh.lineTo(-W / 2, 0);
-      for (const s2 of [-1, 1]) { const slot = new THREE.Path(); const sx = s2 * 0.09, sy = H * 0.66; slot.moveTo(sx - 0.03, sy - 0.035); slot.lineTo(sx + 0.03, sy - 0.035); slot.lineTo(sx + 0.03, sy + 0.035); slot.lineTo(sx - 0.03, sy + 0.035); sh.holes.push(slot); }
-      const back = new THREE.ExtrudeGeometry(sh, { depth: 0.035, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 2 }); back.rotateY(-Math.PI / 2); // shape z->car x
-      const shell = namedMat("bucketShell", () => new THREE.MeshPhysicalMaterial({ color: 0x141517, roughness: 0.4, clearcoat: 0.6 }));
-      seat.add(mesh(back, shell, 0.0, 0, 0));
-      const face = mesh(back.clone(), fabric, 0.03, 0, 0); face.scale.set(0.4, 0.98, 0.94); seat.add(face);
-      // Side wings: tall at the shoulders and hips, curving forward round the body.
-      for (const s2 of [-1, 1]) {
-        const wing = slab([[0, 0], [0.42, 0.02], [0.44, 0.13], [0.16, 0.2], [0.12, H * 0.45], [0.2, H * 0.6], [0.16, H * 0.72], [0, H * 0.74]], 0.03, fabric);
-        wing.rotation.y = 0; wing.position.z = s2 * (W / 2 - 0.01); seat.add(wing);
-      }
+      const zc = k * c.seatZ, xb = c.headrestX - 0.08;
+      const seat = new THREE.Group(); seat.position.set(xb, c.seatY - 0.02, zc); seat.rotation.z = 0.14; // reclined back
+      seat.add(mesh(bucketBack(H, 0, 1, 0, 1), shell));                                 // the shell
+      seat.add(mesh(bucketBack(H, 0.024, 0.86, 0.04, 0.95), pad));                      // the padded insert, inside it
+      for (const side of [-1, 1]) seat.add(mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(bucketEdge(H, side)), 48, 0.013, 8, false), shell)); // rolled shell edges
+      for (const s2 of [-1, 1]) { const sl = mesh(new THREE.BoxGeometry(0.012, 0.075, 0.05), slotMat); sl.position.set(0.03, H * 0.66, s2 * 0.085); seat.add(sl); } // harness slots
       g.add(seat);
-      // Seat pan: a padded cushion with raised side bolsters, from the back of the shell to the front of the seat.
-      const panL = c.frontSeatX + 0.34 - xb, py = c.seatY + 0.02;
-      g.add(box(panL, 0.07, W - 0.1, fabric, xb + panL / 2, py, zc));
-      for (const s2 of [-1, 1]) { const bol = slab([[xb, py], [xb + panL, py], [xb + panL - 0.02, py + 0.09], [xb + 0.04, py + 0.12]], 0.07, fabric); bol.position.z = zc + s2 * (W / 2 - 0.06); g.add(bol); }
+      g.add(bucketCushion(c, xb, zc, pad, shell));
     }
     return g;
   },
@@ -633,14 +681,14 @@ Object.assign(PARTS, {
     const H = c.headrestY + 0.1 - c.seatY, lean = Math.sin(0.14), xb = c.headrestX - 0.06, base = c.seatY - 0.04;
     // The seat's front surface at a height: the bucket's face, or the car's own seat (measured).
     const faceX = (y, z) => {
-      if (buckets) return xb + 0.045 - (y - base) * lean + 0.008;
+      if (buckets) return c.headrestX - 0.08 + 0.024 + 0.012 - (y - (c.seatY - 0.02)) * lean; // the bucket insert's face
       const h = probe(rig, [c.frontSeatX + 0.7, y, z], [-1, 0, 0]); return (h && h.x > xb - 0.1 && h.x < c.frontSeatX + 0.5 ? h.x : xb + 0.13) + 0.008;
     };
     const lapY = z => { if (buckets) return c.seatY + 0.065; const h = probe(rig, [c.frontSeatX - 0.05, c.seatY + 0.4, z], [0, -1, 0]); return (h && h.y > c.seatY - 0.1 ? h.y : c.seatY + 0.06) + 0.006; };
     const strap = pts => { for (let i = 1; i < pts.length; i++) g.add(bar(pts[i - 1], pts[i], 0.048, 0.004, red)); };
     for (const k of [1, -1]) {
       const zc = k * c.seatZ, ly = lapY(zc), bx = xb + 0.3, buckle = [bx, ly + 0.012, zc];
-      const topY = buckets ? base + H * 0.74 : c.headrestY - 0.1;
+      const topY = buckets ? c.seatY - 0.02 + (c.headrestY + 0.12 - c.seatY) * 0.68 : c.headrestY - 0.1; // through the slots
       for (const s2 of [1, -1]) {
         const z = zc + s2 * 0.085;
         // Shoulder strap: from behind the seat, over the top (through the slot on a bucket), down the face to the buckle.
