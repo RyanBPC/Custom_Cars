@@ -18,6 +18,10 @@ const KEY_TURN = THREE.MathUtils.degToRad(15);
 const KEY_TILT = THREE.MathUtils.degToRad(10);
 const OUTSIDE_LIMITS = { minPolarAngle: THREE.MathUtils.degToRad(5), maxPolarAngle: THREE.MathUtils.degToRad(88), minDistance: 4.2, maxDistance: 14 };
 
+// Pixel ratio: the screen's own (up to 2) when the view is still, so the car is sharp on high-resolution screens;
+// a little lower while it's being turned, so it stays smooth.
+const STILL_RATIO = () => Math.min(window.devicePixelRatio || 1, 2), MOVE_RATIO = () => Math.min(window.devicePixelRatio || 1, 1.5);
+function setSharp(still) { if (!renderer) return; const r = still ? STILL_RATIO() : MOVE_RATIO(); if (renderer.getPixelRatio() !== r) { renderer.setPixelRatio(r); resize(); if (still) requestRender(); } }
 let renderer, scene, camera, controls, container, stockCar, buildCar, frameQueued = false, looping = false, dragging = false;
 let split = 0.5; // where the stock/build divider is, from 0 (all build) to 1 (all stock)
 let currentCarId = null, loadToken = 0, lastBuild = null, lastStock = null;
@@ -168,7 +172,7 @@ function init(el) {
   container = el;
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  renderer.setPixelRatio(MOVE_RATIO());
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping; // keeps paint colours rich (AgX washed red out to pink)
   renderer.toneMappingExposure = 1;
@@ -187,7 +191,7 @@ function init(el) {
   // A sun that casts a real shadow on the ground; the ground itself is invisible except for the shadow,
   // so in photo settings the shadow falls onto the photo's road.
   sun = new THREE.DirectionalLight(0xffffff, 0); sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
+  sun.shadow.mapSize.set(4096, 4096); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
   Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 30 });
   scene.add(sun, sun.target);
   shadowCatcher = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.ShadowMaterial({ opacity: 0.45 }));
@@ -204,7 +208,8 @@ function init(el) {
   Object.assign(controls, OUTSIDE_LIMITS);
   controls.enableDamping = !REDUCE_MOTION; controls.dampingFactor = 0.08;
   controls.addEventListener("change", requestRender);
-  controls.addEventListener("start", () => { dragging = true; startLoop(); });
+  controls.addEventListener("start", () => { dragging = true; setSharp(false); startLoop(); });
+  window.addEventListener("viewer3d-view", () => { if (!dragging) setSharp(true); }); // stopped: full sharpness
   controls.addEventListener("end", () => { dragging = false; });
   controls.update();
 

@@ -41,11 +41,15 @@ function proceduralRim(style) {
   const prof = [[0.455, -D], [0.5, -D + 0.008], [0.5, -D + 0.03], [0.462, -D + 0.05], [0.455, -0.07], [0.47, -0.045], [0.5, -0.02], [0.5, -0.004], [0.488, 0.0], [0.462, -0.012]];
   const barrel = new THREE.LatheGeometry(prof.map(([r, z]) => new THREE.Vector2(r, z)), 96); barrel.rotateX(Math.PI / 2);
   g.add(new THREE.Mesh(barrel, metal));
-  const spokes = new THREE.ExtrudeGeometry(spokeShapes(style), { depth: 0.05, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.006, bevelSegments: 2, curveSegments: 4 });
-  spokes.translate(0, 0, style === "5spoke" ? -0.075 : -0.07); g.add(new THREE.Mesh(spokes, metal));
-  const hubG = new THREE.CylinderGeometry(0.125, 0.13, 0.07, 40); hubG.rotateX(Math.PI / 2); hubG.translate(0, 0, -0.055); g.add(new THREE.Mesh(hubG, metal));
-  const cap = new THREE.CylinderGeometry(0.058, 0.06, 0.012, 32); cap.rotateX(Math.PI / 2); cap.translate(0, 0, -0.016); g.add(new THREE.Mesh(cap, dark));
-  for (let i = 0; i < 5; i++) { const [x, y] = at(0.09, i * 2 * Math.PI / 5); const b = new THREE.CylinderGeometry(0.012, 0.012, 0.014, 6); b.rotateX(Math.PI / 2); b.translate(x, y, -0.018); g.add(new THREE.Mesh(b, bolt)); }
+  const spokes = new THREE.ExtrudeGeometry(spokeShapes(style), { depth: 0.05, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.008, bevelSegments: 3, curveSegments: 4 });
+  // Dish (concave face): the spokes sink towards the hub, like real wheels, so the face has depth.
+  const sp = spokes.attributes.position; for (let i = 0; i < sp.count; i++) { const r = Math.hypot(sp.getX(i), sp.getY(i)); sp.setZ(i, sp.getZ(i) - 0.075 * Math.pow(Math.max(0, (0.47 - r) / 0.36), 1.4)); }
+  spokes.computeVertexNormals(); spokes.translate(0, 0, -0.07); g.add(new THREE.Mesh(spokes, metal));
+  // Hub face (set back with the dish), a centre cap in the centre bore, and five hex lug nuts with chamfered ends.
+  const hubG = new THREE.CylinderGeometry(0.125, 0.13, 0.06, 40); hubG.rotateX(Math.PI / 2); hubG.translate(0, 0, -0.12); g.add(new THREE.Mesh(hubG, metal));
+  const bore = new THREE.CylinderGeometry(0.066, 0.066, 0.02, 32, 1, true); bore.rotateX(Math.PI / 2); bore.translate(0, 0, -0.085); g.add(new THREE.Mesh(bore, dark));
+  const cap = new THREE.CylinderGeometry(0.056, 0.06, 0.014, 32); cap.rotateX(Math.PI / 2); cap.translate(0, 0, -0.084); g.add(new THREE.Mesh(cap, dark));
+  for (let i = 0; i < 5; i++) { const [x, y] = at(0.096, i * 2 * Math.PI / 5 + Math.PI / 10); const b = new THREE.CylinderGeometry(0.011, 0.014, 0.022, 6); b.rotateX(Math.PI / 2); b.translate(x, y, -0.082); g.add(new THREE.Mesh(b, bolt)); }
   g.traverse(o => { if (o.isMesh) o.geometry.computeVertexNormals(); });
   const holder = new THREE.Group(); g.position.z = D / 2; holder.add(g); return holder; // centred on its depth
 }

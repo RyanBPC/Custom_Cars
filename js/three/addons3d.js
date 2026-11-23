@@ -15,13 +15,23 @@ export const STANDIN_FIT = {
 };
 
 /* ---------- shared materials (made once, never disposed) ---------- */
+// A 2x2 twill carbon weave: each tow is a small shaded bar (lighter in the middle, like woven fibre catching the light),
+// running one way or the other in a diagonal step pattern. size px square, cells tows across.
+function twill(size, cells) {
+  const c = document.createElement("canvas"); c.width = c.height = size; const g = c.getContext("2d"), s = size / cells;
+  g.fillStyle = "#0b0c0d"; g.fillRect(0, 0, size, size);
+  for (let y = 0; y < cells; y++) for (let x = 0; x < cells; x++) {
+    const across = Math.floor((x + y) / 2) % 2 === 0, gr = across ? g.createLinearGradient(0, y * s, 0, (y + 1) * s) : g.createLinearGradient(x * s, 0, (x + 1) * s, 0);
+    gr.addColorStop(0, "#0d0e10"); gr.addColorStop(0.5, across ? "#2c2f34" : "#23262a"); gr.addColorStop(1, "#0d0e10");
+    g.fillStyle = gr; g.fillRect(x * s + 0.5, y * s + 0.5, s - 1, s - 1);
+  }
+  return c;
+}
 const MAT = {};
 function mats() {
   if (MAT.carbon) return MAT;
   // A small twill-weave picture for carbon parts.
-  const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d");
-  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { g.fillStyle = (x + Math.floor(y / 2)) % 2 ? "#2a2d31" : "#121315"; g.fillRect(x * 8, y * 8, 8, 8); }
-  const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(6, 6); tex.colorSpace = THREE.SRGBColorSpace;
+  const tex = new THREE.CanvasTexture(twill(128, 16)); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(14, 14); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16;
   MAT.carbon = new THREE.MeshPhysicalMaterial({ map: tex, roughness: 0.35, metalness: 0.1, clearcoat: 1, clearcoatRoughness: 0.05 });
   MAT.black = new THREE.MeshPhysicalMaterial({ color: 0x0c0d0f, roughness: 0.35, clearcoat: 0.5 });
   MAT.rubber = new THREE.MeshStandardMaterial({ color: 0x101112, roughness: 0.9 });
@@ -275,8 +285,8 @@ const PARTS = {
     return sides(k => {
       const g = new THREE.Group();
       for (const [dy, sc] of [[0.11, 1.25], [0.21, 1.0]]) {
-        const y = f.frontBottomY + dy, hit = probe(rig, [cx + 2 * n, y, k * (cz + 2 * n)], [-n, 0, -k * n]) || V3(cx, y, k * cz);
-        const yaw = new THREE.Group(); yaw.position.set(hit.x - 0.004 * n, y, hit.z - k * 0.004 * n); yaw.rotation.y = k * 0.7;
+        const y = f.frontBottomY + dy, x = f.frontX - 0.24 + dy * 0.4, side = fromSide(rig, x, y, k), hit = side ? V3(x, y, side.z) : (probe(rig, [cx + 2 * n, y, k * (cz + 2 * n)], [-n, 0, -k * n]) || V3(cx, y, k * cz));
+        const yaw = new THREE.Group(); yaw.position.set(hit.x, y, hit.z - k * 0.006); yaw.rotation.y = k * 0.45; // root just inside the bumper skin
         const pitch = new THREE.Group(); pitch.rotation.z = -0.12; yaw.add(pitch);
         const c = mesh(geo, m.carbon); c.rotation.x = k * Math.PI / 2; c.scale.setScalar(sc); pitch.add(c);
         g.add(yaw);
@@ -284,11 +294,32 @@ const PARTS = {
       return g;
     });
   },
+  "Bonnet vents": (f, rig) => {
+    const m = mats(), g = new THREE.Group(), b = f.bonnet, mid = (b.x0 + b.x1) / 2, L = 0.24, W = 0.24, soot = m.soot;
+    for (const k of [1, -1]) {
+      const zc = k * 0.34, pts = [[L / 2, W / 2], [L / 2, -W / 2], [-L / 2, W / 2], [-L / 2, -W / 2], [0, 0]].map(([dx, dz]) => down(rig, mid + dx, zc + dz));
+      if (pts.some(q => !q)) continue;
+      const [fl, fr, bl, br] = pts, yTop = Math.max(...pts.map(q => q.y));
+      // Lies along the bonnet (slope front to back, and its curve across), sitting on its highest point so it never sinks in.
+      const vent = new THREE.Group(); vent.position.set(mid, yTop + 0.003, zc);
+      vent.rotation.order = "ZXY"; vent.rotation.z = Math.atan2((fl.y + fr.y) / 2 - (bl.y + br.y) / 2, L); vent.rotation.x = -Math.atan2((fl.y + bl.y) / 2 - (fr.y + br.y) / 2, W);
+      vent.add(box(L, 0.004, W, soot, 0, 0.002, 0));                                        // the dark opening
+      for (const s2 of [-1, 1]) { vent.add(box(L + 0.03, 0.018, 0.016, m.black, 0, 0.009, s2 * (W / 2 + 0.008))); vent.add(box(0.016, 0.018, W + 0.032, m.black, s2 * (L / 2 + 0.008), 0.009, 0)); } // raised lip round it
+      const slat = namedMat("ventSlat", () => new THREE.MeshPhysicalMaterial({ color: 0x1b1c1f, roughness: 0.3, clearcoat: 0.8 }));
+      for (let i = 0; i < 7; i++) { const sl = box(0.034, 0.004, W - 0.006, slat, -L / 2 + 0.025 + i * (L - 0.04) / 6, 0.013, 0); sl.rotation.z = -0.6; vent.add(sl); } // louvres, open towards the windscreen
+      g.add(vent);
+    }
+    return g;
+  },
   "Rally mud flaps": (f, rig) => {
-    const g = new THREE.Group(), flap = namedMat("flap", () => new THREE.MeshStandardMaterial({ color: 0xb3171d, roughness: 0.8 }));
+    const g = new THREE.Group(), flap = namedMat("flap", () => new THREE.MeshStandardMaterial({ color: 0xb3171d, roughness: 0.8, side: THREE.DoubleSide })), m = mats();
     for (const w of rig.wheelInfo.list) {
-      const x = w.x - rig.wheelInfo.r - 0.06, z = w.z, top = Math.min(or((up(rig, x, z) || {}).y, 0.32), 0.42);
-      g.add(box(0.008, top - 0.06, 0.26, flap, x, (top + 0.06) / 2, z));
+      const k = Math.sign(w.z) || 1, x = w.x - rig.wheelInfo.r - 0.05, z = w.z - k * 0.035, top = Math.min(or((up(rig, x, z) || {}).y, 0.34), 0.42), bottom = 0.075, W = 0.2;
+      // a flap with a slight curve across it (bowed backwards in the middle), and a black bracket along its top
+      const geo = new THREE.PlaneGeometry(W, top - bottom, 8, 1); geo.rotateY(Math.PI / 2);
+      const P = geo.attributes.position; for (let i = 0; i < P.count; i++) { const zz = P.getZ(i); P.setX(i, -0.012 * (1 - Math.pow(zz / (W / 2), 2))); } geo.computeVertexNormals();
+      g.add(mesh(geo, flap, x, (top + bottom) / 2, z));
+      g.add(box(0.02, 0.025, W + 0.02, m.black, x + 0.008, top - 0.01, z));
     }
     return g;
   },
@@ -964,7 +995,7 @@ Object.assign(PARTS, {
 });
 
 // Extra parts shown by changing the paint, wheels or ride height instead of adding a shape.
-const PAINT_EXTRAS = ["Carbon-fibre bonnet", "Carbon roof", "Two-tone black roof", "Bonnet vents", "Wing vents", "Racing numbers", "Decals and graphics", "Carbon mirror caps", "Gloss black mirror caps", "Custom graphic wrap", "Paint protection film", "Ceramic coating", "Windscreen sun strip"];
+const PAINT_EXTRAS = ["Carbon-fibre bonnet", "Carbon roof", "Two-tone black roof", "Wing vents", "Racing numbers", "Decals and graphics", "Carbon mirror caps", "Gloss black mirror caps", "Custom graphic wrap", "Paint protection film", "Ceramic coating", "Windscreen sun strip"];
 const OTHER_EXTRAS = ["Smoked headlights", "Low-profile tyres", "Caliper paint", "Smoked tail lights", "Wheel spacers", "Negative camber setup", "Chrome wheel finish", "Lift kit", "Chrome delete and black badges", "Gloss black grille", "Front plate delete", "Rear plate delete", "Private number plate", "Styled number plates"];
 // Every extra part (by its name in EXTRA_PARTS) that the 3D view can show.
 export const SHOWN_EXTRAS = [...Object.keys(PARTS).filter(k => !k.includes(":") && !/^(bodykit|widebody|exhaust)$/.test(k)), ...PAINT_EXTRAS, ...OTHER_EXTRAS];
@@ -1022,7 +1053,10 @@ function picture(w, h, draw, repeat = false) {
   t.wrapS = t.wrapT = repeat ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
   return t;
 }
-function weave(g, w, h, cells) { const s = w / cells; for (let y = 0; y * s < h; y++) for (let x = 0; x < cells; x++) { g.fillStyle = (x + Math.floor(y / 2)) % 2 ? "#2b2e33" : "#111214"; g.fillRect(x * s, y * s, Math.ceil(s), Math.ceil(s)); } }
+function weave(g, w, h, cells) { // the same twill, drawn over a picture of any size (cells tows across)
+  const s = w / cells;
+  for (let y = 0; y * s < h; y++) for (let x = 0; x < cells; x++) { const across = Math.floor((x + y) / 2) % 2 === 0; g.fillStyle = across ? "#24272b" : "#1a1c1f"; g.fillRect(x * s, y * s, Math.ceil(s), Math.ceil(s)); g.fillStyle = "rgba(0,0,0,0.45)"; across ? g.fillRect(x * s, y * s, Math.ceil(s), Math.max(1, s * 0.12)) : g.fillRect(x * s, y * s, Math.max(1, s * 0.12), Math.ceil(s)); }
+}
 const hash = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
 function noise(x, y) { const ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy, sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
   const a = hash(ix, iy), b = hash(ix + 1, iy), c = hash(ix, iy + 1), d = hash(ix + 1, iy + 1); return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy; }
@@ -1219,7 +1253,7 @@ export function updateAddons(rig, spec, f) {
   want.set("Number plates", keyOf("Number plates")); // always: with a plate off, some cars get a cover over their blank mount
   // Paint-on effects (skins).
   const fx = { "fx:stripes": s.stripes && s.stripes, "fx:bonnet": has("Carbon-fibre bonnet") && "carbon", "fx:roof": (has("Carbon roof") && "carbon") || (has("Two-tone black roof") && "black"),
-    "fx:bonnetVents": has("Bonnet vents") && "1", "fx:wingVents": has("Wing vents") && "1", "fx:roundel": has("Racing numbers") && "1", "fx:decals": has("Decals and graphics") && "1",
+    "fx:wingVents": has("Wing vents") && "1", "fx:roundel": has("Racing numbers") && "1", "fx:decals": has("Decals and graphics") && "1",
     "fx:mirrorCaps": (has("Carbon mirror caps") && "1") || (has("Gloss black mirror caps") && "black"), "fx:sunStrip": has("Windscreen sun strip") && (s.sunStrip || "GTI"), "fx:graphic": has("Custom graphic wrap") && (s.graphic || "flames") };
   for (const k in fx) if (fx[k]) want.set(k, String(fx[k]));
   // Rebuild only the parts that changed.
