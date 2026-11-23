@@ -639,13 +639,20 @@ Object.assign(PARTS, {
     }
     return g;
   },
-  "Sport steering wheel": f => {
-    const c = cabinOf(f), [x, y, z] = c.wheel, r = c.wheelR || 0.178, tilt = 0.38, g = new THREE.Group();
-    const n = V3(-Math.cos(tilt), Math.sin(tilt), 0), up = V3(Math.sin(tilt), Math.cos(tilt), 0);
-    const alc = namedMat("alcantara", () => new THREE.MeshStandardMaterial({ color: 0x1a1b1d, roughness: 0.95 }));
-    const rim = mesh(new THREE.TorusGeometry(r, 0.021, 12, 64), alc, x, y, z); rim.quaternion.setFromUnitVectors(V3(0, 0, 1), n); g.add(rim);
-    const mark = box(0.03, 0.05, 0.03, redMat()); mark.position.set(x, y, z).addScaledVector(up, r); mark.quaternion.copy(rim.quaternion); g.add(mark);
-    return g;
+  // Sport steering wheel: Alcantara, leather or carbon grip; round or flat-bottomed; a coloured top marker; contrast stitching.
+  "Sport steering wheel": (f, rig, s) => {
+    const t = textOf(s, "Sport steering wheel"), c = cabinOf(f), [x, y, z] = c.wheel, r = c.wheelR || 0.178, tilt = 0.38, g = new THREE.Group();
+    const n = V3(-Math.cos(tilt), Math.sin(tilt), 0), up = V3(Math.sin(tilt), Math.cos(tilt), 0), q = new THREE.Quaternion().setFromUnitVectors(V3(0, 0, 1), n);
+    const grip = /carbon/.test(t) ? mats().carbon : /leather/.test(t) ? namedMat("wheelLeather", () => new THREE.MeshPhysicalMaterial({ color: 0x18191b, roughness: 0.5, clearcoat: 0.2 })) : namedMat("alcantara", () => new THREE.MeshStandardMaterial({ color: 0x1a1b1d, roughness: 0.95 }));
+    const flat = !/round/.test(t), marker = /no (?:top )?marker/.test(t) ? null : colourIn((t.match(/([a-z0-9 -]+?) (?:top )?marker/) || [0, ""])[1], "#b5121b");
+    const stitch = /stitch/.test(t) ? colourIn((t.match(/([a-z0-9 -]+?) stitch/) || [0, ""])[1], "#b5121b") : null;
+    // The rim: a ring with the bottom cut flat (a straight bar across) when flat-bottomed.
+    const arc = flat ? Math.PI * 2 - 1.1 : Math.PI * 2, ring = new THREE.TorusGeometry(r, 0.021, 12, 64, arc); ring.rotateZ(-Math.PI / 2 + (flat ? 0.55 : 0));
+    const rim = mesh(ring, grip, x, y, z); rim.quaternion.copy(q); g.add(rim);
+    if (flat) { const chord = 2 * r * Math.sin(0.55), bar = mesh(new THREE.CylinderGeometry(0.021, 0.021, chord, 12), grip); bar.rotation.z = Math.PI / 2; const hold = new THREE.Group(); hold.position.set(x, y, z); hold.quaternion.copy(q); bar.position.set(0, -r * Math.cos(0.55), 0); hold.add(bar); g.add(hold); }
+    if (marker) { const mark = box(0.03, 0.05, 0.03, new THREE.MeshStandardMaterial({ color: marker, roughness: 0.7 })); mark.position.set(x, y, z).addScaledVector(up, r); mark.quaternion.copy(q); g.add(mark); }
+    if (stitch) { const st = mesh(new THREE.TorusGeometry(r, 0.0035, 6, 96, arc), new THREE.MeshStandardMaterial({ color: stitch, roughness: 0.8 })); st.geometry.rotateZ(-Math.PI / 2 + (flat ? 0.55 : 0)); st.position.set(x, y, z).addScaledVector(n, -0.019); st.quaternion.copy(q); g.add(st); }
+    g.userData.ownMaterials = false; return g;
   },
   "Short shifter": f => { const m = mats(), c = cabinOf(f), [x, y] = c.gear || [0.12, 0.6], g = new THREE.Group(); g.add(box(0.012, 0.09, 0.012, m.black, x, y + 0.045, 0), mesh(new THREE.SphereGeometry(0.028, 20, 14), m.chrome, x, y + 0.1, 0)); return g; },
   "Sound system upgrade": f => {
@@ -739,14 +746,14 @@ function windowStrip(f, rig, mat) {
 }
 // A grille finish over the front's black plastic (grille and bumper openings), seen from the front.
 function grilleSkin(f, rig, kind) {
-  const tex = kind === "carbon" ? picture(256, 256, (g, w, h) => weave(g, w, h, 16), true) : picture(128, 222, (g, w, h) => {
+  const tex = kind === "carbon" ? picture(256, 256, (g, w, h) => weave(g, w, h, 16), true) : kind[0] === "#" ? picture(16, 16, (g, w, h) => { g.fillStyle = kind; g.fillRect(0, 0, w, h); }, true) : picture(128, 222, (g, w, h) => {
     g.fillStyle = "#3a3d42"; g.fillRect(0, 0, w, h); g.fillStyle = "#070708";
     const hex = (cx, cy, r) => { g.beginPath(); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a)); } g.closePath(); g.fill(); };
     for (const [cx, cy] of [[0, 0], [w, 0], [w / 2, h / 2], [0, h], [w, h]]) hex(cx, cy, w * 0.56);
   }, true);
   const top = f.bonnet ? f.bonnet.minY - 0.02 : 0.75;
   return skin(rig, (c, n) => n.x > 0.45 && c.x > f.frontX - 0.4 && Math.abs(c.z) < 0.6 && c.y > f.frontBottomY + 0.03 && c.y < top,
-    (x, y, z) => [z / 0.04, y / 0.07], tex, kind === "carbon" ? { roughness: 0.3 } : { roughness: 0.5, metalness: 0.3, clearcoat: 0 }, trimTriangles(rig));
+    (x, y, z) => [z / 0.04, y / 0.07], tex, kind === "carbon" || kind[0] === "#" ? { roughness: 0.3 } : { roughness: 0.5, metalness: 0.3, clearcoat: 0 }, trimTriangles(rig));
 }
 // Copies the chosen triangles (lifted slightly off the surface) with a plain material: for re-covering seats.
 // A seat cover picture, one tile about 20 cm across: pleats (leather), diamonds (quilted) or a weave (cloth), stitched.
@@ -788,6 +795,16 @@ Object.assign(PARTS, {
   // Honeycomb mesh or carbon-look: drawn over the black plastic of the grille and the lower bumper openings.
   "Honeycomb mesh grille": (f, rig) => grilleSkin(f, rig, "honeycomb"),
   "Carbon grille": (f, rig) => grilleSkin(f, rig, "carbon"),
+  "Body-colour grille": (f, rig) => grilleSkin(f, rig, "#" + rig.paints[0].color.getHexString()),
+  // Sport grille: honeycomb mesh with a thin red line across the top, like a hot hatch's.
+  "Sport grille": (f, rig) => {
+    const g = grilleSkin(f, rig, "honeycomb"), top = (f.bonnet ? f.bonnet.minY - 0.02 : 0.75) - 0.03, pts = [];
+    for (let i = 0; i <= 12; i++) { const z = -0.5 + i / 12; const h = fromFront(rig, top, z); if (h) pts.push(V3(h.x + 0.004, top, z)); }
+    if (pts.length > 2) g.add(mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 48, 0.0045, 6, false), namedMat("grilleRed", () => new THREE.MeshStandardMaterial({ color: 0xd0141c, roughness: 0.35 }))));
+    return g;
+  },
+  "Gloss black window trim": (f, rig) => windowStrip(f, rig, mats().black),
+  "Brushed window trim": (f, rig) => windowStrip(f, rig, namedMat("brushedTrim", () => new THREE.MeshStandardMaterial({ color: 0xb4b8bd, metalness: 0.9, roughness: 0.32 }))),
   // Bonnet wrap: just the bonnet in a gloss or matte colour, or carbon-look vinyl.
   "Bonnet wrap": (f, rig, s) => {
     const t = textOf(s, "Bonnet wrap"), b = f.bonnet, col = colourIn(t, "#0b0c0e");
