@@ -164,11 +164,12 @@
       "headrestY": 1.0,
       "roofInY": 1.36,
       "wheel": [
-        0.41,
-        0.85,
-        0.32
+        0.417,
+        0.869,
+        0.322
       ],
-      "dashX": 0.5
+      "dashX": 0.5,
+      "wheelR": 0.165
     },
     "_plates": "Plate mounts measured from the model (the faces using the plate patch of its texture): their height and angle. Each plate then sits just clear of the panel's most bulging point.",
     "lamps": {

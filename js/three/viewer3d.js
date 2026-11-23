@@ -413,7 +413,7 @@ function setCars(stock, build) {
   ptCarChanged();
   disposeRig(stockCar); disposeRig(buildCar);
   stockCar = stock; buildCar = build;
-  for (const r of [stockCar, buildCar]) { r.group.traverse(o => { if (o.isMesh) o.castShadow = true; }); measureWheels(r); r.group.rotation.y = 0; addBeams(r); r.group.rotation.y = carYaw; }
+  for (const r of [stockCar, buildCar]) { r.group.traverse(o => { if (o.isMesh) o.castShadow = true; }); measureWheels(r); r.group.rotation.y = 0; addBeams(r); refineInterior(r); r.group.rotation.y = carYaw; }
   scene.add(stockCar.group, buildCar.group);
 }
 
@@ -510,6 +510,58 @@ const SMOKE_HEAD = [1, 0.5, 0.3, 0.16], SMOKE_TAIL = [1, 0.72, 0.55, 0.35], SMOK
    light low behind it, placed from where its lenses are. They sit on the body so they drop with it, and stay
    in the scene at zero strength when off, so switching them never makes the 3D rebuild its shaders. Cars
    whose model has no separate lens parts just don't get them. */
+/* ---------- the cabin: realistic finishes ----------
+   The downloaded models' cabins came out too glossy (the Golf's trim is set as polished metal), soft or flat white
+   (the BMW's printed parts have no picture). Once per car, each cabin material gets a real-world finish: soft-touch
+   plastic matt with a fine grain, leather satin, cloth matt; only metal, chrome and screens stay shiny. Pictures are
+   sharpened (full anisotropic filtering). */
+let grainTex = null;
+function grainTexture() {
+  if (grainTex) return grainTex;
+  const S = 256, c = document.createElement("canvas"); c.width = c.height = S; const g = c.getContext("2d"), img = g.createImageData(S, S);
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const h = new Float32Array(S * S); for (let i = 0; i < S * S; i++) h[i] = rnd();
+  for (let pass = 0; pass < 2; pass++) for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) { const i = y * S + x; h[i] = (h[i] * 2 + h[((y + 1) % S) * S + x] + h[y * S + (x + 1) % S]) / 4; } // soften into a pebbled grain
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const i = y * S + x, dx = h[y * S + (x + 1) % S] - h[i], dy = h[((y + 1) % S) * S + x] - h[i], o = i * 4;
+    img.data[o] = 128 + dx * 180; img.data[o + 1] = 128 + dy * 180; img.data[o + 2] = 255; img.data[o + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  grainTex = new THREE.CanvasTexture(c); grainTex.wrapS = grainTex.wrapT = THREE.RepeatWrapping; grainTex.repeat.set(48, 48);
+  return grainTex;
+}
+function refineInterior(rig) {
+  if (rig.standIn || rig.interiorDone) return; rig.interiorDone = true;
+  const c = rig.fit && rig.fit.cabin; if (!c) return;
+  const inv = rig.body.matrixWorld.clone().invert(), box = new THREE.Box3(), ctr = new THREE.Vector3(), maxAniso = renderer ? renderer.capabilities.getMaxAnisotropy() : 8;
+  const seen = new Set();
+  rig.body.traverse(o => {
+    if (!o.isMesh || o.userData.addon) return;
+    const m = o.material; if (!m || Array.isArray(m) || seen.has(m) || !m.isMeshStandardMaterial) return;
+    if (rig.paints.includes(m) || rig.lensFront.includes(m) || rig.lensRear.includes(m) || rig.rims.includes(m) || rig.calipers.includes(m) || /Glass|Tyre|Disc|Hub|Badge|Plate/i.test(m.name || "")) return;
+    box.setFromObject(o).applyMatrix4(inv).getCenter(ctr);
+    const inside = ctr.x > c.rearSeatX - 0.7 && ctr.x < c.dashX + 0.5 && Math.abs(ctr.z) < 0.8 && ctr.y > 0.15 && ctr.y < 1.45;
+    if (!inside) return;
+    seen.add(m);
+    const n = m.name || "", hsl = {}; m.color.getHSL(hsl);
+    if (m.map) { m.map.anisotropy = maxAniso; m.map.needsUpdate = true; }
+    if (/chrome|alumin|metal/i.test(n)) { // real metal trim: brushed aluminium or chrome
+      const chrome = /chrome/i.test(n); m.color.set(chrome ? 0xd8dadd : 0xb9bdc2); m.metalness = 1; m.roughness = chrome ? 0.12 : 0.32; m.needsUpdate = true; return;
+    }
+    if (/screen|display|lcd|navi/i.test(n)) return; // screens stay glossy
+    // Printed parts with no picture (gauges, symbols, seams, belts...) came out flat white: give them their real dark finish.
+    if (!m.map && hsl.l > 0.7) { m.color.set(/belt/i.test(n) ? 0x1a1b1e : /seam/i.test(n) ? 0x2a2b2e : 0x141518); m.metalness = 0; m.roughness = /belt/i.test(n) ? 0.85 : 0.6; }
+    const leather = /leather|seat|alcnt|alcantara/i.test(n), cloth = /cloth|fabric|carpet|etkc|alcnt|alcantara/i.test(n);
+    // Polished-metal settings on plastic (the Golf) and part-metal plastics (the Fiesta) become plastic.
+    if (m.metalness > 0.15) m.metalness = 0.02;
+    const lo = cloth ? 0.85 : leather ? 0.45 : 0.55, hi = cloth ? 0.95 : leather ? 0.62 : 0.8;
+    m.roughness = Math.min(hi, Math.max(lo, m.roughness < 0.25 ? (lo + hi) / 2 : m.roughness));
+    if ("clearcoat" in m) m.clearcoat = 0;
+    // A fine grain, where the surface has picture coordinates and no detail of its own.
+    if (!m.normalMap && o.geometry.attributes.uv) { m.normalMap = grainTexture(); const k = leather ? 0.08 : m.map ? 0.2 : 0.12; m.normalScale = new THREE.Vector2(k, k); }
+    m.needsUpdate = true;
+  });
+}
 function addBeams(rig) {
   const g = rig.group; g.updateMatrixWorld(true);
   const boxOf = mats => { const b = new THREE.Box3(); g.traverse(o => { if (o.isMesh && mats.includes(o.material)) b.expandByObject(o); }); return b; };

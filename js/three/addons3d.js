@@ -704,10 +704,12 @@ Object.assign(PARTS, {
   },
   "Sport steering wheel": (f, rig, s) => {
     const t = textOf(s, "Sport steering wheel"), c = cabinOf(f), [x, y, z] = c.wheel, r = c.wheelR || 0.178, tilt = 0.38, g = new THREE.Group();
-    const n = V3(-Math.cos(tilt), Math.sin(tilt), 0), up = V3(Math.sin(tilt), Math.cos(tilt), 0), q = new THREE.Quaternion().setFromUnitVectors(V3(0, 0, 1), n);
+    const n = V3(-Math.cos(tilt), Math.sin(tilt), 0), up = V3(Math.sin(tilt), Math.cos(tilt), 0);
+    // The ring's own axes: up the wheel (y), towards the driver (z), across (x), so "top" and "bottom" are the wheel's.
+    const q = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(up.clone().cross(n), up, n));
     const grip = /carbon/.test(t) ? mats().carbon : /leather/.test(t) ? namedMat("wheelLeather", () => new THREE.MeshPhysicalMaterial({ color: 0x18191b, roughness: 0.5, clearcoat: 0.2 })) : namedMat("alcantara", () => new THREE.MeshStandardMaterial({ color: 0x1a1b1d, roughness: 0.95 }));
-    const flat = !/round/.test(t), marker = /no (?:top )?marker/.test(t) ? null : colourIn((t.match(/([a-z0-9 -]+?) (?:top )?marker/) || [0, ""])[1], "#b5121b");
-    const stitch = /stitch/.test(t) ? colourIn((t.match(/([a-z0-9 -]+?) stitch/) || [0, ""])[1], "#b5121b") : null;
+    const flat = !/round/.test(t), marker = /no (?:top )?marker/.test(t) ? null : colourIn((t.match(/([a-z0-9-]+(?: [a-z0-9-]+)?) (?:top )?marker/) || [0, ""])[1], "#b5121b");
+    const stitch = /stitch/.test(t) ? colourIn((t.match(/([a-z0-9-]+(?: [a-z0-9-]+)?) (?:contrast )?stitch/) || [0, ""])[1], "#b5121b") : null; // the words just before "stitching"
     // The rim: a ring with the bottom cut flat (a straight bar across) when flat-bottomed.
     const arc = flat ? Math.PI * 2 - 1.1 : Math.PI * 2, ring = new THREE.TorusGeometry(r, 0.021, 12, 64, arc); ring.rotateZ(-Math.PI / 2 + (flat ? 0.55 : 0));
     const rim = mesh(ring, grip, x, y, z); rim.quaternion.copy(q); g.add(rim);
@@ -1154,35 +1156,44 @@ function aeroPart(rig, files) {
   return g;
 }
 
-/* The car's own front seats are part of one big cabin mesh, so they're hidden by leaving their triangles out of
-   this car's copy of the mesh while bucket seats are in (and put back when they come out). Shared geometry is
-   copied first, so the stock car beside it keeps its seats. */
-function stockSeats(rig, f, show) {
-  if (!!rig.seatsHidden === !show) return;
-  rig.seatsHidden = !show;
-  const c = cabinOf(f), inv = rig.body.matrixWorld.clone().invert(), a = new THREE.Vector3(), b = new THREE.Vector3(), d = new THREE.Vector3();
-  const inSeat = p => p.x > c.headrestX - 0.2 && p.x < c.frontSeatX + 0.36 && Math.abs(Math.abs(p.z) - c.seatZ) < 0.25 && p.y > c.seatY - 0.06 && p.y < c.headrestY + 0.16;
+/* Hiding parts of the car's own cabin that a new part replaces: the front seats under bucket seats, the steering
+   wheel's rim under a sport wheel. They're part of big shared meshes, so this car gets its own copy of each mesh
+   involved and the replaced triangles are left out of its index (put back when the part comes off). The stock car
+   beside it keeps everything. Each region is measured once per mesh. */
+function cabinRegions(f) {
+  const c = cabinOf(f), [wx, wy, wz] = c.wheel, tilt = 0.38, n = V3(-Math.cos(tilt), Math.sin(tilt), 0), r = c.wheelR || 0.178;
+  return {
+    seats: p => p.x > c.headrestX - 0.2 && p.x < c.frontSeatX + 0.36 && Math.abs(Math.abs(p.z) - c.seatZ) < 0.25 && p.y > c.seatY - 0.06 && p.y < c.headrestY + 0.16,
+    wheelRim: p => { const d = V3(p.x - wx, p.y - wy, p.z - wz), a = d.dot(n), rad = d.addScaledVector(n, -a).length(); return Math.abs(a) < 0.07 && rad > r - 0.035 && rad < r + 0.05; }
+  };
+}
+function hideCabin(rig, f, wantHidden) {
+  const key = Object.keys(wantHidden).filter(k => wantHidden[k]).sort().join(",");
+  if ((rig.hiddenKey || "") === key) return;
+  rig.hiddenKey = key;
+  const regions = cabinRegions(f), inv = rig.body.matrixWorld.clone().invert(), a = new THREE.Vector3(), b = new THREE.Vector3(), d = new THREE.Vector3();
   rig.body.updateWorldMatrix(true, true);
   rig.body.traverse(o => {
     if (!o.isMesh || o.userData.addon || rig.paints.includes(o.material) || /Glass|Lens|Rim|Tyre|Caliper|Disc|Hub/i.test(o.material.name || "")) return;
-    if (!o.userData.seatInfo) { // measured once: does this mesh have seat triangles, and which index keeps the rest?
-      const g = o.geometry, P = g.attributes.position, idx = g.index, n = idx ? idx.count : P.count, M = o.matrixWorld.clone().premultiply(inv), keep = [];
-      let cut = 0;
+    if (!o.userData.cut) { // measured once: which triangles fall in each region
+      const g = o.geometry, P = g.attributes.position, idx = g.index, n = idx ? idx.count : P.count, M = o.matrixWorld.clone().premultiply(inv), cut = {};
       for (let i = 0; i < n; i += 3) {
         const k = [0, 1, 2].map(j => idx ? idx.getX(i + j) : i + j);
         a.fromBufferAttribute(P, k[0]).applyMatrix4(M); b.fromBufferAttribute(P, k[1]).applyMatrix4(M); d.fromBufferAttribute(P, k[2]).applyMatrix4(M);
-        if (inSeat(a.clone().add(b).add(d).divideScalar(3))) cut++; else keep.push(...k);
+        const ctr = a.clone().add(b).add(d).divideScalar(3);
+        for (const r in regions) if (regions[r](ctr)) (cut[r] = cut[r] || new Set()).add(i);
       }
-      o.userData.seatInfo = cut ? { keep, full: idx ? Array.from(idx.array) : null, count: n } : { none: true };
-      if (cut) o.geometry = g.clone(); // this car's own copy
+      o.userData.cut = Object.keys(cut).length ? { cut, full: idx ? Array.from(idx.array) : null, n } : { none: true };
+      if (!o.userData.cut.none) o.geometry = g.clone(); // this car's own copy
     }
-    const si = o.userData.seatInfo; if (si.none) return;
-    const g = o.geometry;
-    if (show) { if (si.full) g.setIndex(si.full); else g.setIndex(null); }
-    else g.setIndex(si.keep);
-    g.computeBoundingSphere();
+    const info = o.userData.cut; if (info.none) return;
+    const active = Object.keys(wantHidden).filter(k => wantHidden[k] && info.cut[k]);
+    if (!active.length) { o.geometry.setIndex(info.full ? info.full : null); o.geometry.computeBoundingSphere(); return; }
+    const keep = [];
+    for (let i = 0; i < info.n; i += 3) if (!active.some(k => info.cut[k].has(i))) for (let j = 0; j < 3; j++) keep.push(info.full ? info.full[i + j] : i + j);
+    o.geometry.setIndex(keep); o.geometry.computeBoundingSphere();
   });
-  rig.probes = null; rig.probeMeshes = null; rig.trimTris = null; // measurements of the cabin change with the seats
+  rig.probes = null; rig.probeMeshes = null; rig.trimTris = null; // measurements of the cabin change with it
 }
 
 /* ---------- putting a build's add-ons on a car ---------- */
@@ -1209,7 +1220,7 @@ export function updateAddons(rig, spec, f) {
   for (const k in fx) if (fx[k]) want.set(k, String(fx[k]));
   // Rebuild only the parts that changed.
   for (const [k, part] of rig.fx.parts) if (!want.has(k) || want.get(k) !== part.userData.key) { part.parent.remove(part); part.traverse(o => { if (o.isMesh) { if (!rig.aero || !AERO[k]) o.geometry.dispose(); if (part.userData.ownMaterials || o.parent && o.parent.userData.ownMaterials) { if (o.material.map && o.material.map !== tyreTex && !Object.values(tyreTexts).includes(o.material.map)) o.material.map.dispose(); o.material.dispose(); } } }); rig.fx.parts.delete(k); }
-  if (!rig.standIn) stockSeats(rig, f, !has("Bucket seats"));
+  if (!rig.standIn) hideCabin(rig, f, { seats: has("Bucket seats"), wheelRim: has("Sport steering wheel") });
   for (const [k, key] of want) if (!rig.fx.parts.has(k)) {
     const part = k.startsWith("fx:") ? SKINS[k.slice(3)](f, rig, s, key === "black") : rig.aero && AERO[k] ? aeroPart(rig, AERO[k]) : PARTS[k](f, rig, s); part.userData.key = key;
     (part.userData.ground ? rig.group : rig.body).add(part); rig.fx.parts.set(k, part);
