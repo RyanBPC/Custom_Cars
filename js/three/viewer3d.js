@@ -498,8 +498,9 @@ function applyLights(p, b) {
   // The beams: light on the road ahead and a red wash behind (off by day; dimmer through smoked lenses).
   if (!p.beams) return;
   p.beams.front.forEach(s => { s.color.set(led ? 0xe6eeff : 0xfff0d8); s.intensity = lightsOn ? 60 * (smoked ? 0.5 : 1) * (led ? 1.3 : 1) : 0; });
-  (p.beams.pools || []).forEach(l => { l.intensity = lightsOn ? 7 * (smokedT ? 0.6 : 1) : 0; });
+  (p.beams.pools || []).forEach(l => { l.intensity = lightsOn ? 10 * (smokedT ? 0.6 : 1) : 0; });
   if (p.beams.cabin) p.beams.cabin.intensity = lightsOn ? 0.35 : 0;
+  applyLamps(p, b);
   if (p.beams.ambient) { const amb = !!(b && b.addons && b.addons.extras.includes("LED ambient interior lighting")); p.beams.ambient.intensity = lightsOn && amb ? 0.6 : 0; if (amb) p.beams.ambient.color.set(b.addons.ambient || "#3aa8ff"); }
   (p.beams.glows || []).forEach(q => { q.visible = lightsOn; q.material.opacity = q.userData.front ? (smoked ? 0.35 : 0.85) : (smokedT ? 0.45 : ledTail ? 0.95 : 0.75); q.material.color.set(q.userData.front ? (led ? 0xe6f0ff : 0xfff4e2) : 0xff2418); });
   p.beams.rear.forEach(l => { l.intensity = lightsOn ? (ledTail ? 0.14 : 0.1) * (smokedT ? 0.5 : 1) : 0; });
@@ -580,6 +581,8 @@ function addBeams(rig) {
   // Everything stays in the scene at zero strength when off, so switching never makes the 3D rebuild its shaders.
   rig.body.updateMatrixWorld(true);
   rig.beams = { front: [], rear: [], pools: [], glows: [], cabin: null, ambient: null };
+  // Every light costs every material shader work, so the stock car (the "before" side) gets only head and tail lights.
+  const full = rig === buildCar;
   const add = (light, x, y, z, tx, ty, tz) => { light.castShadow = false; light.position.set(x, y, z); if (light.target) { light.target.position.set(tx, ty, tz); rig.body.add(light.target); } rig.body.add(light); return light; };
   for (const lamp of lampsOf(rig, rig.lensFront, true)) {
     const s = new THREE.SpotLight(0xfff0d8, 0, 45, 0.36, 0.22, 1.6); s.name = "Headlight_Beam";
@@ -597,9 +600,14 @@ function addBeams(rig) {
   for (const lamp of rearLamps(rig)) {
     const l = new THREE.PointLight(0xff1a14, 0, 1.1, 2); l.name = "Tail_Glow";
     rig.beams.rear.push(add(l, lamp.x - 0.12, lamp.y - 0.04, lamp.z));
-    const pool = new THREE.SpotLight(0xff1410, 0, 6, 0.75, 0.9, 1.8); pool.name = "Tail_Pool";
-    rig.beams.pools.push(add(pool, lamp.x - 0.05, lamp.y, lamp.z, lamp.x - 2.2, 0, lamp.z));
   }
+  const tl = rearLamps(rig);
+  if (full && tl.length) { // one wide red pool on the road behind, from between the lamps
+    const pool = new THREE.SpotLight(0xff1410, 0, 6, 0.95, 0.9, 1.8); pool.name = "Tail_Pool";
+    rig.beams.pools.push(add(pool, tl[0].x - 0.05, tl[0].y, 0, tl[0].x - 2.2, 0, 0));
+  }
+  if (!full) return;
+  addExtraLamps(rig, add);
   const c = rig.fit && rig.fit.cabin;
   if (c) {
     rig.beams.cabin = add(new THREE.PointLight(0xffd9a8, 0, 1.4, 2), c.dashX - 0.12, c.wheel[1] - 0.02, c.wheel[2] * 0.4);      // instrument and screen glow
@@ -612,6 +620,92 @@ function lampSurface(rig, front, y, z) {
   rig.body.updateMatrixWorld(true); const M = rig.body.matrixWorld;
   rc.set(new THREE.Vector3(front ? 4 : -4, y, z).applyMatrix4(M), new THREE.Vector3(front ? -1 : 1, 0, 0).transformDirection(M));
   const h = rc.intersectObjects(meshes, false)[0]; return h ? rig.body.worldToLocal(h.point.clone()).x : null;
+}
+/* ---------- the other lamps: full beam, fogs, reverse, indicators and hazards ----------
+   Positions come from each car's measured head and tail lamps (fit.lamps), or fit.lamps.fog / rearFog / reverse /
+   indicator where a car gives its own. Each lamp is a soft glow placed just inside the car's surface (found with a
+   ray); reverse and fogs also light the road. On a car whose model has these lamps as parts (the BMW), those parts
+   light up too. "Right" is the driver's side on these UK cars (+z). */
+const LAMP_OFF = { full: false, fog: false, reverse: false, left: false, right: false, hazard: false };
+let lampState = { ...LAMP_OFF }, blinkOn = false, blinkTimer = null;
+function sideSurface(rig, x, y, k) {
+  const rc = new THREE.Raycaster(), meshes = []; rig.body.traverse(o => { if (o.isMesh && !o.userData.addon && !o.userData.film) meshes.push(o); });
+  rig.body.updateMatrixWorld(true); const M = rig.body.matrixWorld;
+  rc.set(new THREE.Vector3(x, y, 4 * k).applyMatrix4(M), new THREE.Vector3(0, 0, -k).transformDirection(M));
+  const h = rc.intersectObjects(meshes, false)[0]; return h ? rig.body.worldToLocal(h.point.clone()).z : null;
+}
+function addExtraLamps(rig, add) {
+  const f = rig.fit || {}, L = f.lamps || {}, H = L.head, T = L.tail; if (!H || !T) return;
+  const glow = (kind, colour, w, h, x, y, z, face) => {
+    const mat = new THREE.MeshBasicMaterial({ color: colour, map: glowTexture(), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+    const q = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat); q.name = "Lamp_" + kind; q.renderOrder = 3; q.visible = false;
+    q.rotation.y = face === "front" ? Math.PI / 2 : face === "back" ? -Math.PI / 2 : face > 0 ? 0 : Math.PI;
+    q.position.set(x, y, z); q.userData.kind = kind; rig.body.add(q); return q;
+  };
+  const front = (y, z) => { const sx = lampSurface(rig, true, y, z); return sx === null ? H.x : sx - 0.012; };
+  const back = (y, z) => { const sx = lampSurface(rig, false, y, z); return sx === null ? T.x : sx + 0.012; };
+  const X = rig.extraLamps = { quads: [], mats: [] };
+  for (const k of [1, -1]) {
+    const side = k > 0 ? "right" : "left";
+    // Indicators: the outer end of each headlamp and tail lamp, and a repeater on each front wing behind the wheel.
+    const fi = L.indicator || {}, fz = k * (fi.frontZ || H.z + H.w * 0.38), fy = fi.frontY || H.y - 0.02;
+    X.quads.push(glow("ind-" + side, 0xffa21a, 0.11, 0.07, front(fy, fz), fy, fz, "front"));
+    const rz = k * (fi.rearZ || T.z + T.w * 0.32), ry = fi.rearY || T.y + 0.015;
+    X.quads.push(glow("ind-" + side, 0xffa21a, 0.11, 0.07, back(ry, rz), ry, rz, "back"));
+    if (rig.wheelInfo) { const wx = rig.wheelInfo.frontX - rig.wheelInfo.r - 0.16, wy = 0.74, sz = sideSurface(rig, wx, wy, k); if (sz !== null) X.quads.push(glow("ind-" + side, 0xffa21a, 0.08, 0.04, wx, wy, sz + k * 0.006, k)); }
+    // Reversing lamps: the inner part of each tail lamp.
+    const rv = L.reverse || {}, vz = k * (rv.z || Math.max(0.2, T.z - T.w * 0.3)), vy = rv.y || T.y - 0.02;
+    X.quads.push(glow("reverse", 0xffffff, 0.1, 0.07, back(vy, vz), vy, vz, "back"));
+    // Front fogs: low in the bumper's outer openings.
+    const fg = L.fog || {}, gz = k * (fg.z || (f.sideZ || 0.85) - 0.27), gy = fg.y || (f.frontBottomY || 0.2) + 0.16;
+    X.quads.push(glow("fog", 0xfff6e2, 0.13, 0.09, front(gy, gz), gy, gz, "front"));
+  }
+  // One rear fog lamp, on the driver's (right) side, low on the back.
+  const rf = L.rearFog || {}, fz2 = rf.z || 0.5, fy2 = rf.y || (f.rearBottomY || 0.3) + 0.14;
+  X.quads.push(glow("rearfog", 0xff1a14, 0.1, 0.07, back(fy2, fz2), fy2, fz2, "back"));
+  // Light on the road: a white pool behind when reversing, a wide low wash ahead from the fogs.
+  // (point lights, low and just off the car: spot lights here stalled some browsers' shader building)
+  X.revPool = add(new THREE.PointLight(0xffffff, 0, 3.5, 1.6), T.x - 0.6, 0.35, 0);
+  X.fogPool = add(new THREE.PointLight(0xfff4e0, 0, 5, 1.6), (f.frontX || 2) + 0.9, 0.3, 0);
+  // The model's own lamp parts, where it has them (by name).
+  rig.group.traverse(o => { if (!o.isMesh) return; const m = o.material, n = (m && m.name) || ""; let kind = null;
+    if (/reverse/i.test(n)) kind = "reverse"; else if (/fog/i.test(n)) kind = "rearfog"; else if (/signal_?L/i.test(n)) kind = "ind-left"; else if (/signal_?R/i.test(n)) kind = "ind-right";
+    if (kind && m.emissive && !X.mats.some(e => e.m === m)) X.mats.push({ m, kind, e: m.emissive.clone(), i: m.emissiveIntensity }); });
+}
+function applyLamps(p, b) {
+  const X = p.extraLamps; if (!X) return;
+  const st = p === buildCar || p === stockCar ? lampState : LAMP_OFF, flash = blinkOn && (st.hazard || st.left || st.right);
+  const on = kind => kind === "reverse" ? st.reverse : kind === "fog" ? st.fog && lightsOn : kind === "rearfog" ? st.fog && lightsOn
+    : kind === "ind-left" ? flash && (st.hazard || st.left) : kind === "ind-right" ? flash && (st.hazard || st.right) : false;
+  for (const q of X.quads) { const v = on(q.userData.kind); q.visible = v; q.material.opacity = v ? (q.userData.kind === "rearfog" ? 0.95 : 0.9) : 0; }
+  for (const e of X.mats) { if (on(e.kind)) { e.m.emissive.set(e.kind === "reverse" ? 0xffffff : e.kind === "rearfog" ? 0xff1a14 : 0xffa21a); e.m.emissiveIntensity = 3; } else { e.m.emissive.copy(e.e); e.m.emissiveIntensity = e.i; } }
+  if (X.revPool) X.revPool.intensity = st.reverse ? 1.2 : 0;
+  if (X.fogPool) X.fogPool.intensity = st.fog && lightsOn ? 2.5 : 0;
+  // Full beam: the headlight beams reach much further and brighter, aimed higher up the road.
+  for (const s of (p.beams && p.beams.front) || []) {
+    if (!s.userData.dip) s.userData.dip = { d: s.distance, a: s.angle, t: s.target.position.clone() };
+    const full = st.full && lightsOn, dip = s.userData.dip;
+    s.distance = full ? 90 : dip.d; s.angle = full ? 0.45 : dip.a;
+    s.target.position.copy(dip.t); if (full) { s.target.position.x += 30; s.target.position.y = 0.8; }
+    if (full) s.intensity *= 2.2;
+  }
+}
+function lampsChanged() {
+  const flashing = lampState.hazard || lampState.left || lampState.right;
+  if (flashing && !blinkTimer) blinkTimer = setInterval(() => { blinkOn = !blinkOn; if (buildCar) applyLights(buildCar, lastBuild); requestRender(); }, 333); // about 1.5 flashes a second
+  if (!flashing && blinkTimer) { clearInterval(blinkTimer); blinkTimer = null; blinkOn = false; }
+  if (buildCar) applyLights(buildCar, lastBuild);
+  ptCarChanged(); requestRender();
+  window.dispatchEvent(new CustomEvent("viewer3d-lamps", { detail: { ...lampState } }));
+}
+function setLamp(name, on) {
+  if (!(name in LAMP_OFF)) return;
+  on = !!on; lampState[name] = on;
+  if (on && name === "left") { lampState.right = false; lampState.reverse = false; }
+  if (on && name === "right") { lampState.left = false; lampState.reverse = false; }
+  if (on && (name === "full" || name === "fog") && !lightsOn) { userLights = true; syncLights(); } // they need the lights on
+  if (on) blinkOn = true; // a fresh flash starts lit
+  lampsChanged();
 }
 // A soft round glow picture (bright middle fading to nothing), made once.
 let glowTex = null;
@@ -1168,6 +1262,9 @@ window.Viewer3D = {
   // Turning them off in a night setting is allowed too (until the setting changes).
   setLights(on) { if (!renderer) return; userLights = !!on; if (!on) nightLights = false; syncLights(); },
   lightsOn() { return lightsOn; },
+  // Other lamps: "full" (full beam), "fog", "reverse", "left" / "right" (indicators) and "hazard". See setLamp.
+  setLamp(name, on) { if (renderer) setLamp(name, on); },
+  lamps() { return { ...lampState }; },
   setPhotoQuality(on) { if (renderer) setPhotoQuality(on); },
   photoQuality() { return ptOn; },
   capture() { return renderer ? capture() : Promise.resolve(null); },
