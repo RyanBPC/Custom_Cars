@@ -31,7 +31,7 @@
       fields: [{ key: "mm", label: "Thickness (each side)", opts: [["5", "5mm"], ["10", "10mm"], ["15", "15mm"], ["20", "20mm"], ["25", "25mm"]] }],
       read: (t, v) => { const m = t.match(/(\d+)mm/); if (m) v.mm = m[1]; }, make: v => `${v.mm}mm wheel spacers` },
     { name: "Ride height", pick: "drop", opts: [["Factory", null], ["−20mm", "lower it 20mm"], ["−35mm", "lower it 35mm"], ["Slammed −50mm", "slammed"], ["Air ride", "air ride"]] },
-    { name: "Aero", pick: "spoiler", opts: [["No spoiler", null], ["Lip", "lip spoiler"], ["Ducktail", "ducktail spoiler"], ["Roof extension", "roof spoiler extension"], ["Pedestal wing", "pedestal wing"], ["GT wing", "gt wing"]], extras: [["Body kit", "body kit"], ["Widebody", "widebody"]] },
+    { name: "Aero", pick: "spoiler", opts: [["No spoiler", null], ["Lip", "lip spoiler"], ["Ducktail", "ducktail spoiler"], ["Roof extension", "roof spoiler extension"], ["Pedestal wing", "pedestal wing"], ["GT wing", "gt wing"]], extras: [["Body kit", "body kit"], ["Widebody", "widebody"], ["Painted widebody", "painted widebody"]] },
     { name: "Styling", extras: [["Big brakes", "big brakes"]] },
     { name: "Window tint", row: true, mod: "tint", defaults: { vlt: "35" },
       fields: [{ key: "vlt", label: "Rear windows (light let through)", opts: [["70", "70% (lightest)"], ["50", "50%"], ["35", "35%"], ["20", "20%"], ["5", "5% (limo)"]] }],
