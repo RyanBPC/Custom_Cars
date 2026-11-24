@@ -2,7 +2,7 @@
 "use strict";
 /* ---------- test drive ---------- */
 const road=$("road"), cvs=$("roadCanvas"), cx2=cvs.getContext("2d");
-let dMode="build", drv={running:false,v:0,gear:1,rpm:0,thr:false,shift:0,dist:0,t0:null,done:false,last:0,wheelA:0,times:{}};
+let dMode="build", drv={running:false,v:0,gear:1,rpm:0,thr:false,shift:0,dist:0,t0:null,done:false,last:0,wheelA:0,times:{},more:{},r:{}};
 /* Share of top speed each gear reaches at the redline, by number of gears (6 if a car doesn't say). */
 const GEAR_TOP={5:[.3,.48,.66,.84,1],6:[.26,.4,.55,.7,.85,1],7:[.23,.35,.48,.61,.74,.87,1],8:[.2,.31,.42,.53,.64,.76,.88,1]};
 const gearsOf=c=>GEAR_TOP[c.gears]||GEAR_TOP[6];
@@ -36,7 +36,7 @@ function refreshDriveCar(){
   // Keep the last 0-62 of each setup so stock and your build can be compared; a new car clears both,
   // a changed build clears only the build's time.
   const bk=JSON.stringify(state.mods||{});
-  if(drv.car&&drv.car!==car()) drv.times={}; else if(drv.bk!==undefined&&drv.bk!==bk) drv.times.build=null;
+  if(drv.car&&drv.car!==car()){drv.times={};drv.more={};} else if(drv.bk!==undefined&&drv.bk!==bk){drv.times.build=null;drv.more.build=null;}
   drv.bk=bk; showTimes();
   drv.car=car();
   drv.gear=Math.min(drv.gear||1,gearsOf(car()).length);
@@ -48,12 +48,24 @@ function showTimes(){
   if(s==null&&b==null){el.textContent="";return;}
   let h=`Stock ${s!=null?f(s):"<span class=\"muted\">not timed yet</span>"} · Your build ${b!=null?f(b):"<span class=\"muted\">not timed yet</span>"}`;
   if(s!=null&&b!=null){const d=s-b; h+=Math.abs(d)<.005?": the same":`: ${Math.abs(d).toFixed(2)}s ${d>0?"quicker":"slower"}`;}
+  // Car #153: the 30-70 (overtaking) and quarter-mile times for each setup, once any are timed.
+  const ms=drv.more.stock||{}, mb=drv.more.build||{}, g=t=>t!=null?`<b class="mono">${t.toFixed(1)}s</b>`:"<span class=\"muted\">–</span>";
+  if(ms.a!=null||mb.a!=null) h+=`<br>30–70 mph: Stock ${g(ms.a)} · Your build ${g(mb.a)}`;
+  if(ms.q!=null||mb.q!=null) h+=`<br>Quarter mile: Stock ${g(ms.q)} · Your build ${g(mb.q)}`;
   el.innerHTML=h;
+}
+/* The current run's result: 0-62 first, then 30-70 and the quarter mile as they are reached (all virtual). */
+function showRun(c){
+  const r=drv.r; if(r.t62==null){$("runResult").textContent="";return;}
+  let h=`Virtual 0–62 mph: <b class="mono">${r.t62.toFixed(2)}s</b> <span class="muted">(${dMode==="build"?"your build; estimated":"stock; manufacturer claims"} ${perf(c,dMods()).t62.toFixed(1)}s)</span>`;
+  const x=[]; if(r.a!=null) x.push(`30–70: <b class="mono">${r.a.toFixed(1)}s</b>`); if(r.q!=null) x.push(`Quarter mile: <b class="mono">${r.q.toFixed(1)}s</b>`);
+  if(x.length) h+=`<br><span class="muted">Virtual</span> ${x.join(" · ")}`; else h+=`<br><span class="muted">Keep the throttle down for 30–70 and the quarter mile</span>`;
+  $("runResult").innerHTML=h;
 }
 function setDMode(m){dMode=m;$("dStock").setAttribute("aria-pressed",m==="stock");$("dBuild").setAttribute("aria-pressed",m==="build");refreshDriveCar();resetRun();}
 $("dStock").addEventListener("click",()=>setDMode("stock"));
 $("dBuild").addEventListener("click",()=>setDMode("build"));
-function resetRun(){drv.v=0;drv.gear=1;drv.t0=null;drv.done=false;$("runResult").textContent="";}
+function resetRun(){drv.v=0;drv.gear=1;drv.t0=null;drv.done=false;drv.r={};$("runResult").textContent="";}
 function stopDriveEngine(){if(drv.running){drv.running=false;road.classList.remove("live");engine.stop();$("engineBtn").textContent="Start engine";$("throttle").disabled=true;$("driveHint").textContent="Start the engine to drive";drv.thr=false;}}
 $("engineBtn").addEventListener("click",()=>{
   if(drv.running){stopDriveEngine();return;}
@@ -157,11 +169,19 @@ function driveLoop(now){
   const c=car(), p=perf(c,dMods()), m=p.kg+80, cal=driveBuildCal(c,dMods());
   const red=c.redline, P=p.hp*745.7*.8*cal.k;
   if(drv.running){
-    if(drv.thr&&drv.t0===null&&drv.v<.5){drv.t0=now;drv.done=false;$("runResult").textContent="";}
+    if(drv.thr&&drv.t0===null&&drv.v<.5){drv.t0=now;drv.done=false;drv.r={};drv.m=0;drv.t30=null;$("runResult").textContent="";}
     if(driveStep(drv,c,P,m,cal,drv.thr,dt)) c.box==="dsg"?engine.burst(.035,1100,.06):engine.burst(.05,900,.05); // DSG: shorter, sharper pop
     engine.set(drv.rpm,drv.thr&&drv.shift<=0?1:0);
     const mph=drv.v*2.237;
-    if(drv.t0!==null&&!drv.done&&mph>=62){drv.done=true;const t=(now-drv.t0)/1000;$("runResult").innerHTML=`Virtual 0–62 mph: <b class="mono">${t.toFixed(2)}s</b> <span class="muted">(${dMode==="build"?"your build; estimated":"stock; manufacturer claims"} ${perf(c,dMods()).t62.toFixed(1)}s)</span>`;drv.times[dMode]=t;showTimes();}
+    if(drv.t0!==null&&!drv.done&&mph>=62){drv.done=true;const t=(now-drv.t0)/1000;drv.r.t62=t;showRun(c);drv.times[dMode]=t;showTimes();}
+    // Car #153: real metres since the start (drv.dist is scaled for drawing), the 30-70 split and the quarter mile (402 m).
+    if(drv.t0!==null){
+      const el=(now-drv.t0)/1000, r=drv.r; let nu=false; drv.m+=drv.v*dt;
+      if(drv.t30==null&&mph>=30) drv.t30=el;
+      if(r.a==null&&drv.t30!=null&&mph>=70){r.a=el-drv.t30;nu=true;}
+      if(r.q==null&&drv.m>=402.3){r.q=el;nu=true;}
+      if(nu){const k=drv.more[dMode]||(drv.more[dMode]={}); if(r.a!=null) k.a=r.a; if(r.q!=null) k.q=r.q; if(r.t62!=null) showRun(c); showTimes();}
+    }
     if(drv.v<.3&&!drv.thr) drv.t0=null;
     $("mph").textContent=Math.round(mph);$("gear").textContent=drv.v<.2&&!drv.thr?"N":drv.gear;$("rpmTxt").textContent=Math.round(drv.rpm/50)*50;$("rpmBar").style.width=(drv.rpm/red*100)+"%";
   }
