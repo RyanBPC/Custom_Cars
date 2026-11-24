@@ -38,7 +38,8 @@ const COSMETIC_NEAR={"Sport steering wheel":/steering/,"Wheel spacers":/spacer/,
 const CALIPER_PAINT_RE=/calipers? paint|paint(?:ed)? (?:the |my )?(?:brake )?calipers?|painted (?:brake )?calipers?|calipers? (?:colou?r|painted)/;
 // "Yellow calipers" on its own is caliper paint; big brakes are asked for with big/kit/upgrade/BBK/Brembo/pistons or to stop better.
 const BIG_BRAKE_RE=/\bbig\b|\bkit\b|upgrade|\bbbk\b|brembo|\bpot\b|piston|stop better|stopping power|bigger brakes/;
-const isCaliperPaint=t=>CALIPER_PAINT_RE.test(t)||(/\bcalipers?\b/.test(t)&&!BIG_BRAKE_RE.test(t)&&!/\bbrakes?\b/.test(t));
+// "red brake calipers" is the calipers' colour (how Gemini's photo read words it), so "brake" just before "caliper" doesn't mean the kit.
+const isCaliperPaint=t=>CALIPER_PAINT_RE.test(t)||(/\bcalipers?\b/.test(t)&&!BIG_BRAKE_RE.test(t)&&!/\bbrakes?\b/.test(t.replace(/\bbrakes? (?=calipers?\b)/g,"")));
 const SMOKED_HEAD_RE=/smoked? head ?lights?|head ?lights? (?:smoked|tinted)|tint(?:ed)? (?:the )?head ?lights?/;
 const SMOKED_TAIL_RE=/smoked? (?:tail|rear) ?lights?|(?:tail|rear) ?lights? (?:smoked|tinted)|tint(?:ed)? (?:the )?(?:tail|rear) ?lights?/;
 // The clause of a sentence that's about one part (so "red centre caps, chrome window trim" gives the caps red, not chrome).
