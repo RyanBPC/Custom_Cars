@@ -18,7 +18,10 @@ function renderGarage(){
   const shown=BRANDS.filter(b=>garageBrand==="all"||b===garageBrand);
   $("garageGrid").innerHTML=`<div class="grid garage-all">${shown.flatMap(b=>carsOf(b)).map(garageCard).join("")}</div>`;
 }
-$("garageBrands").addEventListener("click",e=>{const b=e.target.closest("[data-brand]");if(b){garageBrand=b.dataset.brand;renderGarage();}});
+// The tabs are rebuilt on every click, so put focus back on the pressed one and say how many cars are shown (for keyboard and screen-reader users).
+$("garageBrands").addEventListener("click",e=>{const b=e.target.closest("[data-brand]");if(!b)return;garageBrand=b.dataset.brand;renderGarage();
+  const t=$("garageBrands").querySelector(`[data-brand="${CSS.escape(garageBrand)}"]`);if(t)t.focus();
+  const n=garageBrand==="all"?CARS.length:carsOf(garageBrand).length;$("garageCount").textContent=`Showing ${n} ${garageBrand==="all"?"":garageBrand+" "}${n===1?"car":"cars"}`;});
 renderGarage();
 $("garageGrid").addEventListener("click",e=>{const b=e.target.closest("[data-custom]");if(b){switchCar(b.dataset.custom,true);goTab("build");}});
 
