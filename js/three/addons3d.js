@@ -965,6 +965,30 @@ Object.assign(PARTS, {
     for (const [want, col] of [[true, second], [false, main]]) { const m = flatSkin(T, (p, n) => inSeat(p) && !lining(p, n) && centre(p) === want, cover(col)); if (m) g.add(m); }
     g.userData.ownMaterials = true; return g;
   },
+  // Coloured seat belts: the cabin's own belts re-coloured where the model has them (the BMW); otherwise each front belt
+  // is drawn hanging down the B-pillar beside its seat, as a real empty seat's belt does, with a dark buckle inboard.
+  "Coloured seat belts": (f, rig, s) => {
+    const col = colourIn(textOf(s, "Coloured seat belts"), "#b5121b"), c = cabinOf(f);
+    const webbing = new THREE.MeshStandardMaterial({ color: col, map: picture(32, 32, (g, w, h) => { g.fillStyle = "#fff"; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 2) { g.fillStyle = "rgba(0,0,0,0.12)"; g.fillRect(0, y, w, 1); } }, true), roughness: 0.85, metalness: 0, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
+    const own = flatSkin(copyTriangles(rig, m => /belt/i.test(m.name || "")), () => true, webbing);
+    const g = new THREE.Group();
+    if (own) { g.add(own); g.userData.ownMaterials = true; return g; }
+    const dark = namedMat("buckle", () => new THREE.MeshStandardMaterial({ color: 0x141518, roughness: 0.5 }));
+    const x = c.headrestX - 0.04, yTop = c.headrestY + 0.02, yLow = c.seatY - 0.05;
+    for (const k of [1, -1]) {
+      const pts = [];
+      for (let i = 0; i <= 6; i++) { // the pillar's inside face, found by looking out from the seat
+        const y = yTop + (yLow - yTop) * i / 6, h = probe(rig, [x, y, k * c.seatZ], [0, 0, k]);
+        if (h && Math.abs(h.z) > c.seatZ + 0.12 && Math.abs(h.z) < f.sideZ) pts.push([x, y, h.z - k * 0.014]);
+      }
+      if (pts.length < 3) { const z = k * (c.seatZ + 0.3); pts.length = 0; pts.push([x, yTop, z], [x, yLow, z]); }
+      for (let i = 1; i < pts.length; i++) g.add(bar(pts[i - 1], pts[i], 0.004, 0.048, webbing));
+      g.add(box(0.03, 0.02, 0.06, dark, ...pts[0])); // the shoulder guide at the top
+      const bz = k * (c.seatZ - 0.23), by = c.seatY + 0.06, bx = c.headrestX + 0.22; // the buckle on its stalk, inboard of the seat
+      g.add(box(0.025, 0.065, 0.032, dark, bx, by, bz), bar([bx, by - 0.03, bz], [bx - 0.02, c.seatY - 0.08, bz], 0.012, 0.03, dark));
+    }
+    g.traverse(o => { o.castShadow = false; }); g.userData.ownMaterials = true; return g;
+  },
   // Dashboard trim: a band of carbon, brushed aluminium or piano black across the dash, at the level of the air vents.
   "Dashboard trim": (f, rig, s) => {
     const t = textOf(s, "Dashboard trim"), c = cabinOf(f), kind = /alu|brushed|metal/.test(t) ? "brushed" : /piano|gloss black/.test(t) ? "piano" : /wood/.test(t) ? "wood" : /painted/.test(t) ? "painted" : "carbon";
