@@ -642,23 +642,24 @@ function addExtraLamps(rig, add) {
     q.rotation.y = face === "front" ? Math.PI / 2 : face === "back" ? -Math.PI / 2 : face > 0 ? 0 : Math.PI;
     q.position.set(x, y, z); q.userData.kind = kind; rig.body.add(q); return q;
   };
-  const front = (y, z) => { const sx = lampSurface(rig, true, y, z); return sx === null ? H.x : sx - 0.012; };
-  const back = (y, z) => { const sx = lampSurface(rig, false, y, z); return sx === null ? T.x : sx + 0.012; };
+  // Just outside the car's surface: these lamps are often behind paint or a dark cover, where a glow inside would be hidden.
+  const front = (y, z) => { const sx = lampSurface(rig, true, y, z); return sx === null ? H.x : sx + 0.006; };
+  const back = (y, z) => { const sx = lampSurface(rig, false, y, z); return sx === null ? T.x : sx - 0.006; };
   const X = rig.extraLamps = { quads: [], mats: [] };
   for (const k of [1, -1]) {
     const side = k > 0 ? "right" : "left";
     // Indicators: the outer end of each headlamp and tail lamp, and a repeater on each front wing behind the wheel.
     const fi = L.indicator || {}, fz = k * (fi.frontZ || H.z + H.w * 0.38), fy = fi.frontY || H.y - 0.02;
-    X.quads.push(glow("ind-" + side, 0xffa21a, 0.11, 0.07, front(fy, fz), fy, fz, "front"));
+    X.quads.push(glow("ind-" + side, 0xffa21a, 0.14, 0.09, front(fy, fz), fy, fz, "front"));
     const rz = k * (fi.rearZ || T.z + T.w * 0.32), ry = fi.rearY || T.y + 0.015;
-    X.quads.push(glow("ind-" + side, 0xffa21a, 0.11, 0.07, back(ry, rz), ry, rz, "back"));
-    if (rig.wheelInfo) { const wx = rig.wheelInfo.frontX - rig.wheelInfo.r - 0.16, wy = 0.74, sz = sideSurface(rig, wx, wy, k); if (sz !== null) X.quads.push(glow("ind-" + side, 0xffa21a, 0.08, 0.04, wx, wy, sz + k * 0.006, k)); }
+    X.quads.push(glow("ind-" + side, 0xffa21a, 0.14, 0.09, back(ry, rz), ry, rz, "back"));
+    if (rig.wheelInfo) { const wx = rig.wheelInfo.frontX - rig.wheelInfo.r - 0.16, wy = 0.74, sz = sideSurface(rig, wx, wy, k); if (sz !== null) X.quads.push(glow("ind-" + side, 0xffa21a, 0.1, 0.05, wx, wy, sz + k * 0.008, k)); }
     // Reversing lamps: the inner part of each tail lamp.
     const rv = L.reverse || {}, vz = k * (rv.z || Math.max(0.2, T.z - T.w * 0.3)), vy = rv.y || T.y - 0.02;
-    X.quads.push(glow("reverse", 0xffffff, 0.1, 0.07, back(vy, vz), vy, vz, "back"));
+    X.quads.push(glow("reverse", 0xffffff, 0.14, 0.09, back(vy, vz), vy, vz, "back"));
     // Front fogs: low in the bumper's outer openings.
     const fg = L.fog || {}, gz = k * (fg.z || (f.sideZ || 0.85) - 0.27), gy = fg.y || (f.frontBottomY || 0.2) + 0.16;
-    X.quads.push(glow("fog", 0xfff6e2, 0.13, 0.09, front(gy, gz), gy, gz, "front"));
+    X.quads.push(glow("fog", 0xfff2cc, 0.18, 0.12, front(gy, gz), gy, gz, "front"));
   }
   // One rear fog lamp, on the driver's (right) side, low on the back.
   const rf = L.rearFog || {}, fz2 = rf.z || 0.5, fy2 = rf.y || (f.rearBottomY || 0.3) + 0.14;
@@ -677,7 +678,7 @@ function applyLamps(p, b) {
   const st = p === buildCar || p === stockCar ? lampState : LAMP_OFF, flash = blinkOn && (st.hazard || st.left || st.right);
   const on = kind => kind === "reverse" ? st.reverse : kind === "fog" ? st.fog && lightsOn : kind === "rearfog" ? st.fog && lightsOn
     : kind === "ind-left" ? flash && (st.hazard || st.left) : kind === "ind-right" ? flash && (st.hazard || st.right) : false;
-  for (const q of X.quads) { const v = on(q.userData.kind); q.visible = v; q.material.opacity = v ? (q.userData.kind === "rearfog" ? 0.95 : 0.9) : 0; }
+  for (const q of X.quads) { const v = on(q.userData.kind); q.visible = v; q.material.opacity = v ? 1 : 0; q.material.color.set(/^ind/.test(q.userData.kind) ? 0xffb020 : q.userData.kind === "rearfog" ? 0xff1a14 : q.userData.kind === "reverse" ? 0xffffff : 0xfff2cc); }
   for (const e of X.mats) { if (on(e.kind)) { e.m.emissive.set(e.kind === "reverse" ? 0xffffff : e.kind === "rearfog" ? 0xff1a14 : 0xffa21a); e.m.emissiveIntensity = 3; } else { e.m.emissive.copy(e.e); e.m.emissiveIntensity = e.i; } }
   if (X.revPool) X.revPool.intensity = st.reverse ? 1.2 : 0;
   if (X.fogPool) X.fogPool.intensity = st.fog && lightsOn ? 2.5 : 0;

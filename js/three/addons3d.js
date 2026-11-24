@@ -49,7 +49,8 @@ function ledColour(hex) {
   return new THREE.Color().setHSL(hsl.h, Math.max(hsl.s, 0.9), 0.55);
 }
 
-function satinCarbon() { const m = mats(); return m.satin || (m.satin = Object.assign(m.carbon.clone(), { roughness: 0.6, clearcoat: 0.25, clearcoatRoughness: 0.45 })); }
+// Satin carbon for the low aero parts: darker and less reflective, so a sill part reads dark, not as a bright strip.
+function satinCarbon() { const m = mats(); return m.satin || (m.satin = new THREE.MeshStandardMaterial({ map: m.carbon.map, color: 0x3a3a3a, roughness: 0.62, metalness: 0.1, envMapIntensity: 0.35 })); } // no clear coat: reads dark from the side
 /* ---------- small shape helpers ---------- */
 function mesh(geo, mat, x = 0, y = 0, z = 0) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; m.userData.addon = true; return m; }
 const box = (w, h, d, mat, x, y, z) => mesh(new THREE.BoxGeometry(w, h, d), mat, x, y, z);
@@ -288,7 +289,7 @@ const PARTS = {
     const cx = f.frontX - 0.15, cz = f.sideZ - 0.15, n = Math.SQRT1_2;
     return sides(k => {
       const g = new THREE.Group();
-      for (const [dy, sc] of [[0.17, 1.6], [0.27, 1.3]]) { // up on the painted corner, where dark carbon shows
+      for (const [dy, sc] of (f.canardY || [0.17, 0.27]).map((d, i) => [d, i ? 1.3 : 1.6])) { // up on the painted corner, where dark carbon shows
         const y = f.frontBottomY + dy, x = f.frontX - 0.13 + dy * 0.3, side = fromSide(rig, x, y, k);
         if (!side || side.x > f.frontX || Math.abs(side.z) < 0.4) continue; // only on the bumper's real corner surface
         const hit = V3(x, y, side.z);
