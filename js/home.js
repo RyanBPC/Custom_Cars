@@ -21,8 +21,10 @@
   const POPULAR = ["track", "bmw-msport", "fiesta-fresh"];
   const SHORT = { golf: "Golf GTI", bmw440i: "BMW 440i", fiesta: "Fiesta" };
   const shortName = id => SHORT[id] || CARS.find(c => c.id === id).model;
-  const own = `<button type="button" class="build-card own" data-build="" data-car="golf"><div class="art"><span class="plus" aria-hidden="true">+</span></div>
-    <div class="body"><b>Build your own</b><span id="ownCarText">Start from a stock ${shortName("golf")} and choose every part.</span><span class="btn primary sm build-this">Start from stock</span></div></button>`;
+  // Website #157: each card is an <article> with its name as a heading and one real "Build this" button,
+  // so screen readers hear a short button name; the whole card stays clickable for mouse users.
+  const own = `<article class="build-card own" data-build="" data-car="golf"><div class="art"><span class="plus" aria-hidden="true">+</span></div>
+    <div class="body"><h3><b>Build your own</b></h3><span id="ownCarText">Start from a stock ${shortName("golf")} and choose every part.</span><button type="button" class="btn primary sm build-this">Start from stock</button></div></article>`;
   // Rough fitted price of a build, worked out from its own text the same way "Build this" fits it,
   // on a throwaway copy (the real car, parts and chat are put back untouched).
   function buildPrice(b) {
@@ -39,8 +41,8 @@
   const grid = document.getElementById("buildGrid");
   const card = b => {
     const c = CARS.find(x => x.id === b.car);
-    return `<button type="button" class="build-card" data-build="${b.id}" data-car="${b.car}"><div class="art">${art(b)}</div>
-      <div class="body"><b>${b.name}</b><span>${c.make} ${c.model}</span>${priceLine(b)}<ul class="tags">${b.tags.map(t => `<li>${t}</li>`).join("")}</ul><span class="btn primary sm build-this">Build this</span></div></button>`;
+    return `<article class="build-card" data-build="${b.id}" data-car="${b.car}"><div class="art">${art(b)}</div>
+      <div class="body"><h3><b>${b.name}</b></h3><span>${c.make} ${c.model}</span>${priceLine(b)}<ul class="tags" aria-label="Parts">${b.tags.map(t => `<li>${t}</li>`).join("")}</ul><button type="button" class="btn primary sm build-this" aria-label="Build this: ${b.name}">Build this</button></div></article>`;
   };
   grid.innerHTML = own + BUILDS.map(card).join("");
   // Home page "Popular builds" (Website #123): one build per car, same cards as the Models page.

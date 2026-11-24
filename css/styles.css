@@ -514,6 +514,8 @@ footer{border-top-color:rgba(255,255,255,.06);font-size:13px}
 .build-card .tags{list-style:none;display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0;padding:0}
 .build-card .tags li{font-size:12px;padding:3px 8px;border-radius:99px;border:1px solid var(--line);color:var(--fg)}
 .build-card.own{border-style:dashed}
+.build-card h3{margin:0;font:inherit}
+.build-card:focus-within{border-color:var(--accent)}
 
 /* Tab pages (js/router.js): only the current page shows, and its tab is lit up */
 main > section[hidden]{display:none}
