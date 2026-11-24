@@ -27,6 +27,7 @@ function sanitize(id,p,c){
     case "spoiler": return {type:["lip","ducktail","gt-wing","roof-ext","pedestal"].includes(p.type)?p.type:"ducktail"};
     case "wrap": {const w={colour:toColour(p.colour,"#16181c"),finish:["gloss","satin","matte","chrome","metallic","pearl","chameleon","brushed","carbon"].includes(p.finish)?p.finish:"gloss"}; if(p.paint===true&&!["chrome","chameleon","brushed","carbon"].includes(w.finish)) w.paint=true; return w;}
     case "stripes": return {colour:toColour(p.colour,"#ecebe6")};
+    case "widebody": return p.painted===true?{painted:true}:{};
     case "tint": return {vlt:nearest([5,20,35,50,70],parseInt(p.vlt,10)||35)};
     case "custom": return {items:(Array.isArray(p.items)?p.items:[]).slice(0,30).map(i=>({name:String(i&&i.name||"").slice(0,60),price:Number.isFinite(+i.price)&&+i.price>0?Math.round(+i.price):null,text:String(i&&i.text||"").slice(0,160),...(i&&i.reg?{reg:String(i.reg).toUpperCase().replace(/[^A-Z0-9 ]/g,"").slice(0,8)}:{}),...(i&&i.style?{style:cleanPlateStyle(i.style)}:{})})).filter(i=>i.name)};
     default: return {};

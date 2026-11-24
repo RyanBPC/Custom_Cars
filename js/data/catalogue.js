@@ -182,7 +182,7 @@ function modPrice(id,p,car){
     case "drop": return p.air?3500:p.springs?(small?220:300):small?750:six?1500:1350;
     case "brakes": return small?1300:six?3800:3400;
     case "bodykit": return small?850:1800;
-    case "widebody": return small?4500:six?7500:6500;
+    case "widebody": return (small?4500:six?7500:6500)+(p.painted?600:0);
     case "spoiler": return ({lip:small?200:350,ducktail:small?400:650,"gt-wing":small?1200:1900,"roof-ext":small?250:350,pedestal:small?600:850})[p.type];
     case "wrap": return p.paint?(small?3000:six?4500:4000):p.finish==="chrome"||p.finish==="chameleon"?(small?3800:5200):p.finish==="brushed"?(small?3000:4200):p.finish==="carbon"?(small?2500:3500):(small?1900:six?2900:2600);
     case "stripes": return 380;

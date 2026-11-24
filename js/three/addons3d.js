@@ -49,6 +49,7 @@ function ledColour(hex) {
   return new THREE.Color().setHSL(hsl.h, Math.max(hsl.s, 0.9), 0.55);
 }
 
+function satinCarbon() { const m = mats(); return m.satin || (m.satin = Object.assign(m.carbon.clone(), { roughness: 0.6, clearcoat: 0.25, clearcoatRoughness: 0.45 })); }
 /* ---------- small shape helpers ---------- */
 function mesh(geo, mat, x = 0, y = 0, z = 0) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; m.userData.addon = true; return m; }
 const box = (w, h, d, mat, x, y, z) => mesh(new THREE.BoxGeometry(w, h, d), mat, x, y, z);
@@ -198,11 +199,14 @@ const PARTS = {
   // rise in front of the blade, arch back over it and hook down onto its top surface, like a real swan-neck wing.
   "spoiler:gt-wing": (f, rig) => {
     const m = mats(), g = new THREE.Group(), boot = hasBoot(f);
-    const span = Math.min(1.5, 2 * f.sideZ - 0.2), legZ = Math.min(0.45, span / 2 - 0.25);
-    const fx = boot ? f.rearGlass.bottom[0] - 0.12 : f.rearGlass.bottom[0] - 0.03;
-    const feet = [1, -1].map(k => down(rig, fx, k * legZ) || V3(fx, f.rearGlass.bottom[1], k * legZ));
-    const footY = Math.min(feet[0].y, feet[1].y), chord = 0.25, aoa = 0.14;
-    const y = boot ? footY + 0.3 : Math.max(f.roofEdge.y + 0.03, footY + 0.25), x = fx - chord / 2 - 0.05; // blade centre
+    const fx = boot ? f.rearGlass.bottom[0] - 0.12 : f.roofEdge.x - 0.03; // boot lid, or the hatch's roof spoiler
+    const probeFeet = z => [1, -1].map(k => down(rig, fx, k * z) || V3(fx, boot ? f.rearGlass.bottom[1] : f.roofEdge.y, k * z));
+    let feet = probeFeet(0.36), footY = Math.min(feet[0].y, feet[1].y);
+    const wide = fromSide(rig, fx, footY - 0.05, 1), half = wide ? Math.abs(wide.z) : f.sideZ - 0.1;
+    const span = Math.min(1.5, 2 * (half - 0.05)), legZ = Math.min(0.38, span / 2 - 0.2);
+    feet = probeFeet(legZ); footY = Math.min(feet[0].y, feet[1].y);
+    const chord = 0.25, aoa = 0.14;
+    const y = boot ? Math.min(footY + 0.3, f.roofEdge.y + 0.04) : footY + 0.1, x = fx - chord / 2 - (boot ? 0.05 : 0.07); // blade centre
     // Aerofoil: rounded nose at the front (-back), flat-ish underside, thin trailing edge. Points are [back, up].
     const foil = [[-0.5, 0], [-0.47, 0.045], [-0.38, 0.085], [-0.2, 0.115], [0.05, 0.11], [0.3, 0.075], [0.5, 0.02], [0.5, 0.004],
       [0.3, 0.0], [0.05, -0.012], [-0.2, -0.03], [-0.38, -0.03], [-0.47, -0.016]]
@@ -231,11 +235,11 @@ const PARTS = {
     return g;
   },
   bodykit: (f, rig) => { const g = new THREE.Group(); g.add(frontLip(f, rig), sideSkirts(f, rig), diffuser(f, rig)); return g; },
-  widebody: (f, rig) => {
+  widebody: (f, rig, s) => {
     // Bolt-on over-fenders (unpainted black, like most kits): a wide flare swept round each wheel's axle, about 6-8 cm
     // proud of the body at its edge, thick where it meets the body, with bolts along it.
     const m = mats(), g = new THREE.Group(), r = rig.wheelInfo.r;
-    const fender = namedMat("fender", () => new THREE.MeshPhysicalMaterial({ color: 0x111214, roughness: 0.55, clearcoat: 0.3 }));
+    const fender = s && s.widebody === "paint" ? rig.paints[0] : namedMat("fender", () => new THREE.MeshPhysicalMaterial({ color: 0x111214, roughness: 0.55, clearcoat: 0.3 })); // painted to match, or bare black
     const profile = [[0.22, -0.006], [0.19, 0.03], [0.14, 0.062], [0.1, 0.078], [0.07, 0.08], [0.052, 0.06], [0.046, 0.02], [0.05, -0.006]].map(([a, h]) => new THREE.Vector2(r + a, h));
     const arc = Math.PI + 0.6, geo = new THREE.LatheGeometry(profile, 48, Math.PI / 2 - 0.3, arc); geo.rotateX(Math.PI / 2); geo.computeVertexNormals();
     for (const w of rig.wheelInfo.list) {
@@ -285,7 +289,9 @@ const PARTS = {
     return sides(k => {
       const g = new THREE.Group();
       for (const [dy, sc] of [[0.17, 1.6], [0.27, 1.3]]) { // up on the painted corner, where dark carbon shows
-        const y = f.frontBottomY + dy, x = f.frontX - 0.13 + dy * 0.3, side = fromSide(rig, x, y, k), hit = side ? V3(x, y, side.z) : (probe(rig, [cx + 2 * n, y, k * (cz + 2 * n)], [-n, 0, -k * n]) || V3(cx, y, k * cz));
+        const y = f.frontBottomY + dy, x = f.frontX - 0.13 + dy * 0.3, side = fromSide(rig, x, y, k);
+        if (!side || side.x > f.frontX || Math.abs(side.z) < 0.4) continue; // only on the bumper's real corner surface
+        const hit = V3(x, y, side.z);
         const yaw = new THREE.Group(); yaw.position.set(hit.x, y, hit.z - k * 0.006); yaw.rotation.y = k * 0.65; // root just inside the bumper skin, pointing out across the corner
         const pitch = new THREE.Group(); pitch.rotation.z = -0.12; yaw.add(pitch);
         const c = mesh(geo, m.carbon); c.rotation.x = k * Math.PI / 2; c.scale.setScalar(sc); pitch.add(c);
@@ -791,11 +797,12 @@ function brushed(g, w, h) { g.fillStyle = "#8d9196"; g.fillRect(0, 0, w, h); for
 function frontLip(f, rig) {
   const fb = up(rig, f.frontX - 0.15, 0), y0 = fb ? fb.y : f.frontBottomY, w = f.sideZ - 0.14, edge = [];
   for (let i = 0; i <= 16; i++) {
-    const z = -w + 2 * w * i / 16, h = fromFront(rig, y0 + 0.03, z); if (!h) continue;
+    const z = -w + 2 * w * i / 16, hs = [0.03, 0.07, 0.12].map(dy => fromFront(rig, y0 + dy, z)).filter(Boolean); if (!hs.length) continue;
+    const h = hs.reduce((a, b) => (b.x > a.x ? b : a)); // the bumper's front-most point here, so the lip always shows
     const u = up(rig, h.x - 0.05, z), y = u && Math.abs(u.y - y0) < 0.08 ? u.y : y0;
     edge.push(V3(h.x, y - 0.002, z));
   }
-  return sweep(edge, [[0.14, 0], [0.14, -0.018], [-0.07, -0.018], [-0.084, -0.01], [-0.086, 0.032], [-0.074, 0.036], [-0.066, 0.006], [0.0, 0.0]], mats().black, 0.1);
+  return sweep(edge, [[0.16, 0], [0.16, -0.02], [-0.045, -0.02], [-0.055, -0.012], [-0.056, 0.03], [-0.046, 0.034], [-0.04, 0.006], [0.0, 0.0]], satinCarbon(), 0.1);
 }
 // Rear diffuser: a gloss black plate under the back bumper between the exhaust tips, kicking up and out past it, with fins.
 function diffuser(f, rig) {
@@ -807,7 +814,7 @@ function diffuser(f, rig) {
 }
 // Side skirts on their own (the aero kit has them too).
 function sideSkirts(f, rig) {
-  const m = mats(), xs = rig.wheelInfo, x0 = xs.rearX + xs.r + 0.04, x1 = xs.frontX - xs.r - 0.04;
+  const m = { carbon: satinCarbon() }, xs = rig.wheelInfo, x0 = xs.rearX + xs.r + 0.015, x1 = xs.frontX - xs.r - 0.015;
   return sides(k => {
     const xm = (x0 + x1) / 2, sb = up(rig, xm, k * (f.sideZ - 0.06)), yb = sb ? sb.y : f.sillY - 0.05;
     const sf = fromSide(rig, xm, yb + 0.04, k), zo = sf ? Math.abs(sf.z) : f.sideZ;
@@ -1241,7 +1248,7 @@ export function updateAddons(rig, spec, f) {
   if (!rig.fx) rig.fx = { parts: new Map() };
   const s = spec || { extras: [] }, has = n => s.extras.includes(n), want = new Map();
   if (s.spoiler) want.set("spoiler:" + s.spoiler, "");
-  for (const k of ["bodykit", "widebody", "exhaust"]) if (s[k] && !(k === "exhaust" && rig.aero && has("Quad exhaust tips"))) want.set(k, "");
+  for (const k of ["bodykit", "widebody", "exhaust"]) if (s[k] && !(k === "exhaust" && rig.aero && has("Quad exhaust tips"))) want.set(k, k === "widebody" ? String(s.widebody) : "");
   const spacerMm = has("Wheel spacers") ? +((textOf(s, "Wheel spacers").match(/(\d+)\s*mm/) || [0, 20])[1]) : 0;
   const out = spacerMm / 1000 + (s.widebody ? 0.08 : 0), camber = has("Negative camber setup") ? 0.06 : 0;
   s.wheelOut = out;

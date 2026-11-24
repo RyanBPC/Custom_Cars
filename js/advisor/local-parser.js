@@ -305,7 +305,7 @@ function planParts(text){
   const ts=t.replace(/wing ?(vents?|mirrors?)/g,""); // "wing vents" and "wing mirrors" aren't spoilers
   if(/spoiler|\bwing\b|duck ?tail/.test(ts)&&!remove.includes("spoiler")) add("spoiler",{type:/pedestal|boot wing|mid(?:-| )?(?:height )?wing/.test(ts)?"pedestal":/roof (?:spoiler )?ext|spoiler extension|roof spoiler|maxton/.test(ts)?"roof-ext":/duck/.test(ts)?"ducktail":/\blip\b|small|subtle/.test(ts)?"lip":/gt|big|huge|massive|giant|large|track|swan|tall|\bwing\b/.test(ts)?"gt-wing":"ducktail"});
   if(/\bbody ?kit|\blip ?kit|splitter|(?<!side ?)skirt|diffuser|aero|front lip|more aggressive|sportier look|sporty look|look sporty|look sportier|make it sportier|racier/.test(t)&&!remove.includes("bodykit")) add("bodykit",{});
-  if(/wide ?body|widebody|wider|flare|arches|wide arch|over ?fenders?|fat|chunky/.test(t)&&!remove.includes("widebody")) add("widebody",{});
+  if(/wide ?body|widebody|wider|flare|arches|wide arch|over ?fenders?|fat|chunky/.test(t)&&!remove.includes("widebody")) add("widebody",/painted|body[- ]colou?r(?:ed)?|colou?r[- ]coded|to match/.test(t)?{painted:true}:{});
   // "No pops and bangs" asks for them to stay off, so it adds nothing.
   const NOPOPS_RE=/\b(?:no|without|remove|lose|get rid of|turn off|switch off)\s+(?:the\s+)?(?:pops|bangs|crackles?)(?:\s+(?:and|n|&)\s+bangs)?\b/g;
   const noPops=NOPOPS_RE.test(t); if(noPops){t=t.replace(NOPOPS_RE," ");notes.push("No pops and bangs: they're a remap setting, and a tuner can switch them off.");}
