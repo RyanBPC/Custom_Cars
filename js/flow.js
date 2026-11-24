@@ -325,10 +325,23 @@ function renderMyRender() {
   box.querySelector("[data-pick]").addEventListener("click", () => file.click());
   file.addEventListener("change", async () => {
     const f = file.files[0]; if (!f) return;
-    try { results = { ...results, [key]: await shrink(f) }; } catch (err) { box.querySelector("[data-msg]").textContent = err.message; return; }
-    // Keep the newest few only, so the browser's storage doesn't fill up.
+    let pic;
+    try { pic = await shrink(f); } catch (err) { box.querySelector("[data-msg]").textContent = err.message; return; }
+    // This build's picture goes last (newest); keep the newest few only, so the browser's storage doesn't fill up.
+    const rest = { ...results }; delete rest[key];
+    results = { ...rest, [key]: pic };
     const keys = Object.keys(results); while (keys.length > 6) delete results[keys.shift()];
-    store(RESULT_KEY, results); renderMyRender();
+    // If storage is still full, drop the oldest saved pictures until this one fits.
+    let saved = store(RESULT_KEY, results);
+    while (!saved && keys.length > 1) { delete results[keys.shift()]; saved = store(RESULT_KEY, results); }
+    renderMyRender();
+    if (!saved) {
+      // Even on its own it won't fit: show it now, keep the older saved pictures, and say so.
+      const kept = load(RESULT_KEY, {});
+      results = { ...kept, [key]: pic };
+      const m = el("myRender").querySelector("[data-msg]");
+      if (m) m.textContent = "Shown for now, but this browser couldn't keep it for next time.";
+    }
   });
 }
 el("myRender").addEventListener("click", e => {
