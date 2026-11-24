@@ -584,6 +584,23 @@ function driveReply(){
   r.push("Nothing has been changed.");
   return {reply:r.join(" "),switchCar:null,reset:false,apply:[],remove:[],notes:{}};
 }
+/* "make it handle better", "more grip", "corner better": fit coilovers and anti-roll bars and say why (Car #129).
+   Only when the normal rules find no part, so "lower it for better handling" works as before; questions are left to the advice rules. */
+const HANDLE_Q=/\bhandl(?:e|es|ing)\b.*\b(?:better|sharper|nicer|well|properly)\b|\b(?:better|sharper|improved?|improve|more|tighter) handling\b|\bimprove (?:the |its |my )?handling\b|\b(?:more|better|extra) (?:grip|traction)\b|\bgrip(?:s|py)? better\b|\bcorner(?:s|ing)? (?:better|faster|flatter|harder|sharper|quicker)\b|\b(?:faster|better|quicker) (?:in|through|round|around) (?:the )?(?:corners|bends)\b|\bless (?:body )?roll\b|\bgo ?-?kart\b/;
+function handlingReply(text,low){
+  if(!HANDLE_Q.test(low)||PRICE_Q.test(low)||ADVICE_Q.test(low)||INFO_Q.test(low)) return null;
+  if((planParts(text).apply||[]).length) return null;
+  const car=CARS.find(x=>x.id===state.car), mods=state.mods||{}, d=mods.drop;
+  const arb=((mods.custom&&mods.custom.items)||[]).some(i=>i.name==="Uprated anti-roll bars");
+  const p=planParts(d?"add anti roll bars":"coilovers and add anti roll bars");
+  if(arb) p.apply=(p.apply||[]).filter(a=>a.id!=="custom");
+  const fit=[d?"":"coilovers (−30mm)",arb?"":"uprated anti-roll bars"].filter(Boolean);
+  const r=[fit.length?`For sharper handling I've fitted ${fit.join(" and ")}: less body roll and quicker steering.`:"Your build already has the handling parts I'd pick first."];
+  if(d&&fit.length) r.push(`I've kept your ${d.air?"air ride":d.springs?"lowering springs":"coilovers"} as they are.`);
+  r.push("Good tyres matter most: a set of performance tyres is the biggest grip upgrade on any car.");
+  r.push(car.id==="golf"?'Next step on the Golf: a limited slip diff for grip out of corners (say "add an lsd").':'A strut brace and a wheel alignment are good next steps (say "add a strut brace").');
+  return {...p,reply:r.join(" ")};
+}
 /* Practical "can i get it on finance", "can i fit it myself", "where can i get it done", "how long does it take to fit",
    "is it diy": a plain answer, nothing fitted (Car #149). Before, "it on finance" / "it myself" became blank custom parts. */
 const PRACTICAL_FIN=/\bfinance\b|\bpay (?:monthly|in instal?ments)\b|\bmonthly payments?\b|\bklarna\b|\bpaypal credit\b|\bspread the cost\b/;
@@ -636,6 +653,7 @@ function localPlan(text){
   if(VALUE_Q.test(low)&&!VALUE_NOT.test(low)) return {reply:VALUE_REPLY,switchCar:null,reset:false,apply:[],remove:[],notes:{}};
   if((COMFORT_Q.test(low)||MPG_Q.test(low))&&!PRICE_Q.test(low)) return comfortReply(low);
   {const c=colourAskReply(low); if(c) return c;}
+  {const h=handlingReply(text,low); if(h) return h;}
   if(!PRICE_Q.test(low)){const pr=practicalReply(low); if(pr) return pr;}
   if(!PRICE_Q.test(low)&&!adviceAsked(low)){const q=questionReply(low); if(q) return q;}
   if(!PRICE_Q.test(low)||adviceAsked(low)) return planParts(text);
