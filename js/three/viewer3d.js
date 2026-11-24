@@ -650,7 +650,7 @@ function addExtraLamps(rig, add) {
     const side = k > 0 ? "right" : "left";
     // Indicators: the outer end of each headlamp and tail lamp, and a repeater on each front wing behind the wheel.
     const fi = L.indicator || {}, fz = k * (fi.frontZ || H.z + H.w * 0.38), fy = fi.frontY || H.y - 0.02;
-    X.quads.push(glow("ind-" + side, 0xffa21a, 0.14, 0.09, front(fy, fz), fy, fz, "front"));
+    X.quads.push(glow("ind-" + side, 0xffa21a, fi.frontW || 0.17, fi.frontH || 0.1, front(fy, fz), fy, fz, "front")); // bigger at the front, where the headlamp is bright
     const rz = k * (fi.rearZ || T.z + T.w * 0.32), ry = fi.rearY || T.y + 0.015;
     X.quads.push(glow("ind-" + side, 0xffa21a, 0.14, 0.09, back(ry, rz), ry, rz, "back"));
     if (rig.wheelInfo) { const wx = rig.wheelInfo.frontX - rig.wheelInfo.r - 0.16, wy = 0.74, sz = sideSurface(rig, wx, wy, k); if (sz !== null) X.quads.push(glow("ind-" + side, 0xffa21a, 0.1, 0.05, wx, wy, sz + k * 0.008, k)); }
@@ -678,7 +678,7 @@ function applyLamps(p, b) {
   const st = p === buildCar || p === stockCar ? lampState : LAMP_OFF, flash = blinkOn && (st.hazard || st.left || st.right);
   const on = kind => kind === "reverse" ? st.reverse : kind === "fog" ? st.fog && lightsOn : kind === "rearfog" ? st.fog && lightsOn
     : kind === "ind-left" ? flash && (st.hazard || st.left) : kind === "ind-right" ? flash && (st.hazard || st.right) : false;
-  for (const q of X.quads) { const v = on(q.userData.kind); q.visible = v; q.material.opacity = v ? 1 : 0; q.material.color.set(/^ind/.test(q.userData.kind) ? 0xffb020 : q.userData.kind === "rearfog" ? 0xff1a14 : q.userData.kind === "reverse" ? 0xffffff : 0xfff2cc); }
+  for (const q of X.quads) { const v = on(q.userData.kind); q.visible = v; q.material.opacity = v ? 1 : 0; q.material.color.set(/^ind/.test(q.userData.kind) ? 0xff8400 : q.userData.kind === "rearfog" ? 0xff1a14 : q.userData.kind === "reverse" ? 0xffffff : 0xfff2cc); }
   for (const e of X.mats) { if (on(e.kind)) { e.m.emissive.set(e.kind === "reverse" ? 0xffffff : e.kind === "rearfog" ? 0xff1a14 : 0xffa21a); e.m.emissiveIntensity = 3; } else { e.m.emissive.copy(e.e); e.m.emissiveIntensity = e.i; } }
   if (X.revPool) X.revPool.intensity = st.reverse ? 1.2 : 0;
   if (X.fogPool) X.fogPool.intensity = st.fog && lightsOn ? 2.5 : 0;
