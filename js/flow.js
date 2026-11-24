@@ -123,6 +123,9 @@ const EXTRA_ANGLE = { "Side skirts": 0, "Smoked tail lights": 210, "Caliper pain
 const EXTRA_QUERY = { "Bonnet wrap": "bonnet vinyl wrap film", "Caliper paint": "brake caliper paint kit", "Centre cap swap": "wheel centre caps", "Low-profile tyres": "low profile tyres",
   "Honeycomb mesh grille": "honeycomb mesh grille", "Smoked tail lights": "smoked tail light tint film", "Chrome window trim": "chrome window trim strip", "Carbon window trim": "carbon window trim",
   "Seat covers": "seat covers", "Dashboard trim": "dashboard trim kit", "Floor mats": "floor mats" };
+// Extra parts that are a job a shop does, not something to buy: what to search for nearby on Google Maps.
+const SERVICE = { "Alloy wheel refurb": "alloy wheel refurbishment", "Paint protection film": "paint protection film installer", "Ceramic coating": "ceramic coating detailer",
+  "Negative camber setup": "wheel alignment", "Coloured seat belts": "seat belt rewebbing" };
 const UNSEEN = { tune: "Under the bonnet", intake: "Under the bonnet" };
 // What to search for at each shop.
 const SEARCH = {
@@ -140,6 +143,7 @@ function productQuery(x, c) {
   const p = x.p, cw = carWords(c);
   if (x.item) {
     if (x.item.name === "Private number plate") return null;
+    if (SERVICE[x.item.name]) return null;
     if (x.item.name === "Styled number plates") return "4D gel number plates road legal pair";
     if (/plate delete/i.test(x.item.name)) return null;
     return `${cw} ${EXTRA_QUERY[x.item.name] || x.item.name}`;
@@ -159,6 +163,7 @@ function shops(id, p, c, item) {
   const dt = s => ({ name: "Demon Tweeks", url: `https://www.demon-tweeks.com/uk/catalogsearch/result/?q=${q(s)}` });
   const amz = s => ({ name: "Amazon UK", url: `https://www.amazon.co.uk/s?k=${q(s)}` });
   if (item) {
+    if (SERVICE[item.name]) return [near(SERVICE[item.name])];
     if (item.name === "Private number plate") return [{ name: "DVLA", url: `https://dvlaregistrations.dvla.gov.uk/search/results.html?search=${q((item.reg || "").replace(/\s/g, ""))}` }];
     if (item.name === "Styled number plates") return [{ name: "Premium Plates", url: "https://www.premiumplates.com/" }, ebay("4D gel number plates road legal")];
     if (/plate delete/i.test(item.name)) return [ebay(carWords(c) + " number plate delete")];
@@ -216,7 +221,7 @@ function renderParts() {
         <h3>${esc(x.title)}</h3>
         ${x.text ? `<p>${esc(x.text)}</p>` : ""}
         <div class="part-product" data-i="${i}" hidden></div>
-        <div class="part-shops"><span class="muted small">Buy from</span>${shops(x.id, x.p, c, x.item).map(s => `<a class="btn sm" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)} ↗</a>`).join("")}</div>
+        <div class="part-shops"><span class="muted small">${x.item && SERVICE[x.item.name] ? "Get it done" : "Buy from"}</span>${shops(x.id, x.p, c, x.item).map(s => `<a class="btn sm" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)} ↗</a>`).join("")}</div>
       </div>
     </article>`).join("") : `<p class="part-none muted">No parts yet. Pick some in step 2 and they'll show here with prices and shops.</p>`;
   const parts = buildCost(c, state.mods);
