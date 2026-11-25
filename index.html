@@ -404,7 +404,7 @@ if (location.protocol === "file:") {
     <label class="price-search" for="priceSearch">Search the price list <input type="search" id="priceSearch" placeholder="e.g. tint, coilovers" autocomplete="off"></label>
     <p class="visually-hidden" id="priceCount" aria-live="polite"></p>
     <div class="opt-cats price-cats" id="priceCats" role="tablist" aria-label="Price list categories"></div>
-    <div class="tablewrap"><table class="prices" id="priceTable"></table></div>
+    <div class="tablewrap" id="pricePanel" role="tabpanel" aria-labelledby="pcat-0"><table class="prices" id="priceTable"></table></div>
     <p class="note">All prices include VAT and fitting and are estimates only. Remapping and power upgrades can affect your warranty. Tell your insurer about every modification before you drive.</p>
   </div>
 </section>

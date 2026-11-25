@@ -71,8 +71,10 @@ function renderPrices(){
   // Category tabs above the table, so it shows one group at a time ("All" shows the whole list).
   const groups=PRICE_ROWS.concat(extraGroups()),label=c=>({"Extra parts: inside the car":"Extras: interior","Extra parts: practical and legal":"Extras: practical","Extra parts: lights":"Extras: lights","Extra parts: engine, wheels and handling":"Extras: mechanical","Extra parts: outside":"Extras: outside","Trim & protection":"Trim & care"})[c]||c;
   if(priceCat!=="All"&&!groups.some(([c])=>c===priceCat))priceCat=groups[0][0];
-  const tab=(id,txt,n)=>`<button type="button" role="tab" data-pcat="${id}" aria-selected="${priceCat===id}" tabindex="${priceCat===id?0:-1}">${txt}${n?` <small>${n}</small>`:""}</button>`;
-  $("priceCats").innerHTML=groups.map(([c,rs])=>tab(c,label(c),rs.filter(r=>onCar(r[0])).length)).join("")+tab("All","All",0);
+  // Each tab gets an id and points at the table panel, which is labelled by whichever tab is chosen (screen readers).
+  const tab=(id,txt,n,i)=>`<button type="button" role="tab" id="pcat-${i}" aria-controls="pricePanel" data-pcat="${id}" aria-selected="${priceCat===id}" tabindex="${priceCat===id?0:-1}">${txt}${n?` <small>${n}</small>`:""}</button>`;
+  $("priceCats").innerHTML=groups.map(([c,rs],i)=>tab(c,label(c),rs.filter(r=>onCar(r[0])).length,i)).join("")+tab("All","All",0,groups.length);
+  const selTab=$("priceCats").querySelector('[aria-selected="true"]');if(selTab)$("pricePanel").setAttribute("aria-labelledby",selTab.id);
   // While the search box has text, show matching rows from every group (name or "What you get"), ignoring the chosen tab.
   const q=($("priceSearch").value||"").trim().toLowerCase(),plain=t=>String(t).replace(/<[^>]*>/g,"").toLowerCase();
   const shown=q?groups.map(([cat,rows])=>[cat,rows.filter(r=>plain(r[0]).includes(q)||plain(r[1]).includes(q))]).filter(([,rs])=>rs.length):groups.filter(([cat])=>priceCat==="All"||cat===priceCat);
