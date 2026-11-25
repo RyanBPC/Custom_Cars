@@ -401,6 +401,8 @@ if (location.protocol === "file:") {
       <p>Typical fitted prices at UK specialists. Your final quote depends on the car, the brand of part and labour rates near you.</p>
     </div>
     <p class="pricebuild" id="priceBuild" aria-live="polite"></p>
+    <label class="price-search" for="priceSearch">Search the price list <input type="search" id="priceSearch" placeholder="e.g. tint, coilovers" autocomplete="off"></label>
+    <p class="visually-hidden" id="priceCount" aria-live="polite"></p>
     <div class="opt-cats price-cats" id="priceCats" role="tablist" aria-label="Price list categories"></div>
     <div class="tablewrap"><table class="prices" id="priceTable"></table></div>
     <p class="note">All prices include VAT and fitting and are estimates only. Remapping and power upgrades can affect your warranty. Tell your insurer about every modification before you drive.</p>

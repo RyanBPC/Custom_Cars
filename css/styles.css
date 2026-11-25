@@ -634,6 +634,9 @@ nav.main .wip-mark{font-size:0;width:7px;height:7px;padding:0;margin-left:4px;ba
 .brand-tabs small{opacity:.65;margin-left:2px}
 .garage-sort{display:inline-flex;align-items:center;gap:8px;margin:-6px 0 18px;font-size:14px;color:var(--muted)}
 .garage-sort select{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:14px;min-height:36px}
+.price-search{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 14px;font-size:14px;color:var(--muted)}
+.price-search input{flex:1 1 220px;max-width:340px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:16px;min-height:40px}
+table.prices td.none{color:var(--muted);text-align:left}
 .brand-group{margin:0 0 28px}
 .brand-group h2{font-size:20px;margin:0 0 12px;display:flex;align-items:baseline;gap:10px}
 .brand-group h2 small{font-size:13px;font-weight:400;color:var(--muted)}

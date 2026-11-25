@@ -73,12 +73,18 @@ function renderPrices(){
   if(priceCat!=="All"&&!groups.some(([c])=>c===priceCat))priceCat=groups[0][0];
   const tab=(id,txt,n)=>`<button type="button" role="tab" data-pcat="${id}" aria-selected="${priceCat===id}" tabindex="${priceCat===id?0:-1}">${txt}${n?` <small>${n}</small>`:""}</button>`;
   $("priceCats").innerHTML=groups.map(([c,rs])=>tab(c,label(c),rs.filter(r=>onCar(r[0])).length)).join("")+tab("All","All",0);
-  $("priceTable").innerHTML=`<thead><tr><th>Upgrade</th><th>What you get</th><th>Fitted price</th></tr></thead><tbody>`+groups.filter(([cat])=>priceCat==="All"||cat===priceCat).map(([cat,rows])=>`<tr class="cat"><th colspan="3" scope="colgroup">${cat}</th></tr>`+rows.map(row).join("")).join("")+`</tbody>`;
+  // While the search box has text, show matching rows from every group (name or "What you get"), ignoring the chosen tab.
+  const q=($("priceSearch").value||"").trim().toLowerCase(),plain=t=>String(t).replace(/<[^>]*>/g,"").toLowerCase();
+  const shown=q?groups.map(([cat,rows])=>[cat,rows.filter(r=>plain(r[0]).includes(q)||plain(r[1]).includes(q))]).filter(([,rs])=>rs.length):groups.filter(([cat])=>priceCat==="All"||cat===priceCat);
+  const hits=shown.reduce((n,[,rs])=>n+rs.length,0);
+  $("priceTable").innerHTML=`<thead><tr><th>Upgrade</th><th>What you get</th><th>Fitted price</th></tr></thead><tbody>`+(q&&!hits?`<tr><td colspan="3" class="none">No parts match. Try a simpler word like wheels or tint.</td></tr>`:shown.map(([cat,rows])=>`<tr class="cat"><th colspan="3" scope="colgroup">${cat}</th></tr>`+rows.map(row).join("")).join(""))+`</tbody>`;
+  $("priceCount").textContent=q?(hits?`${hits} ${hits===1?"part matches":"parts match"} "${q}"`:"No parts match"):"";
 }
 let priceCat=PRICE_ROWS[0][0];
 $("priceCats").addEventListener("click",e=>{const b=e.target.closest("[data-pcat]");if(!b)return;priceCat=b.dataset.pcat;renderPrices();const a=$("priceCats").querySelector(`[data-pcat="${CSS.escape(priceCat)}"]`);if(a)a.focus();});
 $("priceCats").addEventListener("keydown",e=>{const t=e.target.closest("[data-pcat]");if(!t||!["ArrowLeft","ArrowRight","Home","End"].includes(e.key))return;
   const all=[...$("priceCats").querySelectorAll("[data-pcat]")],i=all.indexOf(t),n=e.key==="Home"?0:e.key==="End"?all.length-1:(i+(e.key==="ArrowRight"?1:-1)+all.length)%all.length;e.preventDefault();all[n].click();});
+$("priceSearch").addEventListener("input",renderPrices);
 renderPrices();
 window.addEventListener("hashchange",()=>{if(location.hash==="#prices")renderPrices();});
 $("priceTable").addEventListener("click",e=>{const b=e.target.closest("[data-try]");if(!b)return;const ph=TRY_PHRASE[b.dataset.try];if(!ph)return;
