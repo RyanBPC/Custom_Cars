@@ -47,7 +47,11 @@
     const slash = t.indexOf("/");
     if (slash > 0) { sub = t.slice(slash + 1); t = t.slice(0, slash); }
     if (ALIAS[t]) { t = ALIAS[t]; history.replaceState(null, "", "#" + t); }
-    return PAGES[t] ? t : "home";
+    if (PAGES[t]) return t;
+    // A mistyped or old link (#pricez, #gallery): show Home and fix the address too, so Back and a shared link
+    // don't keep pointing at the bad one.
+    if (t) { sub = null; history.replaceState(null, "", "#home"); }
+    return "home";
   };
 
   // Put the 3D view in the right mode for the tab (it may still be loading).
