@@ -118,6 +118,8 @@ const EXTRA_PARTS = [
  {re:/private plate|personal(ised)? plate|custom (number )?plate|show plate/,name:"Private number plate",in3d:true,price:250,text:""},
  {re:/sound system|subwoofer|\bsub\b|speakers?|(?<!(exhaust|pipes?|engine).{0,20})\bbass\b(?!.{0,20}(exhaust|pipes?|engine))/,name:"Sound system upgrade",in3d:true,price:900,text:""},
  {re:/harness(es)?/,name:"Racing harnesses",in3d:true,price:350,text:"red racing harnesses on the seats, visible through the windows"},
+ {re:/\bfly ?wheels?\b/,name:"Lightweight flywheel",in3d:false,price:450,text:"a lightweight flywheel so the engine revs up and down faster (a bit more judder in slow traffic; usually fitted with a new clutch)"},
+ {re:/\b(?:shift|rev) ?lights?\b/,name:"Shift lights",in3d:false,price:80,text:"a shift light strip that lights up as the revs climb, telling you when to change gear"},
  {re:/short shifter|quick shift/,name:"Short shifter",in3d:true,price:250,text:""},
  {re:/camber/,name:"Negative camber setup",in3d:true,price:300,text:"wheels tilted in at the top with negative camber"},
  {re:/ppf|paint protection/,name:"Paint protection film",in3d:true,price:1500,text:""},

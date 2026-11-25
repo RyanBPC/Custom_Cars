@@ -280,7 +280,7 @@ function planParts(text){
   const track=/\b(track|full build|go wild|everything|race car|time attack|the (?:full )?works|go all out|all[- ]out)\b/.test(t);
   if(track){add("drop",{mm:35});add("brakes",{caliper:"red"});add("bodykit",{});add("spoiler",{type:"gt-wing"});add("wheels",{size:Math.min(21,c.wheel+1),style:"monoblock",finish:"gunmetal"});add("tune",{stage:2});add("exhaust",{});}
   // "19s" on its own means 19-inch wheels.
-  if((/\b(1[7-9]|2[01])s\b/.test(t)||/wheel|\brims?\b|alloy/.test(t.replace(/steering wheel|wheel spacers?|wheel arch(es)?/g,"")))&&!remove.includes("wheels")){
+  if((/\b(1[7-9]|2[01])s\b/.test(t)||/wheel|\brims?\b|alloy/.test(t.replace(/steering wheel|wheel spacers?|wheel arch(es)?|fly ?wheels?/g,"")))&&!remove.includes("wheels")){
     // Only take a size that has a unit ("19-inch", "19in", 19") or sits just before a wheel word ("19 bronze wheels"), so "20% tint" isn't read as 20-inch wheels.
     const sz=t.match(/\b(1[7-9]|2[01])\s*(?:"|”|''|-?\s?inch(?:es)?\b|in\b|s\b)/)||t.match(/\b(1[7-9]|2[01])\s+(?:[a-z]+\s+){0,2}(?:wheels?|rims?|alloys?)\b/);
     const style=/\bbbs\b|cross[- ]?spoke/.test(t)?"bbs-mesh":/\b(?:5|five)[- ]?spoke/.test(t)?"5-spoke":/\by[- ]?spoke/.test(t)?"y-spoke":/(?:split|twin)[- ]?spoke/.test(t)?"split-spoke":/mesh|cross/.test(t)?"mesh":/forged|mono/.test(t)?"monoblock":/dish|deep/.test(t)?"deep-dish":/turbo ?fan|fan/.test(t)?"turbofan":/spoke/.test(t)?"multi-spoke":"multi-spoke";
@@ -353,7 +353,7 @@ function planParts(text){
   // Matrix headlights and DRLs are factory parts, so the LED headlight upgrade stands in (Car #113).
   if(/matrix (?:led )?(?:head)?lights?|daytime running lights?|\bdrls?\b/.test(t)) notes.push(`Matrix headlights and daytime running lights come from the factory, so I've fitted the LED headlight upgrade, the closest look for the ${c.model}.`);
   // Neons (underglow), puddle lights and DRLs are their own parts, so they don't fit smoked lenses too (Car #113).
-  const tL2=tL.replace(/\b(?:neon(?:\s+[a-z]+)?\s+lights?|neons?|puddle lights?|(?:door )?projector lights?|door (?:logo )?lights?|matrix (?:led )?(?:head)?lights?|daytime running lights?|drls?)\b/g," ");
+  const tL2=tL.replace(/\b(?:neon(?:\s+[a-z]+)?\s+lights?|neons?|puddle lights?|(?:door )?projector lights?|door (?:logo )?lights?|matrix (?:led )?(?:head)?lights?|daytime running lights?|drls?|(?:shift|rev) ?lights?)\b/g," ");
   if(!clearL&&!SMOKED_TAIL_RE.test(t)&&!SMOKED_HEAD_RE.test(t)&&/\bsmoked?\b|\b(head|tail) ?lights?\b|\blights\b|\blenses\b|dark(er)? lights|tinted lights/.test(tL2)&&!/light ?bar|underglow|angel|halo|led |dynamic|hid|xenon|brighter|sequential|eyelid|interior light|ambient/.test(t)&&!remove.includes("lights")) add("lights",{});
   // A colour right before a part ("gloss black mirror caps", "black roof", "red calipers") belongs to that part, not the paint.
   const colNames=COLOURS.map(x=>x[0]).sort((x,y)=>y.length-x.length).map(n=>n.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|");
