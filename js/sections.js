@@ -16,8 +16,16 @@ function renderGarage(){
   $("garageBrands").innerHTML=tab("all","All brands",CARS.length)+BRANDS.map(b=>tab(b,b,carsOf(b).length)).join("");
   // One grid, cars side by side (sorted by brand), rather than a stacked section per brand; the brand tabs above filter it.
   const shown=BRANDS.filter(b=>garageBrand==="all"||b===garageBrand);
-  $("garageGrid").innerHTML=`<div class="grid garage-all">${shown.flatMap(b=>carsOf(b)).map(garageCard).join("")}</div>`;
+  const list=shown.flatMap(b=>carsOf(b)),by=garageSortBy[garageSort];
+  if(by)list.sort((a,b)=>by(a)-by(b));
+  $("garageGrid").innerHTML=`<div class="grid garage-all">${list.map(garageCard).join("")}</div>`;
 }
+// "Sort by" next to the brand tabs (Website #156). Brand keeps the normal order; kept for this visit only.
+let garageSort="brand";
+const garageSortBy={price:c=>c.price,hp:c=>-c.hp,t62:c=>c.t62};
+const garageSortLabel={brand:"brand",price:"price, cheapest first",hp:"power, most powerful first",t62:"0-62, quickest first"};
+$("garageSort").addEventListener("change",e=>{garageSort=e.target.value in garageSortLabel?e.target.value:"brand";renderGarage();
+  $("garageCount").textContent=`Sorted by ${garageSortLabel[garageSort]}`;});
 // The tabs are rebuilt on every click, so put focus back on the pressed one and say how many cars are shown (for keyboard and screen-reader users).
 $("garageBrands").addEventListener("click",e=>{const b=e.target.closest("[data-brand]");if(!b)return;garageBrand=b.dataset.brand;renderGarage();
   const t=$("garageBrands").querySelector(`[data-brand="${CSS.escape(garageBrand)}"]`);if(t)t.focus();

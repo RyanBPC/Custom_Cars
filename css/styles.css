@@ -632,6 +632,8 @@ nav.main .wip-mark{font-size:0;width:7px;height:7px;padding:0;margin-left:4px;ba
 .brand-tabs button:hover{color:var(--fg)}
 .brand-tabs button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg);font-weight:600}
 .brand-tabs small{opacity:.65;margin-left:2px}
+.garage-sort{display:inline-flex;align-items:center;gap:8px;margin:-6px 0 18px;font-size:14px;color:var(--muted)}
+.garage-sort select{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:14px;min-height:36px}
 .brand-group{margin:0 0 28px}
 .brand-group h2{font-size:20px;margin:0 0 12px;display:flex;align-items:baseline;gap:10px}
 .brand-group h2 small{font-size:13px;font-weight:400;color:var(--muted)}

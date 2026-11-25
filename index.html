@@ -361,6 +361,7 @@ if (location.protocol === "file:") {
       <p>UK favourites, each as a full 3D model you can modify, sorted by brand. Manufacturer-claimed figures, rounded; check the latest spec before you buy.</p>
     </div>
     <div class="brand-tabs" id="garageBrands" role="group" aria-label="Show cars by brand"></div>
+    <label class="garage-sort" for="garageSort">Sort by <select id="garageSort"><option value="brand">Brand</option><option value="price">Price (low to high)</option><option value="hp">Power (high to low)</option><option value="t62">0-62 (quickest first)</option></select></label>
     <p class="visually-hidden" id="garageCount" aria-live="polite"></p>
     <div id="garageGrid"></div>
   </div>
