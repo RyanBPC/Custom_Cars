@@ -173,6 +173,9 @@ function planParts(text){
   const DECAT_RE=/\bde-?cat(?:ted)?\b|\bcat(?:alytic converter)? delete\b|\b(?:remove|delete|take off|take out|get rid of|lose)\s+(?:the\s+)?(?:cat|catalytic converter)\b(?!-)/g;
   const decat=DECAT_RE.test(t);
   if(decat){t=t.replace(DECAT_RE," ");notes.push("I haven't done a decat: taking out the catalytic converter fails the UK MOT and isn't road legal. For more sound, say \"cat-back exhaust\" instead.");}
+  // An exhaust/silencer delete or straight-through pipe is very loud and can fail the MOT, so fit the valved cat-back and say why (Car #162).
+  const EXH_DELETE_RE=/\b(?:exhaust|silencer|back ?box|resonator|muffler)s?\s+(?:delete|deleted|removal|removed)\b|\b(?:remove|delete|take off|take out|get rid of|lose|no)\s+(?:the\s+|my\s+)?(?:rear\s+|middle\s+|centre\s+|center\s+)?(?:silencers?|back ?box(?:es)?|resonators?|mufflers?)\b|\bstraight[- ]?(?:through|thru|pipes?d?)\b(?:\s+exhaust)?|\bde-?silenced?\b/g;
+  if(EXH_DELETE_RE.test(t)){t=t.replace(EXH_DELETE_RE," exhaust ");notes.push("A full silencer delete or straight-through pipe is very loud and can fail the MOT and noise rules (and get you pulled over), so I've fitted a valved cat-back: loud when you want, quiet when you don't.");}
   // "Delete the badges", "badgeless", "remove the GTI badges" all mean the debadge part.
   const DEBADGE_RE=/\bbadge ?delete\b|\bbadgeless\b|\bde-?badged?\b|\b(?:remove|delete|take off|take out|get rid of|lose|no)\s+(?:all\s+)?(?:the\s+)?(?:[a-z]+\s+)?badges?\b/g;
   if(DEBADGE_RE.test(t)) t=t.replace(DEBADGE_RE," debadge ");
