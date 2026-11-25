@@ -380,7 +380,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             super().log_message(fmt, *args)
 
     def end_headers(self):
-        self.send_header("Cache-Control", "max-age=31536000" if self.path.startswith("/renders/") else "no-store")
+        # Renders have a version in their link, so keep them for a year. API replies change
+        # every time, so never keep them. Everything else (3D cars, skies, code) may be kept
+        # but must be checked first: an unchanged file comes back as a quick "304 not modified"
+        # instead of 5-20 MB again, and edits still show at once.
+        if self.path.startswith("/renders/"):
+            rule = "max-age=31536000"
+        elif self.path.startswith("/api/"):
+            rule = "no-store"
+        else:
+            rule = "no-cache"
+        self.send_header("Cache-Control", rule)
         super().end_headers()
 
     def list_directory(self, path):
