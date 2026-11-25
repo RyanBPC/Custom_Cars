@@ -56,10 +56,10 @@ const extraRows=()=>{const have=new Set(PRICE_ROWS.flatMap(([,rs])=>rs.map(r=>r[
     if(!(e.name in TRY_PHRASE)){const ph=e.name.toLowerCase();const ok=stockPlan(ph).some(a=>a.id==="custom"&&((a.params&&a.params.items)||[]).some(it=>it.name===e.name));TRY_PHRASE[e.name]=ok?ph:"";}
     return [e.name,t?t[0].toUpperCase()+t.slice(1):"","£"+e.price.toLocaleString("en-GB")];});};
 // Split the extra parts into a few small groups so a beginner can find the lights or the interior parts. First match wins.
-const EXTRA_GROUPS=[["Extra parts: inside the car",/seat|steering|harness|shifter|shift light|sound system|interior|roll cage|dashboard|floor mat/i],
+const EXTRA_GROUPS=[["Extra parts: inside the car",/seat|steering|harness|shifter|shift light|pedal|boost gauge|sound system|interior|roll cage|dashboard|floor mat/i],
   ["Extra parts: practical and legal",/tow|plate|dash cam|roof rack|mud flap|visor|bull bar|protection film|ceramic/i],
   ["Extra parts: lights",/light(?!weight)|underglow|indicator|eyelid|halo/i],
-  ["Extra parts: engine, wheels and handling",/intercooler|flywheel|exhaust|tips|spacer|refurb|lift kit|tyres|camber|snorkel|wheel finish|strut|diff|anti-roll|catch can|oil cooler|caliper|cent(re|er) cap|white letters/i],
+  ["Extra parts: engine, wheels and handling",/intercooler|flywheel|clutch|exhaust|tips|spacer|refurb|lift kit|tyres|camber|snorkel|wheel finish|strut|diff|anti-roll|catch can|oil cooler|caliper|cent(re|er) cap|white letters/i],
   ["Extra parts: outside",/bonnet|vent|canard|sun strip|decal|grille|mirror|scoop|louvre|roof|wrap|numbers|skirt|window trim/i]];
 const extraGroups=()=>{const rows=extraRows(),out=EXTRA_GROUPS.map(([g])=>[g,[]]),other=[];
   rows.forEach(r=>{const i=EXTRA_GROUPS.findIndex(([,re])=>re.test(r[0]));(i<0?other:out[i][1]).push(r);});
