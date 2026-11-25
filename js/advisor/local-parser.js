@@ -75,7 +75,7 @@ function cosmeticText(name,t){
 }
 const PARSE_WORDS="bonnet hood spoiler wing ducktail exhaust exhausts wheels wheel rims alloys carbon fibre fiber underglow stripes stripe racing tint tinted windows window lower lowered lowering coilovers suspension brakes brake calipers caliper bodykit widebody splitter diffuser skirts intake turbo remap tune headlights lights smoked wrap paint respray colour color matte satin gloss chrome roof rack snorkel louvres louvers canards visors harness harnesses steering shifter subwoofer speakers interior ambient bucket seats cage mirror mirrors decals graphics flames camo graffiti plate number intercooler scoop vents quad tips bumper sequential indicators eyelids spacers camber terrain tyres tires lift lifted louder faster power stance slammed slam massive spoilers pedestal extension marker flat bottom bottomed machined diamond polished lipped split twin bbs profile lettering letters lightly medium shift chameleon iridescent brushed quilted cloth stitching rubber embroidered badge honeycomb mesh grille trim handles centre center hub painted edging dashboard leather alcantara suede upholstery covers two-tone low-profile stretched sidewalls flare flares arch arches overfenders strip sunstrip banner windscreen belt belts".split(" ");
 // Ordinary words and car names are never "corrected" ("back" must not become "rack", "golf" not "gold").
-const PARSE_KEEP=new Set("line lines wood wooden walnut dash caps mats cash cars word good spacer space serious series dechrome dechromed lose flower flowers slower slowly shower showers tower towers mower blower follower track back side more make take have some also that this then than them they want with like need just love nice cool look looks rear front real full good best feel keep sound wide deep dark does done give here there when what your into onto over under extra every maybe could would should thing things stuff little really super very much many same lets please thanks cheers mate bring check change turn same seat doors door body tail high tall long short lows boot gear gets wants fits tone toned tones limo quiet quieter light lighter bright pale fine time tint ride springs spring bagged bags badge badges badgeless debadge debadged decat decatted stock standard original factory normal glass privacy downpipe downpipes steps wind winds deflector deflectors sport sports towbar towbars strap straps inch inches brace braces limited slip diff diffs quaife roll anti catch cooler coolers quid grand".split(" "));
+const PARSE_KEEP=new Set("list lists line lines wood wooden walnut dash caps mats cash cars word good spacer space serious series dechrome dechromed lose flower flowers slower slowly shower showers tower towers mower blower follower track back side more make take have some also that this then than them they want with like need just love nice cool look looks rear front real full good best feel keep sound wide deep dark does done give here there when what your into onto over under extra every maybe could would should thing things stuff little really super very much many same lets please thanks cheers mate bring check change turn same seat doors door body tail high tall long short lows boot gear gets wants fits tone toned tones limo quiet quieter light lighter bright pale fine time tint ride springs spring bagged bags badge badges badgeless debadge debadged decat decatted stock standard original factory normal glass privacy downpipe downpipes steps wind winds deflector deflectors sport sports towbar towbars strap straps inch inches brace braces limited slip diff diffs quaife roll anti catch cooler coolers quid grand".split(" "));
 function editDistance(a,b){
   const d=[];for(let i=0;i<=a.length;i++){d[i]=[i];for(let j=1;j<=b.length;j++)d[i][j]=i?0:j;}
   for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++){
@@ -643,12 +643,23 @@ function practicalReply(low){
   if(named.length===1&&named[0][5]&&(diy||time)) r.push(`Say "${named[0][5]}" to try it on.`);
   return {reply:r.join(" "),switchCar:null,reset:false,apply:[],remove:[],notes:{}};
 }
+/* "What's on my car", "what have i got", "list my parts", "show my build", "total cost": name the fitted parts, then the total (Car #130). */
+const FITTED_Q=/\bwhat(?:'s| is|s)? (?:on|fitted (?:to|on)) (?:my|the|this) (?:car|golf|fiesta|bmw|build)\b|\bwhat(?:'s| is|s)? on (?:it|her)(?: now| so far)?\s*\??\s*$|\bwhat (?:have|has) (?:i|it) got\b(?! to\b)|\bwhat (?:mods|parts) (?:have i|do i have|are on|are fitted|has it|is it)\b|\bwhat(?:'s| is|s| has| have)? (?:been )?fitted\b|\blist (?:my|the|all (?:of )?(?:my|the)) (?:parts|mods|build)\b|\bshow (?:me )?(?:my|the) (?:build|parts|mods)\b|\btotal (?:cost|price)\b(?! (?:of|for) (?!my\b|the build\b|it\b))|\bwhat(?:'s| is|s) the total\b/;
+function buildReply(){
+  const money=v=>"£"+Math.round(v).toLocaleString("en-GB");
+  const cur=CARS.find(x=>x.id===state.car), bc=buildCost(cur,state.mods), n=partCount(state.mods);
+  if(!n) return {reply:`Your ${cur.model} is still standard: about ${money(cur.price)} ${cur.used?"used":"new"}, with no parts added yet. Ask "how much is a remap" (or any part) to see its price.`,switchCar:null,reset:false,apply:[],remove:[],notes:{}};
+  const names=Object.keys(state.mods).flatMap(id=>id==="custom"?((state.mods.custom&&state.mods.custom.items)||[]).map(i=>i.name):[modLabel(id,state.mods[id])]).filter(Boolean);
+  const shown=names.slice(0,6).join("; ")+(names.length>6?` and ${names.length-6} more`:"");
+  return {reply:`On your ${cur.model}: ${shown}. The car is about ${money(cur.price)} ${cur.used?"used":"new"}, plus ${money(bc)} for ${n} part${n>1?"s":""} with fitting, so about ${money(cur.price+bc)} in total. The Price list page shows what each part costs.`,switchCar:null,reset:false,apply:[],remove:[],notes:{}};
+}
 function localPlan(text){
   // Your own colour: "#ff8800" is read as the colour name "custom-ff8800" (see registerCustomColours).
   text=String(text).replace(/#([0-9a-f]{6})\b/gi,(m,h)=>"custom-"+h.toLowerCase()); registerCustomColours(text);
   // priceAsked is cleared by applyPlan (chat.js) on the next real message, so behind-the-scenes checks can't wipe it.
   const low=" "+fixTypos(String(text).toLowerCase())+" ";
   if(priceAsked&&ADD_IT.test(low)){const asked=priceAsked; priceAsked=null; return planParts(asked);}
+  if(FITTED_Q.test(low)) return buildReply();
   if(DRIVE_Q.test(low)&&!PRICE_Q.test(low)) return driveReply();
   if(VALUE_Q.test(low)&&!VALUE_NOT.test(low)) return {reply:VALUE_REPLY,switchCar:null,reset:false,apply:[],remove:[],notes:{}};
   if((COMFORT_Q.test(low)||MPG_Q.test(low))&&!PRICE_Q.test(low)) return comfortReply(low);
@@ -681,7 +692,5 @@ function localPlan(text){
   }
   if(p.switchCar&&!sameCar&&!totalAsked){const say=(c.make==="Volkswagen"?c.model:c.make+" "+c.model.split(" ")[0]).toLowerCase();
     return {reply:`A ${c.used?"used":"new"} ${c.make} ${c.model} is about ${money(c.price)}, before any parts. Say "${say}" to build one.`,switchCar:null,reset:false,apply:[],remove:[],notes:{}};}
-  const cur=CARS.find(x=>x.id===state.car), bc=buildCost(cur,state.mods), n=partCount(state.mods);
-  if(!n) return {reply:`Your ${cur.model} is still standard: about ${money(cur.price)} ${cur.used?"used":"new"}, with no parts added yet. Ask "how much is a remap" (or any part) to see its price.`,switchCar:null,reset:false,apply:[],remove:[],notes:{}};
-  return {reply:`Your build: the ${cur.model} is about ${money(cur.price)} ${cur.used?"used":"new"}, plus ${money(bc)} for ${n} part${n>1?"s":""} with fitting, so about ${money(cur.price+bc)} in total. The Price list page shows what each part costs.`,switchCar:null,reset:false,apply:[],remove:[],notes:{}};
+  return buildReply();
 }
