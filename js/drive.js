@@ -100,12 +100,15 @@ window.addEventListener("blur",()=>{keyThrottle=false;thrOff();});
 
 function sizeCanvas(){const r=road.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);cvs.width=Math.round(r.width*d);cvs.height=Math.round(r.height*d);drv.dirty=true;}
 new ResizeObserver(sizeCanvas).observe(road); sizeCanvas();
+/* "Reduce motion" (an OS setting): hills, posts and speed streaks stay still; only the lane dashes move, so speed still shows. */
+const driveCalm=window.matchMedia?matchMedia("(prefers-reduced-motion: reduce)"):{matches:false};
+driveCalm.addEventListener?.("change",()=>{drv.dirty=true;});
 function drawRoad(){
-  const W=cvs.width,H=cvs.height,x=cx2,d=drv.dist;
+  const W=cvs.width,H=cvs.height,x=cx2,d=drv.dist,calm=driveCalm.matches,sd=calm?0:d;
   const sky=x.createLinearGradient(0,0,0,H*.62);sky.addColorStop(0,"#0f1a2b");sky.addColorStop(.7,"#3a3550");sky.addColorStop(1,"#c98a52");
   x.fillStyle=sky;x.fillRect(0,0,W,H);
   x.fillStyle="rgba(255,214,160,.85)";x.beginPath();x.arc(W*.78,H*.5,H*.07,0,Math.PI*2);x.fill();
-  const hills=(base,amp,speed,col,f)=>{x.fillStyle=col;x.beginPath();x.moveTo(0,H);for(let i=0;i<=W;i+=W/60){const wx=(i+d*speed)/W*f;x.lineTo(i,base-amp*(Math.sin(wx*2.1)*.6+Math.sin(wx*5.3)*.25+Math.sin(wx*.7)*.4));}x.lineTo(W,H);x.fill();};
+  const hills=(base,amp,speed,col,f)=>{x.fillStyle=col;x.beginPath();x.moveTo(0,H);for(let i=0;i<=W;i+=W/60){const wx=(i+sd*speed)/W*f;x.lineTo(i,base-amp*(Math.sin(wx*2.1)*.6+Math.sin(wx*5.3)*.25+Math.sin(wx*.7)*.4));}x.lineTo(W,H);x.fill();};
   hills(H*.58,H*.08,6,"#242238",3);
   hills(H*.62,H*.05,18,"#17171f",6);
   x.fillStyle="#101216";x.fillRect(0,H*.64,W,H*.36);
@@ -113,9 +116,9 @@ function drawRoad(){
   x.fillStyle="#2b2f36";x.fillRect(0,H*.655,W,H*.008);
   const dash=W*.12,gap=W*.1,off=(d*60)%(dash+gap);
   x.fillStyle="#d8d2c2";for(let i=-off;i<W;i+=dash+gap) x.fillRect(i,H*.885,dash,H*.008);
-  const pg=W*.22,po=(d*60)%pg;x.fillStyle="#cfd3d8";
+  const pg=W*.22,po=(sd*60)%pg;x.fillStyle="#cfd3d8";
   for(let i=-po;i<W+pg;i+=pg){x.fillRect(i,H*.6,W*.006,H*.06);x.fillStyle="#d14a2a";x.fillRect(i,H*.6,W*.006,H*.012);x.fillStyle="#cfd3d8";}
-  if(drv.v>25){x.strokeStyle=`rgba(255,255,255,${Math.min(.18,(drv.v-25)/200)})`;x.lineWidth=1;for(let i=0;i<14;i++){const y=H*(.2+((i*37)%50)/100),len=W*.15,xx=(W-((d*90+i*173)%(W+len)));x.beginPath();x.moveTo(xx,y);x.lineTo(xx+len,y);x.stroke();}}
+  if(!calm&&drv.v>25){x.strokeStyle=`rgba(255,255,255,${Math.min(.18,(drv.v-25)/200)})`;x.lineWidth=1;for(let i=0;i<14;i++){const y=H*(.2+((i*37)%50)/100),len=W*.15,xx=(W-((d*90+i*173)%(W+len)));x.beginPath();x.moveTo(xx,y);x.lineTo(xx+len,y);x.stroke();}}
 }
 /* One physics step, shared by the live drive and the off-screen calibration run. */
 const MPH=0.44704, driveCalCache={};
