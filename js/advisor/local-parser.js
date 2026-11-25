@@ -2,20 +2,24 @@
 "use strict";
 /* offline interpreter */
 /* Beginner questions ("what would you recommend", "mods under £500"): suggest, don't fit. */
-/* "i have 2k to spend", "i've got £2000", "got 500 quid": a budget, read like "under £2000" (Car #131). */
-const HAVE_BUDGET=/\b(?:i have|i'?ve got|ive got|i got|got)\s+(?:about |around |roughly )?(?:£\s*(\d[\d,]*)\s*(k\b)?|(\d[\d,]*)\s*(k\b|grand\b|quid\b|pounds\b)|(\d[\d,]*)(?=\s+to spend\b))/;
-function adviceAsked(t){return HAVE_BUDGET.test(t)||/\b(recommend|suggest|ideas?|first mods?|best mods?|good mods?|cheap|budget|afford|beginner|starter|where (?:do|should|can) i (?:start|begin)|what (?:should|would|do|can) (?:i|you) (?:do|get|add|fit|try)(?: \w+)? (?:first|next)|what should i (?:do|get|add|start))\b|\bmods?\b.*£\s*\d|\b(?:under|below|less than|up to|max)\s*£?\s*\d/.test(t);}
+/* "i have 2k to spend", "i've got £2000", "got 500 quid", "something for 5 grand": a budget, read like "under £2000" (Car #131, #170). */
+/* "sleepy daily" / "sleeper daily": power that hides under the bonnet, so it still looks standard (Car #170). */
+const SLEEPER_DAILY=/\bsleep(?:er|y) daily\b|\bdaily sleeper\b/;
+const HAVE_BUDGET=/\b(?:i have|i'?ve got|ive got|i got|got|for|with)\s+(?:about |around |roughly )?(?:£\s*(\d[\d,]*)\s*(k\b)?|(\d[\d,]*)\s*(k\b|grand\b|quid\b|pounds\b)|(\d[\d,]*)(?=\s+to spend\b))/;
+function adviceAsked(t){return HAVE_BUDGET.test(t)||SLEEPER_DAILY.test(t)||/\b(recommend|suggest|ideas?|first mods?|best mods?|good mods?|cheap|budget|afford|beginner|starter|cheapest|build me something|where (?:do|should|can) i (?:start|begin)|what (?:should|would|do|can) (?:i|you) (?:do|get|add|fit|try)(?: \w+)? (?:first|next)|what should i (?:do|get|add|start))\b|\bmods?\b.*£\s*\d|\b(?:under|below|less than|up to|max)\s*£?\s*\d/.test(t);}
 function starterIdeas(t,car){
   const hb=t.match(HAVE_BUDGET); if(hb){const k=hb[2]||/^(?:k|grand)$/.test(hb[4]||"")?"k":""; t=t.replace(hb[0]," under £"+(hb[1]||hb[3]||hb[5])+k+" ");}
   const IDEAS=[["lowering springs","drop",{springs:true,mm:30}],["stage 1 remap","tune",{stage:1}],["dark windows","tint",{}],["smoked lights","lights",{}],["lip spoiler","spoiler",{type:"lip"}],["induction kit","intake",{}],["racing stripes","stripes",{}],["aero kit","bodykit",{}],["louder exhaust","exhaust",{}]];
   const m=t.match(/(?:under|below|less than|up to|max|budget(?: of)?|for)\s*£\s*(\d[\d,]*)\s*(k\b)?|£\s*(\d[\d,]*)\s*(k\b)?|(?:under|below|less than|up to|max)\s*(\d[\d,]*)\s*(k\b)?/);
   const n=m?parseInt((m[1]||m[3]||m[5]).replace(/,/g,""),10)*((m[2]||m[4]||m[6])?1000:1):null;
+  const sleeper=SLEEPER_DAILY.test(t);
   const cheap=/\bcheap|\bbudget\b(?!\s*(?:of\s*)?£?\s*\d)/.test(t)&&n===null;
-  let list=IDEAS.map(([say,id,p])=>({say,price:modPrice(id,p,car)})).filter(i=>n===null||i.price<=n);
+  let list=IDEAS.map(([say,id,p])=>({say,price:modPrice(id,p,car),hidden:id==="tune"||id==="intake"})).filter(i=>(n===null||i.price<=n)&&(!sleeper||i.hidden));
   if(cheap) list.sort((a,b)=>a.price-b.price);
   list=list.slice(0,3);
   const money=v=>"£"+v.toLocaleString("en-GB");
   if(!list.length) return `Most parts start at about ${money(Math.min(...IDEAS.map(([,id,p])=>modPrice(id,p,car))))} fitted, so ${money(n)} is a bit tight. Try one of the gallery builds for ideas, or save up a little.`;
+  if(sleeper&&list.length) return `For a sleeper daily the ${car.model} keeps its standard look and gains power under the bonnet: ${list.map(i=>`${i.say} (about ${money(i.price)})`).join(", ")}. Keep the standard wheels and exhaust so it still looks stock. Say one to try it on, e.g. "${list[0].say}".`;
   const lead=n!==null?`Good first mods for the ${car.model} under ${money(n)}:`:cheap?`Cheapest good first mods for the ${car.model}:`:`Good first mods for the ${car.model}:`;
   return `${lead} ${list.map(i=>`${i.say} (about ${money(i.price)})`).join(", ")}. Say one to try it on, e.g. "${list[0].say}", or try one of the gallery builds.`;
 }
