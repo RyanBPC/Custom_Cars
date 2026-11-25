@@ -265,7 +265,17 @@
     addUser(`Private plate ${reg}`); applyPlan(plan, `private plate ${reg}`);
   }
   box.addEventListener("submit", e => { if (e.target.id === "ownPlateForm") { e.preventDefault(); setPlate(document.getElementById("ownPlateText").value); } });
-  box.addEventListener("input", e => { if (e.target.id === "ownPlateText") { const v = e.target.value.toUpperCase().replace(/[^A-Z0-9 ]/g, ""); if (v !== e.target.value) e.target.value = v; } });
+  // Website #182: upper-case the plate as you type but keep the cursor where it was (it used to jump to the end, so
+  // fixing one letter in the middle added letters at the end). The caret moves back by any characters removed before it.
+  box.addEventListener("input", e => {
+    if (e.target.id !== "ownPlateText") return;
+    const el = e.target, clean = t => t.toUpperCase().replace(/[^A-Z0-9 ]/g, ""), v = clean(el.value);
+    if (v === el.value) return;
+    const a = el.selectionStart, b = el.selectionEnd, at = n => n == null ? v.length : clean(el.value.slice(0, n)).length;
+    const na = at(a), nb = at(b);
+    el.value = v;
+    try { el.setSelectionRange(na, nb); } catch (_) {}
+  });
 
   // Website #137: render() rebuilds the panel, so remember which control had keyboard focus and put focus back on its
   // new copy (a Fit it button becomes Take it off, so match that too; else fall back to the group's heading).
