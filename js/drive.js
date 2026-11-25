@@ -86,7 +86,7 @@ road.addEventListener("pointerdown",thrOn);["pointerup","pointerleave","pointerc
 [thrBtn,road].forEach(el=>el.addEventListener("contextmenu",e=>e.preventDefault()));
 // Track whether the test drive is on screen: keys only work there, and the road isn't redrawn when it's hidden and idle.
 let driveVisible=true, keyThrottle=false;
-new IntersectionObserver(es=>{driveVisible=es[0].isIntersecting;},{threshold:.25}).observe($("drive"));
+new IntersectionObserver(es=>{driveVisible=es[0].isIntersecting;if(driveVisible)drv.dirty=true;},{threshold:.25}).observe($("drive"));
 // Space / Up arrow act as the throttle only while the test drive is on screen or focused, so they still scroll the rest of the page.
 document.addEventListener("keydown",e=>{if((e.code==="Space"||e.code==="ArrowUp")&&drv.running&&(driveVisible||$("drive").contains(document.activeElement))&&!/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)){e.preventDefault();drv.thr=true;keyThrottle=true;thrBtn.classList.add("on");}});
 // If the key was used as the throttle, also block its keyup so no focused button gets "clicked".
@@ -98,7 +98,7 @@ document.addEventListener("visibilitychange",()=>{if(document.hidden)stopDriveEn
 // Alt-Tab while holding Space loses the keyup, so let go of the throttle when the window loses focus.
 window.addEventListener("blur",()=>{keyThrottle=false;thrOff();});
 
-function sizeCanvas(){const r=road.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);cvs.width=Math.round(r.width*d);cvs.height=Math.round(r.height*d);}
+function sizeCanvas(){const r=road.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);cvs.width=Math.round(r.width*d);cvs.height=Math.round(r.height*d);drv.dirty=true;}
 new ResizeObserver(sizeCanvas).observe(road); sizeCanvas();
 function drawRoad(){
   const W=cvs.width,H=cvs.height,x=cx2,d=drv.dist;
@@ -165,6 +165,9 @@ function driveBuildCal(c,mods){
 }
 function driveLoop(now){
   if(!driveVisible&&!drv.running){drv.last=now;requestAnimationFrame(driveLoop);return;}
+  // Website #151: standing still with the engine off nothing moves, so draw the road once (first frame,
+  // after a resize or coming back on screen) and skip the physics and redraws until the engine starts.
+  if(!drv.running&&drv.v===0){drv.last=now;if(drv.dirty!==false){drv.dirty=false;drawRoad();}requestAnimationFrame(driveLoop);return;}
   const dt=Math.min(.05,(now-(drv.last||now))/1000); drv.last=now;
   const c=car(), p=perf(c,dMods()), m=p.kg+80, cal=driveBuildCal(c,dMods());
   const red=c.redline, P=p.hp*745.7*.8*cal.k;
