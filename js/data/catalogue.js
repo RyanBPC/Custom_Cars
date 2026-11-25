@@ -120,6 +120,7 @@ const EXTRA_PARTS = [
  {re:/sound system|subwoofer|\bsub\b|speakers?|(?<!(exhaust|pipes?|engine).{0,20})\bbass\b(?!.{0,20}(exhaust|pipes?|engine))/,name:"Sound system upgrade",in3d:true,price:900,text:""},
  {re:/harness(es)?/,name:"Racing harnesses",in3d:true,price:350,text:"red racing harnesses on the seats, visible through the windows"},
  {re:/\bfly ?wheels?\b/,name:"Lightweight flywheel",in3d:false,price:450,text:"a lightweight flywheel so the engine revs up and down faster (a bit more judder in slow traffic; usually fitted with a new clutch)"},
+ {re:/\bspare (?:wheel|tyre|tire)s?\b|\bspace ?saver(?: spare| wheel| tyre)?s?\b/,name:"Space saver spare wheel",in3d:false,price:150,text:"a space saver spare wheel with a jack and wheel brace in the boot floor (drive no faster than 50mph on it, and check it clears any big brakes)"},
  {re:/\b(?:shift|rev) ?lights?\b/,name:"Shift lights",in3d:false,price:80,text:"a shift light strip that lights up as the revs climb, telling you when to change gear"},
  {re:/\bclutch(?:es)?\b/,name:"Uprated clutch",in3d:false,price:700,text:"an uprated clutch that holds the extra power without slipping (a slightly heavier pedal)"},
  {re:/\bboost gauges?\b|\bgauge pods?\b/,name:"Boost gauge",in3d:false,price:100,text:"a boost gauge in a small pod so you can see how hard the turbo is working"},
