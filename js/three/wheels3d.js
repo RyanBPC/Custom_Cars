@@ -64,13 +64,24 @@ function loadRim(style, carId) {
 }
 const ORIGINAL = /^(Rim|Hub|Tyre)$/; // the car's own wheel parts that a new wheel replaces
 
+// The tread face with four shallow circumferential grooves, like a UK road tyre (not a smooth slick).
+// Each groove corner is listed twice so the lathe gets a crisp edge instead of a smoothed-over dip.
+function treadGrooves(outerR, w) {
+  const depth = Math.min(0.008, outerR * 0.025), half = w * 0.035, pts = [[outerR, -w * 0.5]];
+  for (const c of [-0.36, -0.12, 0.12, 0.36]) {
+    const a = c * w - half, b = c * w + half, r = outerR - depth;
+    pts.push([outerR, a], [outerR, a], [r, a + 0.0005], [r, a + 0.0005], [r, b - 0.0005], [r, b - 0.0005], [outerR, b], [outerR, b]);
+  }
+  pts.push([outerR, w * 0.5]);
+  return pts;
+}
 // A tyre: rubber tread, rounded shoulders and sidewalls down to the rim, made by spinning a cross-section.
 function makeTyre(rimR, outerR, width) {
   const w = width / 2, side = outerR - rimR, pts = [];
   const prof = [[rimR, -w * 0.82], [rimR + side * 0.25, -w * 0.97], [rimR + side * 0.7, -w], [outerR - 0.018, -w * 0.96], [outerR - 0.004, -w * 0.82],
-                [outerR, -w * 0.5], [outerR, w * 0.5], [outerR - 0.004, w * 0.82], [outerR - 0.018, w * 0.96], [rimR + side * 0.7, w], [rimR + side * 0.25, w * 0.97], [rimR, w * 0.82]];
+                ...treadGrooves(outerR, w), [outerR - 0.004, w * 0.82], [outerR - 0.018, w * 0.96], [rimR + side * 0.7, w], [rimR + side * 0.25, w * 0.97], [rimR, w * 0.82]];
   for (const [r, y] of prof) pts.push(new THREE.Vector2(r, y));
-  const geo = new THREE.LatheGeometry(pts, 96); geo.rotateX(Math.PI / 2); geo.computeVertexNormals(); // spin axis Y -> axle Z
+  const geo = new THREE.LatheGeometry(pts, 128); geo.rotateX(Math.PI / 2); geo.computeVertexNormals(); // spin axis Y -> axle Z
   return geo;
 }
 const rubber = new THREE.MeshStandardMaterial({ color: 0x141518, roughness: 0.88, metalness: 0 });
