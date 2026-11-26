@@ -91,7 +91,7 @@ function manual3dPanel(prompt, note = "") {
       <li><label class="btn sm primary">Add the result<input type="file" accept="image/png,image/jpeg,image/webp" hidden></label> Choose Gemini's picture, or copy it in Gemini and press Ctrl+V here.</li>
     </ol>
     <details><summary>See the instruction</summary><textarea readonly rows="9"></textarea></details>
-    <p class="muted small status">Results are saved, so the same view and build show instantly next time.</p>`);
+    <p class="muted small status" role="status">Results are saved, so the same view and build show instantly next time.</p>`);
   const status = t => { p.querySelector(".status").textContent = t; };
   const dl = p.querySelector("a[download]"); dl.href = ai3dShotUrl; dl.setAttribute("download", ai3dShotName);
   p.querySelector("textarea").value = prompt;
@@ -109,7 +109,8 @@ function manual3dPanel(prompt, note = "") {
     } catch (e) { status("Couldn't copy the picture here; use download instead."); }
   });
   const addResult = file => {
-    if (!file || !/^image\/(png|jpeg|webp)$/.test(file.type)) return;
+    if (!file) return;
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) { status("That picture type can't be used here. Save it from Gemini as PNG or JPG and try again."); return; }
     if (file.size > 15 * 1024 * 1024) { status("That picture is too large (max 15 MB)."); return; }
     const reader = new FileReader();
     reader.onload = async () => {
