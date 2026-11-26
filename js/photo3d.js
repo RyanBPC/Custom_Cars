@@ -220,14 +220,18 @@ function renderAiStrip() {
   if (el.hidden) return;
   el.innerHTML = "";
   for (const e of list) {
-    const b = document.createElement("button"); b.type = "button"; b.setAttribute("role", "listitem");
+    // The list item is a wrapper so the button keeps its button role for screen readers.
+    const li = document.createElement("div"); li.setAttribute("role", "listitem");
+    const b = document.createElement("button"); b.type = "button";
     b.setAttribute("aria-current", e.key === aiShownKey);
     const img = document.createElement("img"); img.src = e.url; img.alt = ""; img.loading = "lazy";
     const where = e.mode.startsWith("inside-") ? SEAT_NAMES[e.mode.slice(7)] : (env3dNames && env3dNames[e.env] ? env3dNames[e.env].name : e.env === "photo" ? "Studio" : e.env);
-    const label = document.createElement("span"); label.textContent = `${where} · ${e.mode.startsWith("inside-") ? "inside" : e.angle + "°"}`;
+    const inside = e.mode.startsWith("inside-");
+    const label = document.createElement("span"); label.textContent = `${where} · ${inside ? "inside" : e.angle + "°"}`;
+    b.setAttribute("aria-label", `Go to this photo: ${where}, ${inside ? "inside the car" : e.angle + " degrees"}`);
     b.append(img, label); b.title = "Go to this photo's angle";
     b.addEventListener("click", () => goToSaved(e));
-    el.append(b);
+    li.append(b); el.append(li);
   }
 }
 const pause = ms => new Promise(r => setTimeout(r, ms));

@@ -472,6 +472,7 @@ footer{border-top-color:rgba(255,255,255,.06);font-size:13px}
 .ai-turn-dots i.on{background:var(--accent)}
 .ai-turn-dots i.here{outline:2px solid var(--fg);outline-offset:1px}
 .ai-strip{display:flex;gap:8px;overflow-x:auto;padding:10px;border-top:1px solid rgba(255,255,255,.06);scrollbar-width:thin}
+.ai-strip>div{flex:none;display:flex}
 .ai-strip button{flex:none;width:124px;padding:0;border:1px solid rgba(255,255,255,.1);border-radius:9px;background:rgba(255,255,255,.03);cursor:pointer;overflow:hidden;text-align:left;color:var(--muted)}
 .ai-strip button:hover{border-color:rgba(255,255,255,.25)}
 .ai-strip button[aria-current="true"]{border-color:var(--accent);color:var(--fg)}
