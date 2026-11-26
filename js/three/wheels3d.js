@@ -10,7 +10,7 @@ const FLIP = new Set(["deepdish"]); // models whose face came out on the other s
 
 /* ---------- modelled-in-code rims: 5-spoke, Y-spoke, split-spoke and BBS-style cross-spoke mesh ----------
    Same layout as the downloaded rims: axle along Z, face towards +Z, outer diameter 1, centred on its depth.
-   A barrel with flanges, a hub with five bolts and a dark centre cap, and spokes from the hub to the barrel. */
+   A barrel with flanges, a hub with five bolts (four on the Fiesta) and a dark centre cap, and spokes from the hub to the barrel. */
 const PROCEDURAL = { "5spoke": 1, yspoke: 1, splitspoke: 1, bbsmesh: 1 };
 function bar2D(ax, ay, bx, by, wa, wb) {
   const dx = bx - ax, dy = by - ay, l = Math.hypot(dx, dy), nx = -dy / l, ny = dx / l, s = new THREE.Shape();
@@ -32,7 +32,7 @@ function spokeShapes(style) {
   }
   return out;
 }
-function proceduralRim(style) {
+function proceduralRim(style, studs = 5) {
   const D = 0.42, g = new THREE.Group();
   const metal = new THREE.MeshStandardMaterial({ name: "Rim", color: 0xc9cdd2, metalness: 0.8, roughness: 0.3 });
   const dark = new THREE.MeshStandardMaterial({ name: "cap", color: 0x111214, metalness: 0.3, roughness: 0.5 });
@@ -45,16 +45,19 @@ function proceduralRim(style) {
   // Dish (concave face): the spokes sink towards the hub, like real wheels, so the face has depth.
   const sp = spokes.attributes.position; for (let i = 0; i < sp.count; i++) { const r = Math.hypot(sp.getX(i), sp.getY(i)); sp.setZ(i, sp.getZ(i) - 0.075 * Math.pow(Math.max(0, (0.47 - r) / 0.36), 1.4)); }
   spokes.computeVertexNormals(); spokes.translate(0, 0, -0.07); g.add(new THREE.Mesh(spokes, metal));
-  // Hub face (set back with the dish), a centre cap in the centre bore, and five hex lug nuts with chamfered ends.
+  // Hub face (set back with the dish), a centre cap in the centre bore, and hex lug nuts with chamfered ends:
+  // five on a 5x112 car (Golf, 440i), four on the 4x108 Fiesta, on a slightly smaller circle like the real hubs.
   const hubG = new THREE.CylinderGeometry(0.125, 0.13, 0.06, 40); hubG.rotateX(Math.PI / 2); hubG.translate(0, 0, -0.12); g.add(new THREE.Mesh(hubG, metal));
   const bore = new THREE.CylinderGeometry(0.066, 0.066, 0.02, 32, 1, true); bore.rotateX(Math.PI / 2); bore.translate(0, 0, -0.085); g.add(new THREE.Mesh(bore, dark));
   const cap = new THREE.CylinderGeometry(0.056, 0.06, 0.014, 32); cap.rotateX(Math.PI / 2); cap.translate(0, 0, -0.084); g.add(new THREE.Mesh(cap, dark));
-  for (let i = 0; i < 5; i++) { const [x, y] = at(0.096, i * 2 * Math.PI / 5 + Math.PI / 10); const b = new THREE.CylinderGeometry(0.011, 0.014, 0.022, 6); b.rotateX(Math.PI / 2); b.translate(x, y, -0.082); g.add(new THREE.Mesh(b, bolt)); }
+  const pcd = studs === 4 ? 0.093 : 0.096;
+  for (let i = 0; i < studs; i++) { const [x, y] = at(pcd, i * 2 * Math.PI / studs + Math.PI / (studs * 2)); const b = new THREE.CylinderGeometry(0.011, 0.014, 0.022, 6); b.rotateX(Math.PI / 2); b.translate(x, y, -0.082); g.add(new THREE.Mesh(b, bolt)); }
   g.traverse(o => { if (o.isMesh) o.geometry.computeVertexNormals(); });
   const holder = new THREE.Group(); g.position.z = D / 2; holder.add(g); return holder; // centred on its depth
 }
-function loadRim(style) {
-  if (PROCEDURAL[style]) return (cache[style] = cache[style] || Promise.resolve(proceduralRim(style)));
+const STUDS = { fiesta: 4 }; // wheel studs per car; anything not listed is 5
+function loadRim(style, carId) {
+  if (PROCEDURAL[style]) { const n = STUDS[carId] || 5, k = style + "|" + n; return (cache[k] = cache[k] || Promise.resolve(proceduralRim(style, n))); }
   // Blender's up (Z) arrives as Y here, so the axle comes in along Y; turn it onto Z with the face towards +Z.
   if (!(style in cache)) cache[style] = new GLTFLoader().loadAsync(`models/wheels/${style}.glb`).then(g => { g.scene.rotation.x = Math.PI / 2; if (FLIP.has(style)) g.scene.rotation.z = Math.PI; const holder = new THREE.Group(); holder.add(g.scene); return holder; }).catch(e => { console.warn("Wheel model missing:", style, e); return null; });
   return cache[style];
@@ -150,7 +153,7 @@ export async function fitWheels(rig, spec, low = 0) {
     if (low) lowOnOwnRims(rig, low);
     return true;
   }
-  const model = await loadRim(spec.style);
+  const model = await loadRim(spec.style, rig.carId);
   if (!model || rig.wheelKey !== key) return false; // missing file, or changed again while loading
   measure(rig);
   // The rim's own materials, recoloured in the chosen finish (bolts and centre caps keep theirs).
