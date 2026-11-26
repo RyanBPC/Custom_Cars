@@ -243,7 +243,7 @@
       <div class="plate-row"><input id="ownPlateText" maxlength="8" placeholder="e.g. RYAN 1" value="${reg}" aria-describedby="ownPlateHint" spellcheck="false">
       <button type="submit" class="chip">${reg ? "Change" : "Put on"}</button>${reg ? `<button type="button" class="chip" id="ownPlateClear">Back to the standard reg</button>` : ""}</div>
       <small id="ownPlateHint">Up to 7 letters and numbers, like a real UK private plate.</small></form>
-      <div class="plate-style" aria-label="Plate style">${Object.keys(PLATE_STYLE_OPTS).map(k => `<label>${{ finish: "Lettering", shape: "Shape", border: "Border", badge: "Side badge" }[k]}
+      <div class="plate-style" role="group" aria-label="Plate style">${Object.keys(PLATE_STYLE_OPTS).map(k => `<label>${{ finish: "Lettering", shape: "Shape", border: "Border", badge: "Side badge" }[k]}
         <select data-ps="${k}">${PLATE_STYLE_OPTS[k].map(([v, l, pr]) => `<option value="${v}"${(plateStyleOf(state.mods) || {})[k] === v ? " selected" : ""}>${l}${pr ? ` (+£${pr})` : ""}</option>`).join("")}</select></label>`).join("")}
         <small>3D gel and 4D letters are road legal when made to BS AU 145e; the letters must stay black.</small></div>`;
   }
@@ -344,9 +344,11 @@
   });
   function catTabs() {
     const fitted = name => GROUPS.filter(g => catOf(g.name) === name && !(g.link && !g.row && !g.opts && !g.extras) && groupStatus(g).on).length;
-    const tab = (id, n) => `<button type="button" role="tab" data-cat="${id}" aria-selected="${optCat === id}" tabindex="${optCat === id ? 0 : -1}">${id}${n ? ` <small>${n}</small>` : ""}</button>`;
+    const tab = (id, n) => `<button type="button" role="tab" id="${catTabId(id)}" aria-controls="optCatPanel" data-cat="${id}" aria-selected="${optCat === id}" tabindex="${optCat === id ? 0 : -1}">${id}${n ? ` <small>${n}</small>` : ""}</button>`;
     return `<div class="opt-cats" role="tablist" aria-label="Part categories">${CATS.map(c => tab(c[0], fitted(c[0]))).join("")}${tab("All", 0)}</div>`;
   }
+  // Each category tab gets a safe id so the parts list (the tab panel) can name the chosen one.
+  function catTabId(id) { return "optCat-" + String(id).toLowerCase().replace(/[^a-z0-9]+/g, "-"); }
   // Arrow keys move between the category tabs.
   box.addEventListener("keydown", e => {
     const t = e.target.closest("[data-cat]"); if (!t || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
@@ -356,7 +358,7 @@
   });
   function renderPanel() {
     forgetStaleDrafts();
-    box.innerHTML = catTabs() + GROUPS.map((g, gi) => {
+    box.innerHTML = catTabs() + `<div id="optCatPanel" role="tabpanel" aria-labelledby="${catTabId(optCat)}">` + GROUPS.map((g, gi) => {
       if (optCat !== "All" && catOf(g.name) !== optCat) return "";
       if (g.link && !g.row && !g.opts && !g.extras) return `<section class="opt-group" aria-label="${g.name}"><h3>${g.name}</h3><a class="opt-link" href="${g.link[1]}">${g.link[0]}</a></section>`;
       const st = groupStatus(g), open = g.name in openMemo ? openMemo[g.name] : (st.on || g.name === "Paint and wrap" || g.name === "Wheels");
@@ -365,7 +367,7 @@
       ${g.opts && !g.row ? `<div class="chips">${g.opts.map((o, oi) => chip(g, gi, o, oi, false)).join("")}</div>` : ""}
       ${g.extras ? `<div class="chips">${g.extras.map((o, oi) => chip(g, gi, o, oi, true)).join("")}</div>` : ""}
       ${g.plateBox ? plateBox() : ""}
-      ${g.link ? `<a class="opt-link" href="${g.link[1]}">${g.link[0]}</a>` : ""}</details>`; }).join("")
+      ${g.link ? `<a class="opt-link" href="${g.link[1]}">${g.link[0]}</a>` : ""}</details>`; }).join("") + `</div>`
       + `<p class="opt-foot">Want something not listed? <button type="button" class="linkish" id="toAdvisor">Ask the advisor</button></p>`;
   }
 
@@ -393,12 +395,18 @@
   // Options / Advisor switch.
   const tabs = { opts: document.getElementById("cfgTabOpts"), chat: document.getElementById("cfgTabChat") };
   function showPanel(which) {
-    for (const k in tabs) tabs[k].setAttribute("aria-selected", k === which);
+    for (const k in tabs) { tabs[k].setAttribute("aria-selected", k === which); tabs[k].tabIndex = k === which ? 0 : -1; }
     box.hidden = which !== "opts"; document.getElementById("advisor").hidden = which !== "chat";
     if (which === "chat") { const m = document.getElementById("msgs"); m.scrollTop = m.scrollHeight; }
   }
   tabs.opts.addEventListener("click", () => showPanel("opts"));
   tabs.chat.addEventListener("click", () => showPanel("chat"));
+  // Arrow keys (and Home/End) swap between Options and Advisor, like the category tabs.
+  tabs.opts.parentNode.addEventListener("keydown", e => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+    const next = e.key === "Home" ? "opts" : e.key === "End" ? "chat" : (document.activeElement === tabs.opts ? "chat" : "opts");
+    e.preventDefault(); showPanel(next); tabs[next].focus();
+  });
 
   // Keep the options lit up to match the car, whatever changed it (chat, cards, reset, another car).
   const origInfo = window.renderInfo;
