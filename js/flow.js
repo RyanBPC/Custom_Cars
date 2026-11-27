@@ -68,8 +68,14 @@ const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); retu
 let myPhoto = load(PHOTO_KEY, null); // { car, url } or null
 
 // Shrinks a picture to at most 1600px wide as a JPEG, so it fits in the browser's storage.
+// iPhone (HEIC/HEIF) and AVIF pictures can't be opened by most browsers, so say how to fix it.
+const ODD_PIC = /hei[cf]|avif/i;
 function shrink(file, max = 1600) {
   return new Promise((res, rej) => {
+    if (ODD_PIC.test(file.type) || ODD_PIC.test(file.name || "")) {
+      rej(new Error("That's an iPhone (HEIC) or AVIF picture, which this browser can't open. Save it as JPG first: on the iPhone, Settings > Camera > Formats > Most Compatible, or email it to yourself."));
+      return;
+    }
     const img = new Image();
     img.onload = () => {
       const s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
@@ -337,7 +343,7 @@ function renderMyRender() {
       <li><button type="button" class="btn sm primary" data-pick>${result ? "Replace the result" : "Add the result"}</button><input type="file" accept="image/png,image/jpeg,image/webp" hidden tabindex="-1" aria-hidden="true"> Download Gemini's picture and choose it here.</li>
     </ol>
     <details><summary>See the instruction</summary><textarea readonly rows="9"></textarea></details>
-    <p class="muted small" data-msg>${result ? "Change your build and the steps start again for the new look. This build's picture stays saved." : "Free. Gemini makes the picture; it's an AI impression, so details may differ from real parts."}</p>`;
+    <p class="muted small" data-msg aria-live="polite">${result ? "Change your build and the steps start again for the new look. This build's picture stays saved." : "Free. Gemini makes the picture; it's an AI impression, so details may differ from real parts."}</p>`;
   box.querySelector("textarea").value = prompt;
   box.querySelector("[data-copy]").addEventListener("click", async () => {
     try { await navigator.clipboard.writeText(prompt); } catch (e) { const t = box.querySelector("textarea"); box.querySelector("details").open = true; t.select(); document.execCommand("copy"); }

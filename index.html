@@ -115,13 +115,14 @@ if (location.protocol === "file:") {
         <div class="flow-pick">
           <div class="picker brands" id="brandPicker" role="group" aria-label="Choose a brand"></div>
           <div class="picker" id="picker" role="group" aria-label="Choose a model"></div>
-          <p class="muted small flow-pick-note" id="flowCarNote"></p>
+          <p class="muted small flow-pick-note" id="flowCarNote" aria-live="polite"></p>
         </div>
         <div class="myphoto" id="myPhoto">
           <img id="myPhotoImg" alt="Your photo of your car" hidden>
           <div class="myphoto-empty" id="myPhotoEmpty">
             <b>Add a photo of your car</b>
             <span>One clear photo from the front or side, in daylight. It stays on this computer.</span>
+            <span class="small">iPhone photo? Save it as JPG first (on the iPhone: Settings &gt; Camera &gt; Formats &gt; Most Compatible, or email it to yourself).</span>
           </div>
           <div class="myphoto-actions">
             <button type="button" class="btn sm primary" id="myPhotoAdd">Add photo</button>
