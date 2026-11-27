@@ -582,6 +582,18 @@ def check_key():
     return 0
 
 
+class Server(http.server.ThreadingHTTPServer):
+    # On Windows, "reuse address" lets a second copy share the port silently,
+    # so ask for the port to ourselves and get a clear error instead.
+    if sys.platform == "win32":
+        allow_reuse_address = False
+
+        def server_bind(self):
+            import socket
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+            super().server_bind()
+
+
 def main():
     if "--check-ebay" in sys.argv:
         # Free test of the eBay keys: py server\app.py --check-ebay
@@ -597,8 +609,23 @@ def main():
     if "--check" in sys.argv:
         sys.exit(check_key())
     open_browser = "--no-browser" not in sys.argv
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
     url = f"http://127.0.0.1:{PORT}/"
+    try:
+        server = Server(("127.0.0.1", PORT), Handler)
+    except OSError:
+        # The port is taken: usually the site is already running in another window.
+        try:
+            with urllib.request.urlopen(url + "api/status", timeout=2) as r:
+                ours = r.status == 200
+        except Exception:
+            ours = False
+        if ours:
+            print("Custom Cars is already running - opening it in your browser.")
+            if open_browser:
+                webbrowser.open(url)
+            sys.exit(0)
+        print(f"Port {PORT} is used by another program. Close it, or set PORT=8001 in .env.")
+        sys.exit(1)
     print(f"Custom Cars is running at {url}  (render mode: {MODE})")
     print("Keep this window open while you use the site. Close it to stop.")
     if open_browser:
