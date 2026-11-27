@@ -19,7 +19,16 @@ panels.forEach((nodes, i) => {
     + (i < 3 ? `<button type="button" class="btn primary" data-step-to="${i + 1}">Next: ${STEP_NAMES[i + 1]} →</button>` : "");
   nodes[nodes.length - 1].after(nav); nodes.push(nav);
 });
-el("flowSteps").setAttribute("role", "tablist");
+// The tab list sits inside the <nav>, so the nav keeps its "Build steps" landmark. Each tab points at its
+// step's panels, and only the chosen tab is a Tab stop: Left/Right/Home/End move between steps.
+const tabList = document.createElement("div");
+tabList.className = "flow-tabs"; tabList.setAttribute("role", "tablist"); tabList.setAttribute("aria-label", "Build steps");
+el("flowSteps").querySelectorAll("[data-step]").forEach((b, i) => {
+  b.id = "flowTab" + i;
+  b.setAttribute("aria-controls", panels[i].filter(n => n.getAttribute("role") === "tabpanel").map((n, j) => n.id || (n.id = `flowPanel${i}_${j}`)).join(" "));
+  tabList.append(b);
+});
+el("flowSteps").append(tabList);
 let step = 0;
 try { const s = +localStorage.getItem("customcars.step"); if (s >= 0 && s <= 3) step = s; } catch (e) {}
 // focus: true when a Back/Next (or other in-step) button was pressed. That button is now hidden, so focus
@@ -29,7 +38,7 @@ function showStep(n, scroll, focus) {
   try { localStorage.setItem("customcars.step", n); } catch (e) {}
   panels.forEach((nodes, i) => nodes.forEach(x => { x.hidden = i !== n; }));
   el("flowSteps").querySelectorAll("[data-step]").forEach((b, i) => {
-    b.setAttribute("role", "tab"); b.setAttribute("aria-selected", i === n);
+    b.setAttribute("role", "tab"); b.setAttribute("aria-selected", i === n); b.tabIndex = i === n ? 0 : -1;
     if (i === n) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
   });
   if (scroll) { const top = el("flowSteps").getBoundingClientRect().top + scrollY - 70; if (scrollY > top) scrollTo({ top, behavior: "auto" }); }
@@ -38,6 +47,12 @@ function showStep(n, scroll, focus) {
 }
 el("flowSteps").addEventListener("click", e => {
   const b = e.target.closest("[data-step]"); if (b) showStep(stepIds.indexOf(b.dataset.step), true);
+});
+el("flowSteps").addEventListener("keydown", e => {
+  const t = e.target.closest("[data-step]"); if (!t || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+  const all = [...el("flowSteps").querySelectorAll("[data-step]")], i = all.indexOf(t);
+  const n = e.key === "Home" ? 0 : e.key === "End" ? all.length - 1 : (i + (e.key === "ArrowRight" ? 1 : -1) + all.length) % all.length;
+  e.preventDefault(); showStep(n, true); all[n].focus();
 });
 document.querySelector("#studio").addEventListener("click", e => {
   const b = e.target.closest("[data-step-to]"); if (b) showStep(+b.dataset.stepTo, true, true);

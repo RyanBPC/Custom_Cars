@@ -680,7 +680,8 @@ table.prices td.none{color:var(--muted);text-align:left}
 .try-box .chips{justify-content:center}
 
 /* ---------- Build page steps (js/flow.js) ---------- */
-.flow-steps{position:sticky;top:calc(env(safe-area-inset-top,0px) + 58px);z-index:15;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 22px;padding:8px 0;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px)}
+.flow-steps{position:sticky;top:calc(env(safe-area-inset-top,0px) + 58px);z-index:15;margin:0 0 22px;padding:8px 0;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px)}
+.flow-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .flow-steps button{display:flex;align-items:center;gap:10px;background:none;border:0;border-top:2px solid var(--line);padding:10px 2px 4px;color:var(--muted);font:600 13.5px var(--f-body);text-align:left;cursor:pointer}
 .flow-steps button b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);font:600 11px var(--f-mono);flex:none}
 .flow-steps button:hover{color:var(--fg)}
@@ -736,7 +737,7 @@ table.prices td.none{color:var(--muted);text-align:left}
 .myrender-steps .btn{margin-right:6px}
 .myrender textarea{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px;font:12.5px/1.45 var(--f-mono);margin-top:8px}
 @media (max-width:760px){
-  .flow-steps{grid-template-columns:repeat(4,auto);overflow-x:auto;gap:14px}
+  .flow-tabs{grid-template-columns:repeat(4,auto);overflow-x:auto;gap:14px}
   .flow-steps button span{white-space:nowrap}
   .flow-car{grid-template-columns:1fr}
   .flow-pick{border-right:0;border-bottom:1px solid var(--line)}
