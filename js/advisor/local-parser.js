@@ -174,6 +174,10 @@ function planParts(text){
   if(quiet) notes.push("The standard exhaust is the quietest: every aftermarket exhaust is louder.");
   if(notLoud&&!quiet) notes.push("For a sportier sound that isn't too loud, the valved cat-back is the one: louder than standard, but keep the valves shut for a quiet cruise, and it stays under the MOT noise limit.");
   if(carbonGrille) notes.push("The studio shows the gloss black grille; real carbon fibre grilles look similar and cost a bit more (about £250).");
+  // Nitrous and anti-lag are rare on UK road cars, so neither is fitted; offer a stage 2 remap instead (Car #179).
+  const NITROUS_RE=/\b(?:nitrous(?: oxide)?|nos|n2o|nitro)(?: kit| system| bottle)?\b|\banti[- ]?lag(?: system)?\b|\bals\b/g;
+  const nitro=t.match(NITROUS_RE);
+  if(nitro){const al=nitro.some(m=>/lag/.test(m)); t=t.replace(NITROUS_RE," ");notes.push((al?"I haven't fitted anti-lag: it's a rally part that keeps the turbo spinning by burning fuel in the exhaust, which wrecks turbos and catalytic converters and is very loud.":"I haven't fitted nitrous: it's rare on UK road cars, most insurers refuse to cover it, and it can damage the engine.")+((CARS.find(x=>x.id===(switchCar||state.car))||{}).turbo?' For safe extra power, say "stage 2 remap".':' For more power, say "stage 1 remap".'));}
   // A decat fails the MOT, so it's never fitted; suggest a legal cat-back exhaust instead.
   const DECAT_RE=/\bde-?cat(?:ted)?\b|\bcat(?:alytic converter)? delete\b|\b(?:remove|delete|take off|take out|get rid of|lose)\s+(?:the\s+)?(?:cat|catalytic converter)\b(?!-)/g;
   const decat=DECAT_RE.test(t);
@@ -677,6 +681,15 @@ function practicalReply(low){
 }
 /* "What's on my car", "what have i got", "list my parts", "show my build", "total cost": name the fitted parts, then the total (Car #130). */
 const FITTED_Q=/\bwhat(?:'s| is|s)? (?:on|fitted (?:to|on)) (?:my|the|this) (?:car|golf|fiesta|bmw|build)\b|\bwhat(?:'s| is|s)? on (?:it|her)(?: now| so far)?\s*\??\s*$|\bwhat (?:have|has) (?:i|it) got\b(?! to\b)|\bwhat (?:mods|parts) (?:have i|do i have|are on|are fitted|has it|is it)\b|\bwhat(?:'s| is|s| has| have)? (?:been )?fitted\b|\blist (?:my|the|all (?:of )?(?:my|the)) (?:parts|mods|build)\b|\bshow (?:me )?(?:my|the) (?:build|parts|mods)\b|\btotal (?:cost|price)\b(?! (?:of|for) (?!my\b|the build\b|it\b))|\bwhat(?:'s| is|s) the total\b/;
+/* "how much is insurance", "what insurance group is it", "will mods put my insurance up": the car's UK group and plain tips, nothing fitted (Car #179). */
+const INSURE_Q=/\binsur(?:e|ed|ance|er|ers|ing)\b/;
+const INSURE_ASK=/\bhow much\b|\bgroups?\b|\bgo(?:es)? up\b|\bputs? (?:\w+ ){0,3}up\b|\bcosts?\b|\bprices?\b|\bpricey\b|\bexpensive\b|\bcheap(?:er|est)?\b|\bdear\b|\bpremiums?\b|\bquotes?\b|\braise\b|\bincrease\b|\bhigher\b|\brise\b/;
+function insuranceReply(){
+  const car=CARS.find(x=>x.id===state.car), n=partCount(state.mods||{}), g=car.insuranceGroup;
+  const band=!g?"":g<=10?" (a low group, one of the cheaper cars to insure, which is why it's a popular first car)":g<=30?" (a middle group)":g<=40?" (a high group, so expect a big quote if you're a young or new driver)":" (a very high group, so expect a big quote if you're a young or new driver)";
+  const grp=g?`The ${car.model} is around insurance group ${g} out of 50${band}.`:`Insurance groups run from 1 to 50; check the ${car.model}'s group on a comparison site.`;
+  return {reply:`${grp} Every mod must be declared to your insurer, or a claim can be refused. Power (a remap) and wheels or body kits put the price up most; tint and interior parts the least.${n?` Your build has ${n} part${n>1?"s":""}, so list ${n>1?"them all":"it"} when you get a quote.`:""} Get quotes with your mods listed before you buy any parts.`,guide:"insurance",switchCar:null,reset:false,apply:[],remove:[],notes:{}};
+}
 function buildReply(){
   const money=v=>"£"+Math.round(v).toLocaleString("en-GB");
   const cur=CARS.find(x=>x.id===state.car), bc=buildCost(cur,state.mods), n=partCount(state.mods);
@@ -692,6 +705,7 @@ function localPlan(text){
   const low=" "+fixTypos(String(text).toLowerCase())+" ";
   if(priceAsked&&ADD_IT.test(low)){const asked=priceAsked; priceAsked=null; return planParts(asked);}
   if(FITTED_Q.test(low)) return buildReply();
+  if(INSURE_Q.test(low)&&INSURE_ASK.test(low)) return insuranceReply();
   if(DRIVE_Q.test(low)&&!PRICE_Q.test(low)) return driveReply();
   if(VALUE_Q.test(low)&&!VALUE_NOT.test(low)) return {reply:VALUE_REPLY,switchCar:null,reset:false,apply:[],remove:[],notes:{}};
   if((COMFORT_Q.test(low)||MPG_Q.test(low))&&!PRICE_Q.test(low)) return comfortReply(low);
