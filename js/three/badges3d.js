@@ -156,9 +156,21 @@ function badgeMesh(rig, b, p, n) {
   const mat = new THREE.MeshStandardMaterial({ name: "Badge", map: tex, transparent: true, metalnessMap: shine, roughnessMap: shine, metalness: 1, roughness: 1, // the shine map sets chrome vs enamel
     polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
   const m = new THREE.Mesh(geo, mat);
-  m.matrix.makeBasis(right, up, n).setPosition(p.clone().addScaledVector(n, 0.003));
+  // Real VW/BMW/Ford logos stand ~5mm proud on a chrome edge; lettering sits nearly flat.
+  const raised = b.type !== "text", lift = raised ? 0.005 : 0.003;
+  m.matrix.makeBasis(right, up, n).setPosition(p.clone().addScaledVector(n, lift));
   m.matrix.premultiply(new THREE.Matrix4().copy(rig.body.matrixWorld).invert());
   m.matrix.decompose(m.position, m.quaternion, m.scale);
   m.userData.badge = true; m.userData.badgeType = b.type; m.userData.addon = true; m.renderOrder = 2; // addon: body probes (plates, parts) ignore it
+  if (raised) {
+    // The chrome side band from the face back into the panel (1mm into it, so curved panels leave no gap).
+    // An oval (Ford) is a round band squashed to the badge's height. Chrome delete turns it black with the face.
+    const band = new THREE.CylinderGeometry(b.size / 2, b.size / 2, lift + 0.001, 64, 1, true).rotateX(Math.PI / 2);
+    if (aspect > 1) band.scale(1, 1 / aspect, 1);
+    band.translate(0, 0, -(lift + 0.001) / 2);
+    const edge = new THREE.Mesh(band, new THREE.MeshStandardMaterial({ name: "BadgeEdge", color: 0xd6d9de, metalness: 1, roughness: 0.15, side: THREE.DoubleSide }));
+    edge.userData.badge = true; edge.userData.badgeType = b.type; edge.userData.addon = true;
+    m.add(edge);
+  }
   return m;
 }
