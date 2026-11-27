@@ -6,25 +6,31 @@ import * as THREE from "three";
 
 const texCache = {};
 
+// Each badge is drawn twice: once in colour, once as a "shine map" (blue channel = metal, green = roughness) so the
+// chrome parts (rims, lettering, the VW V/W) reflect the studio like real chrome and the enamel/paint stays satin.
+// k(colour, chrome) gives the colour to paint with: the real colour, or the map's chrome/enamel value.
+const CHROME = "rgb(0,38,255)", ENAMEL = "rgb(0,102,0)";  // metal 1, roughness 0.15 / metal 0, roughness 0.4
+const paint = (g, mask) => (col, chrome) => mask ? (chrome ? CHROME : ENAMEL) : (typeof col === "function" ? col(g) : col);
+
 // The BMW roundel: black ring with B M W round the top, blue and white quarters in the middle.
-function drawBMW(g, S) {
+function drawBMW(g, S, k) {
   const c = S / 2;
-  g.fillStyle = "#c9ccd1"; g.beginPath(); g.arc(c, c, c, 0, Math.PI * 2); g.fill();         // chrome edge
-  g.fillStyle = "#0b0b0d"; g.beginPath(); g.arc(c, c, c * 0.93, 0, Math.PI * 2); g.fill();  // black ring
-  g.fillStyle = "#c9ccd1"; g.beginPath(); g.arc(c, c, c * 0.62, 0, Math.PI * 2); g.fill();  // inner chrome line
+  g.fillStyle = k("#c9ccd1", true); g.beginPath(); g.arc(c, c, c, 0, Math.PI * 2); g.fill();         // chrome edge
+  g.fillStyle = k("#0b0b0d"); g.beginPath(); g.arc(c, c, c * 0.93, 0, Math.PI * 2); g.fill();  // black ring
+  g.fillStyle = k("#c9ccd1", true); g.beginPath(); g.arc(c, c, c * 0.62, 0, Math.PI * 2); g.fill();  // inner chrome line
   const q = [["#1c69d4", Math.PI, Math.PI * 1.5], ["#ffffff", Math.PI * 1.5, Math.PI * 2], ["#1c69d4", 0, Math.PI / 2], ["#ffffff", Math.PI / 2, Math.PI]];
-  for (const [col, a0, a1] of q) { g.fillStyle = col; g.beginPath(); g.moveTo(c, c); g.arc(c, c, c * 0.585, a0, a1); g.closePath(); g.fill(); }
-  g.fillStyle = "#ffffff"; g.font = `600 ${Math.round(S * 0.17)}px Arial, Helvetica, sans-serif`; g.textAlign = "center"; g.textBaseline = "middle";
+  for (const [col, a0, a1] of q) { g.fillStyle = k(col); g.beginPath(); g.moveTo(c, c); g.arc(c, c, c * 0.585, a0, a1); g.closePath(); g.fill(); }
+  g.fillStyle = k("#ffffff"); g.font = `600 ${Math.round(S * 0.17)}px Arial, Helvetica, sans-serif`; g.textAlign = "center"; g.textBaseline = "middle";
   [["B", -38], ["M", 0], ["W", 38]].forEach(([ch, deg]) => {
     g.save(); g.translate(c, c); g.rotate(deg * Math.PI / 180); g.fillText(ch, 0, -c * 0.775); g.restore();
   });
 }
 
 // The flat Volkswagen logo: a ring with the V over the W, in chrome on black.
-function drawVW(g, S) {
+function drawVW(g, S, k) {
   const c = S / 2, w = S * 0.055;
-  g.fillStyle = "#0d0e10"; g.beginPath(); g.arc(c, c, c, 0, Math.PI * 2); g.fill();
-  g.strokeStyle = "#d6d9de"; g.lineWidth = w; g.lineJoin = "round"; g.lineCap = "round";
+  g.fillStyle = k("#0d0e10"); g.beginPath(); g.arc(c, c, c, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = k("#d6d9de", true); g.lineWidth = w; g.lineJoin = "round"; g.lineCap = "round";
   g.beginPath(); g.arc(c, c, c - w, 0, Math.PI * 2); g.stroke();
   g.save(); g.beginPath(); g.arc(c, c, c - w * 1.5, 0, Math.PI * 2); g.clip();
   const P = (x, y) => [c + x * c, c + y * c];
@@ -33,44 +39,57 @@ function drawVW(g, S) {
   g.restore();
 }
 
-function badgeTexture(b) {
-  const key = b.type + (b.text || "") + (b.style || "");
-  if (texCache[key]) return texCache[key];
-  const S = 512, cv = document.createElement("canvas"), g = cv.getContext("2d");
+// Draws badge b onto canvas cv (sizing it) and returns its width/height ratio. mask: draw the shine map instead.
+function drawBadge(cv, b, mask) {
+  const S = 512, g = cv.getContext("2d"), k = paint(g, mask);
   let aspect = 1;
   if (b.type === "text") {
     const font = `700 ${S * 0.42}px Arial, Helvetica, sans-serif`; g.font = font;
     aspect = Math.max(1, (g.measureText(b.text).width + S * 0.1) / (S * 0.5));
     cv.width = Math.round(S * 0.5 * aspect); cv.height = Math.round(S * 0.5);
-    const grad = g.createLinearGradient(0, 0, 0, cv.height);
-    grad.addColorStop(0, "#f4f6f8"); grad.addColorStop(0.5, "#9da3aa"); grad.addColorStop(1, "#e3e6ea");
+    const chromeGrad = (g) => { const grad = g.createLinearGradient(0, 0, 0, cv.height);
+      grad.addColorStop(0, "#f4f6f8"); grad.addColorStop(0.5, "#9da3aa"); grad.addColorStop(1, "#e3e6ea"); return grad; };
+    if (mask) { g.fillStyle = ENAMEL; g.fillRect(0, 0, cv.width, cv.height); }
     g.font = font; g.textAlign = "center"; g.textBaseline = "middle";
     const tx = cv.width / 2, ty = cv.height / 2 + S * 0.02;
     if (b.style === "red") {
       // GTI grille badge: red letters with a thin chrome edge
-      g.lineJoin = "round"; g.lineWidth = S * 0.045; g.strokeStyle = grad; g.strokeText(b.text, tx, ty);
-      g.fillStyle = "#d0121b"; g.fillText(b.text, tx, ty);
-    } else { g.fillStyle = grad; g.fillText(b.text, tx, ty); }
+      g.lineJoin = "round"; g.lineWidth = S * 0.045; g.strokeStyle = k(chromeGrad, true); g.strokeText(b.text, tx, ty);
+      g.fillStyle = k("#d0121b"); g.fillText(b.text, tx, ty);
+    } else { g.fillStyle = k(chromeGrad, true); g.fillText(b.text, tx, ty); }
   } else if (b.type === "ford") {
     // The Ford oval: chrome rim, deep blue, white script "Ford" with a thin white line inside the rim.
     aspect = 2.45; cv.width = S; cv.height = Math.round(S / aspect);
     const W = cv.width, H = cv.height, cx = W / 2, cy = H / 2;
+    if (mask) { g.fillStyle = ENAMEL; g.fillRect(0, 0, W, H); }
     const oval = (rx, ry) => { g.beginPath(); g.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); };
-    const rim = g.createLinearGradient(0, 0, 0, H); rim.addColorStop(0, "#f2f4f6"); rim.addColorStop(0.5, "#9aa1a8"); rim.addColorStop(1, "#e6e9ec");
-    g.fillStyle = rim; oval(W / 2, H / 2); g.fill();
-    const blue = g.createRadialGradient(cx, cy * 0.7, 0, cx, cy, W / 2); blue.addColorStop(0, "#2a5fb8"); blue.addColorStop(1, "#0b2c6b");
-    g.fillStyle = blue; oval(W / 2 - H * 0.07, H / 2 - H * 0.07); g.fill();
-    g.strokeStyle = "rgba(255,255,255,.9)"; g.lineWidth = H * 0.025; oval(W / 2 - H * 0.13, H / 2 - H * 0.13); g.stroke();
-    g.fillStyle = "#ffffff"; g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillStyle = k((g) => { const rim = g.createLinearGradient(0, 0, 0, H); rim.addColorStop(0, "#f2f4f6"); rim.addColorStop(0.5, "#9aa1a8"); rim.addColorStop(1, "#e6e9ec"); return rim; }, true);
+    oval(W / 2, H / 2); g.fill();
+    g.fillStyle = k((g) => { const blue = g.createRadialGradient(cx, cy * 0.7, 0, cx, cy, W / 2); blue.addColorStop(0, "#2a5fb8"); blue.addColorStop(1, "#0b2c6b"); return blue; });
+    oval(W / 2 - H * 0.07, H / 2 - H * 0.07); g.fill();
+    g.strokeStyle = k("rgba(255,255,255,.9)"); g.lineWidth = H * 0.025; oval(W / 2 - H * 0.13, H / 2 - H * 0.13); g.stroke();
+    g.fillStyle = k("#ffffff"); g.textAlign = "center"; g.textBaseline = "middle";
     g.font = `italic 700 ${Math.round(H * 0.56)}px "Segoe Script", "Brush Script MT", "Lucida Handwriting", cursive`;
     g.fillText("Ford", cx, cy + H * 0.02);
   } else {
     cv.width = cv.height = S;
-    (b.type === "bmw" ? drawBMW : drawVW)(g, S);
+    if (mask) { g.fillStyle = ENAMEL; g.fillRect(0, 0, S, S); }
+    (b.type === "bmw" ? drawBMW : drawVW)(g, S, k);
   }
+  return aspect;
+}
+
+function badgeTexture(b) {
+  const key = b.type + (b.text || "") + (b.style || "");
+  if (texCache[key]) return texCache[key];
+  const cv = document.createElement("canvas"), mv = document.createElement("canvas");
+  const aspect = drawBadge(cv, b, false);
+  drawBadge(mv, b, true);
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
-  return (texCache[key] = { tex, aspect });
+  const shine = new THREE.CanvasTexture(mv);  // linear data, not a colour
+  shine.anisotropy = 8;
+  return (texCache[key] = { tex, shine, aspect });
 }
 
 export function addBadges(rig, list) {
@@ -129,12 +148,12 @@ export function addBadges(rig, list) {
 
 // The badge itself: flat, facing along n, upright, a few millimetres off the surface at p (world space).
 function badgeMesh(rig, b, p, n) {
-  const { tex, aspect } = badgeTexture(b);
+  const { tex, shine, aspect } = badgeTexture(b);
   const up = new THREE.Vector3(0, 1, 0).addScaledVector(n, -n.y).normalize();
   if (up.lengthSq() < 0.1) up.set(1, 0, 0);
   const right = new THREE.Vector3().crossVectors(up, n);
   const geo = aspect > 1 ? new THREE.PlaneGeometry(b.size, b.size / aspect) : new THREE.CircleGeometry(b.size / 2, 64);
-  const mat = new THREE.MeshStandardMaterial({ name: "Badge", map: tex, transparent: true, metalness: 0.15, roughness: 0.25,
+  const mat = new THREE.MeshStandardMaterial({ name: "Badge", map: tex, transparent: true, metalnessMap: shine, roughnessMap: shine, metalness: 1, roughness: 1, // the shine map sets chrome vs enamel
     polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
   const m = new THREE.Mesh(geo, mat);
   m.matrix.makeBasis(right, up, n).setPosition(p.clone().addScaledVector(n, 0.003));
