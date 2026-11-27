@@ -770,6 +770,7 @@ table.prices td.none{color:var(--muted);text-align:left}
 .opt-cats button small{display:inline-grid;place-items:center;min-width:17px;height:17px;padding:0 4px;margin-left:3px;border-radius:999px;background:rgba(255,255,255,.12);font:600 10.5px var(--f-mono)}
 .opt-cats button[aria-selected="true"] small{background:rgba(0,0,0,.18)}
 .opt-cats + .opt-group{border-top:0;padding-top:6px}
+@media (max-width:720px){.opt-cats{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-padding-inline:4px}.opt-cats::-webkit-scrollbar{display:none}.opt-cats button{min-height:44px;padding:10px 14px}}
 
 /* Build page: Back / Next under each step (js/flow.js) */
 .flow-nav{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:22px 0 8px;padding-top:18px;border-top:1px solid var(--line)}

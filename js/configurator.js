@@ -369,6 +369,9 @@
       ${g.plateBox ? plateBox() : ""}
       ${g.link ? `<a class="opt-link" href="${g.link[1]}">${g.link[0]}</a>` : ""}</details>`; }).join("") + `</div>`
       + `<p class="opt-foot">Want something not listed? <button type="button" class="linkish" id="toAdvisor">Ask the advisor</button></p>`;
+    // On a phone the tabs are one sideways-scrolling row; keep the chosen tab in view after each rebuild.
+    const row = box.querySelector(".opt-cats"), on = row && row.querySelector('[aria-selected="true"]');
+    if (row && on && row.scrollWidth > row.clientWidth) row.scrollLeft = Math.max(0, on.offsetLeft - row.offsetLeft - 8);
   }
 
   box.addEventListener("click", e => {
