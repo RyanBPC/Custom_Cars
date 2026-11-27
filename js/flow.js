@@ -22,7 +22,9 @@ panels.forEach((nodes, i) => {
 el("flowSteps").setAttribute("role", "tablist");
 let step = 0;
 try { const s = +localStorage.getItem("customcars.step"); if (s >= 0 && s <= 3) step = s; } catch (e) {}
-function showStep(n, scroll) {
+// focus: true when a Back/Next (or other in-step) button was pressed. That button is now hidden, so focus
+// moves to the new step's heading instead of falling to the top of the page.
+function showStep(n, scroll, focus) {
   step = n;
   try { localStorage.setItem("customcars.step", n); } catch (e) {}
   panels.forEach((nodes, i) => nodes.forEach(x => { x.hidden = i !== n; }));
@@ -32,12 +34,13 @@ function showStep(n, scroll) {
   });
   if (scroll) { const top = el("flowSteps").getBoundingClientRect().top + scrollY - 70; if (scrollY > top) scrollTo({ top, behavior: "auto" }); }
   if (n === 2) { partsShown = false; loadShots(); }
+  if (focus) { const h = panels[n][0].querySelector("h2"); if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); } }
 }
 el("flowSteps").addEventListener("click", e => {
   const b = e.target.closest("[data-step]"); if (b) showStep(stepIds.indexOf(b.dataset.step), true);
 });
 document.querySelector("#studio").addEventListener("click", e => {
-  const b = e.target.closest("[data-step-to]"); if (b) showStep(+b.dataset.stepTo, true);
+  const b = e.target.closest("[data-step-to]"); if (b) showStep(+b.dataset.stepTo, true, true);
 });
 // Photo Studio and Interior are views of the 3D studio, so they open on step 2.
 function stepForHash() { if (/^#(photo|interior|ai)\b/.test(location.hash) && step !== 1) showStep(1); }
@@ -345,7 +348,7 @@ function renderMyRender() {
   });
 }
 el("myRender").addEventListener("click", e => {
-  const go = e.target.closest("[data-go]"); if (go) showStep(stepIds.indexOf(go.dataset.go), true);
+  const go = e.target.closest("[data-go]"); if (go) showStep(stepIds.indexOf(go.dataset.go), true, true);
   if (e.target.closest("[data-go3d]")) { showStep(1, true); const b = document.querySelector('[data-spin="photo"]'); if (b && !b.hidden) setTimeout(() => b.click(), 600); }
 });
 
