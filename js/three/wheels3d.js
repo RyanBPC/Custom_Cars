@@ -196,7 +196,7 @@ export async function fitWheels(rig, spec, low = 0) {
     rim.position.copy(t.centre).addScaledVector(t.outward, t.width / 2 - 0.012 - depth / 2);
     const tyreRimR = spec.inch * 0.0254 / 2 + 0.008;
     const tyre = new THREE.Mesh(makeTyre(tyreRimR, t.outerR - low, t.width * (low ? 0.95 : 1)), rubber);
-    tyre.position.copy(t.centre); tyre.quaternion.copy(turn); tyre.castShadow = true; tyre.userData.wheelPart = tyre.userData.ownGeo = true;
+    tyre.position.copy(t.centre); tyre.quaternion.copy(turn); tyre.castShadow = true; tyre.receiveShadow = true; tyre.userData.wheelPart = tyre.userData.ownGeo = true;
     // Polished lip: a bright ring round the outer edge of the rim (two-tone wheels).
     if (spec.lip) { const lip = new THREE.Mesh(new THREE.TorusGeometry(rimD / 2 - 0.012, 0.009, 10, 96), lipChrome); lip.quaternion.copy(turn); lip.position.copy(t.centre).addScaledVector(t.outward, t.width / 2 - 0.014); lip.userData.wheelPart = lip.userData.ownGeo = true; g.add(lip); }
     tyre.add(sidewallLabel(tyreRimR, t.outerR - low, t.width * (low ? 0.95 : 1), spec.inch, Array.isArray(own) ? own[isFront(w) ? 0 : 1] : own)); // size lettering on the outer sidewall
@@ -219,7 +219,7 @@ function lowOnOwnRims(rig, low) {
     w.group.traverse(o => { if (o.isMesh && !o.userData.wheelPart && o.material && o.material.name === "Tyre") o.visible = false; });
     const tyre = new THREE.Mesh(makeTyre(rimR, t.outerR - low, t.width * 0.95), rubber);
     tyre.position.copy(t.centre); tyre.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), t.outward);
-    tyre.castShadow = true; tyre.userData.wheelPart = tyre.userData.ownGeo = true;
+    tyre.castShadow = true; tyre.receiveShadow = true; tyre.userData.wheelPart = tyre.userData.ownGeo = true;
     const g = new THREE.Group(); g.userData.wheelPart = true; g.add(tyre); w.group.add(g); w.fitted = g;
   }
 }

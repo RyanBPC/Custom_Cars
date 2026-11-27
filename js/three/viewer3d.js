@@ -414,11 +414,17 @@ function disposeRig(rig) {
     if (rig.standIn) o.geometry.dispose();
   });
 }
+// Car #212: body, tyres and trim catch the car's own shadow (backdrop sun), so it sits in the scene;
+// glass and lamp lenses don't, so they stay clear instead of going speckled.
+function selfShades(rig, o) {
+  const ms = Array.isArray(o.material) ? o.material : [o.material];
+  return ms.every(m => m && !m.transparent && !/Glass|Lens/i.test(m.name || "") && !rig.lensFront.includes(m) && !rig.lensRear.includes(m));
+}
 function setCars(stock, build) {
   ptCarChanged();
   disposeRig(stockCar); disposeRig(buildCar);
   stockCar = stock; buildCar = build;
-  for (const r of [stockCar, buildCar]) { r.group.traverse(o => { if (o.isMesh) o.castShadow = true; }); measureWheels(r); r.group.rotation.y = 0; addBeams(r); refineInterior(r); r.group.rotation.y = carYaw; }
+  for (const r of [stockCar, buildCar]) { r.group.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = selfShades(r, o); } }); measureWheels(r); r.group.rotation.y = 0; addBeams(r); refineInterior(r); r.group.rotation.y = carYaw; }
   scene.add(stockCar.group, buildCar.group);
 }
 
