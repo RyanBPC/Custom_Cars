@@ -24,7 +24,7 @@ function spinBuild(mods) {
 
 // The caliper paint colour: one of the caliper colours by name, else any colour named, red if none.
 function caliperPaint(mods) {
-  const it = mods.custom.items.find(i => i.name === "Caliper paint"), t = it.text.toLowerCase(), k = Object.keys(CALIPER).find(n => new RegExp("\b" + n + "\b").test(t));
+  const it = mods.custom.items.find(i => i.name === "Caliper paint"), t = it.text.toLowerCase(), k = Object.keys(CALIPER).find(n => new RegExp("\\b" + n + "\\b").test(t));
   return k ? CALIPER[k] : glowColour(mods, "Caliper paint", CALIPER.red);
 }
 // Underglow colour from what the user said ("purple underglow"), blue-ish if none.
