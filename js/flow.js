@@ -101,7 +101,7 @@ function renderMyPhoto() {
   renderMyRender();
 }
 el("myPhotoAdd").addEventListener("click", () => el("myPhotoFile").click());
-el("myPhotoRemove").addEventListener("click", () => { myPhoto = null; try { localStorage.removeItem(PHOTO_KEY); } catch (e) {} renderMyPhoto(); });
+el("myPhotoRemove").addEventListener("click", () => { myPhoto = null; try { localStorage.removeItem(PHOTO_KEY); } catch (e) {} renderMyPhoto(); el("myPhotoAdd").focus(); });
 el("myPhotoFile").addEventListener("change", async e => {
   const f = e.target.files[0]; e.target.value = ""; if (!f) return;
   try {
@@ -374,7 +374,7 @@ function renderMyRender() {
 }
 el("myRender").addEventListener("click", e => {
   const go = e.target.closest("[data-go]"); if (go) showStep(stepIds.indexOf(go.dataset.go), true, true);
-  if (e.target.closest("[data-go3d]")) { showStep(1, true); const b = document.querySelector('[data-spin="photo"]'); if (b && !b.hidden) setTimeout(() => b.click(), 600); }
+  if (e.target.closest("[data-go3d]")) { showStep(1, true, true); const b = document.querySelector('[data-spin="photo"]'); if (b && !b.hidden) setTimeout(() => b.click(), 600); }
 });
 
 /* ---------- keep the steps in line with the build ---------- */
