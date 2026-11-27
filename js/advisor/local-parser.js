@@ -106,8 +106,13 @@ function stripeContrast(c){
   const lum=(0.299*(n>>16&255)+0.587*(n>>8&255)+0.114*(n&255))/255;
   return lum>0.55?"#16181c":"#ecebe6";
 }
+// Wheels named by brand or model alone ("bronze te37s", "volk rays", "ozs", "bbs", "vossens") are a wheel ask (Car #218).
+// Done before the typo fixer, which would turn "rotas" or "volk" into other words. "rays" alone ("rays of light") isn't caught.
+// A TE37 has six straight spokes, so it gets the closest style: 5-spoke.
+const WHEEL_BRAND_RE=/\b(te ?37s?|volk(?:s| rays?)?|rays (?=wheels?|rims?|alloys?)|oz(?:s| racing)|rotas?|vossens?|bbs(?:es)?|rotiforms?|japan racing|jr ?11s?|enkeis?|work emotions?|advan(?: rgs?)?)\b(?!\s+(?:wheels?|rims?|alloys?)\b)/g;
+function wheelBrands(t){return t.replace(WHEEL_BRAND_RE,m=>/^te ?37/.test(m)?" te37 5-spoke wheels ":` ${m} wheels `);}
 function planParts(text){
-  let t=" "+fixTypos(text.toLowerCase())+" "; const apply=[],remove=[]; let switchCar=null, reset=false;
+  let t=" "+fixTypos(wheelBrands(text.toLowerCase()))+" "; const apply=[],remove=[]; let switchCar=null, reset=false;
   // "Golf R look", "golf r bumpers", "R-Line", "make it look like an R": the R look kit from existing parts (Car #150), not a car switch.
   // Only a bare "golf r" asked on another car still switches to the Golf (then fits the kit).
   const GOLF_R_RE=/\b(?:(?:vw |volkswagen )?golf\s+r(?![a-z0-9])(?:[- ]?line\b)?|r[- ]line\b|(?:look|looks|style)\s+like\s+an?\s+r(?![a-z0-9]))/g;
