@@ -1029,7 +1029,7 @@ Object.assign(PARTS, {
 
 // Extra parts shown by changing the paint, wheels or ride height instead of adding a shape.
 const PAINT_EXTRAS = ["Carbon-fibre bonnet", "Carbon roof", "Two-tone black roof", "Wing vents", "Racing numbers", "Decals and graphics", "Carbon mirror caps", "Gloss black mirror caps", "Custom graphic wrap", "Paint protection film", "Ceramic coating", "Windscreen sun strip"];
-const OTHER_EXTRAS = ["Smoked headlights", "Low-profile tyres", "Caliper paint", "Smoked tail lights", "Wheel spacers", "Negative camber setup", "Chrome wheel finish", "Lift kit", "Chrome delete and black badges", "Gloss black grille", "Front plate delete", "Rear plate delete", "Private number plate", "Styled number plates"];
+const OTHER_EXTRAS = ["Smoked headlights", "Low-profile tyres", "Caliper paint", "Smoked tail lights", "Wheel spacers", "Negative camber setup", "Chrome wheel finish", "Lift kit", "Chrome delete and black badges", "Coloured badges", "Gloss black grille", "Front plate delete", "Rear plate delete", "Private number plate", "Styled number plates"];
 // Every extra part (by its name in EXTRA_PARTS) that the 3D view can show.
 export const SHOWN_EXTRAS = [...Object.keys(PARTS).filter(k => !k.includes(":") && !/^(bodykit|widebody|exhaust)$/.test(k)), ...PAINT_EXTRAS, ...OTHER_EXTRAS];
 
@@ -1317,14 +1317,23 @@ export function updateAddons(rig, spec, f) {
   }
   rig.chromeMats.forEach((m, i) => { if (has("Chrome delete and black badges")) { m.color.set(0x0a0a0b); m.roughness = 0.2; } else { m.color.copy(rig.chromeStock[i]); m.roughness = 0; } });
   // ...and the drawn badges: model names (e.g. "440i") come off, maker logos (VW, BMW roundel, Ford oval) go gloss black.
-  const debadge = has("Chrome delete and black badges");
+  // Painted badges ("red badges", "colour coded badges"): logos and lettering take that colour in a glossy paint
+  // finish instead of chrome. The chrome delete wins if both are fitted (Car #217).
+  const debadge = has("Chrome delete and black badges"), painted = !debadge && has("Coloured badges");
+  const bt = painted && textOf(s, "Coloured badges"), badgeCol = painted && (/body/.test(bt) ? "#" + rig.paints[0].color.getHexString() : colourIn(bt, "#b5121b"));
   rig.body.traverse(o => {
     if (!o.userData.badge) return;
-    if (o.userData.badgeType === "text") { o.visible = !debadge; return; }
     const m = o.material;
     if (!o.userData.badgeStock) o.userData.badgeStock = [m.color.clone(), m.metalness, m.roughness];
+    const [c, mt, r] = o.userData.badgeStock;
+    if (o.userData.badgeType === "text") {
+      o.visible = !debadge;
+      if (painted) { m.color.set(badgeCol); m.metalness = Math.min(mt, 0.35); m.roughness = Math.max(r, 0.3); } else { m.color.copy(c); m.metalness = mt; m.roughness = r; }
+      return;
+    }
     if (debadge) { m.color.set(0x161618); m.metalness = 0.3; m.roughness = 0.12; }
-    else { const [c, mt, r] = o.userData.badgeStock; m.color.copy(c); m.metalness = mt; m.roughness = r; }
+    else if (painted) { m.color.set(badgeCol); m.metalness = 0.35; m.roughness = 0.3; }
+    else { m.color.copy(c); m.metalness = mt; m.roughness = r; }
   });
   // Gloss black grille: plain (untextured) trim in the middle of the nose, like the BMW's kidneys, goes gloss black.
   // Textured models (Golf, Fiesta) draw their grille in the texture and already have a black one, so nothing changes there.

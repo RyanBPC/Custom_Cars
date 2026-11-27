@@ -85,7 +85,7 @@ const EXTRA_PARTS = [
  {re:/(?<!black (?:wing )?)mirror caps?|carbon (?:wing )?mirrors?/,name:"Carbon mirror caps",in3d:true,price:180,text:"carbon-fibre wing mirror caps"},
  {re:/\b(?:red|blue|white|yellow|green|orange|pink|purple|grey|gray|silver|gold|bronze|teal|lime|navy|brown|custom-[0-9a-f]{6}|body[- ]colou?r(?:ed)?)\b[a-z -]{0,14}?(?:wing )?mirror caps?\b/,name:"Coloured mirror caps",in3d:true,price:150,text:"painted wing mirror caps"},
  // "Red badges", "red golf badges", "colour coded badges": painted badges; black badges stay the chrome delete part (Car #163).
- {re:/\b(?:red|blue|white|yellow|green|orange|pink|purple|grey|gray|silver|gold|bronze|teal|lime|navy|brown|custom-[0-9a-f]{6}|body[- ]colou?r(?:ed)?|colou?r[- ]?(?:coded|matched))\b[a-z -]{0,14}?(?:badges?|emblems?)\b/,name:"Coloured badges",in3d:false,price:60,text:"red painted badges"},
+ {re:/\b(?:red|blue|white|yellow|green|orange|pink|purple|grey|gray|silver|gold|bronze|teal|lime|navy|brown|custom-[0-9a-f]{6}|body[- ]colou?r(?:ed)?|colou?r[- ]?(?:coded|matched))\b[a-z -]{0,14}?(?:badges?|emblems?)\b/,name:"Coloured badges",in3d:true,price:60,text:"red painted badges"},
  {re:/\balloy wheel refurb\b/,name:"Alloy wheel refurb",in3d:false,price:400,text:"your own four alloys refurbished, kerb rash repaired"},
  {re:/(wheel )?spacers?/,name:"Wheel spacers",in3d:true,price:150,text:"wheel spacers so the wheels sit flush with the arches"},
  {re:/bucket seats?|racing seats?|sports? seats?|\b(?:recaros?|sparcos?)\b|\b(?:bride|cobra) (?:bucket |racing |sports? )?seats?/,name:"Bucket seats",in3d:true,price:1800,text:"carbon racing bucket seats visible through the windows"},
