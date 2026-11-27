@@ -62,6 +62,10 @@
     const ownCar = pick || "golf";
     grid.querySelector(".build-card.own").dataset.car = ownCar;
     document.getElementById("ownCarText").textContent = `Start from a stock ${shortName(ownCar)} and choose every part.`;
+    // Website #187: tell screen readers how many builds are showing now, like the Garage tabs do.
+    const n = pick ? BUILDS.filter(b => b.car === pick).length : BUILDS.length;
+    const say = document.getElementById("buildCount");
+    if (say) say.textContent = pick ? `Showing ${n} ${shortName(pick)} ${n === 1 ? "build" : "builds"}` : `Showing all ${n} builds`;
   });
 
   const hero = BUILDS.find(b => b.id === HERO_BUILD);
