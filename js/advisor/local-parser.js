@@ -339,7 +339,17 @@ function planParts(text){
   const downpipe=/\bdown ?pipes?\b/.test(t); if(downpipe&&!/stage ?3|big turbo|bigger turbo|hybrid turbo/.test(t)) notes.push("A downpipe is part of a stage 2 build, so it goes with the stage 2 remap.");
   // Side steps are an SUV/van part; point hatchback owners to side skirts instead.
   if(/\bside ?steps?\b|\brunning boards?\b/.test(t)) notes.push("Side steps don't really suit a hatchback. Try \"side skirts\" for a lower look along the sides.");
-  const st=t.match(/stage ?([123])/)||(downpipe&&[0,"2"]);
+  // A power target ("300bhp", "make it 350 horsepower", "get it to 400hp") picks the lowest remap stage that reaches it (Car #177),
+  // using the same numbers as the Studio panel (perf.js). The number is taken out so the plain "bhp" rule below doesn't add stage 1 again.
+  let pwStage=0;
+  {const m=t.match(/\b(\d{2,4})\s?(?:bhp|hp|horse ?power|ps)\b/);
+   if(m&&!/stage ?[123]/.test(t)&&!remove.includes("tune")){
+     const want=+m[1]; t=t.replace(m[0]," ");
+     if(want<=c.hp) notes.push(`The ${c.model} already makes about ${c.hp}bhp as standard, so it doesn't need a remap for ${want}bhp.`);
+     else{const s=[1,2,3].find(n=>perf(c,{tune:{stage:n}}).hp>=want); pwStage=s||3; const got=perf(c,{tune:{stage:pwStage}}).hp;
+       notes.push(s?`Stage ${s} gets your ${c.model} to about ${got}bhp (standard is ${c.hp}bhp).`
+         :`Even stage 3 only gets your ${c.model} to about ${got}bhp (standard is ${c.hp}bhp), so I've fitted that, the most the remaps here reach.`);}}}
+  const st=t.match(/stage ?([123])/)||(downpipe&&[0,"2"])||(pwStage&&[0,String(pwStage)]);
   if(st) add("tune",{stage:+st[1]});
   else if(/big turbo|bigger turbo|supercharg|turbo upgrade/.test(t)) add("tune",{stage:3});
   // "Fit a turbo" on its own: a bigger turbo if the car already has one, a turbo conversion if it doesn't. Both are the priced stage 3 kit.
