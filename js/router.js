@@ -106,7 +106,7 @@
     } else wipNote.remove();
     keepNavLinkInView();
     if (page === "studio") setViewer(tab);
-    if (scroll && current !== null) { window.scrollTo(0, 0); if (tab !== current) focusHeading(page); }
+    if (scroll && current !== null) { window.scrollTo({ top: 0, left: 0, behavior: "instant" }); if (tab !== current) focusHeading(page); }
     current = tab;
   }
 
@@ -196,5 +196,5 @@
   show(tabOf(), false);
   if (sub) window.addEventListener("load", () => setTimeout(openGuide, 0), { once: true });
   // The page names are also section ids, so the browser jumps down to them on first load: start at the top instead.
-  if (location.hash) { window.scrollTo(0, 0); window.addEventListener("load", () => window.scrollTo(0, 0), { once: true }); }
+  if (location.hash) { window.scrollTo({ top: 0, behavior: "instant" }); window.addEventListener("load", () => window.scrollTo({ top: 0, behavior: "instant" }), { once: true }); }
 })();
