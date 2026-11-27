@@ -607,7 +607,7 @@ function comfortReply(low){
 /* "change the colour", "new colour", "what colours can i have" with no colour named: list some choices, fit nothing (Car #143).
    Colour on another part ("colour of the wheels", "stitching colour") is left to the normal rules. */
 const COLOUR_ASK=/\bcolou?rs?\b|\brespray\b|\bpaint ?job\b/;
-const COLOUR_ASK_NOT=/\b(?:badges?|emblems?|wheels?|rims?|alloys?|calipers?|callipers?|seats?|stitching|interior|lights?|underglow|glow|tint|windows?|stripes?|roof|mirrors?|bonnet|belts?|wrap|matte|satin|gloss|chrome|carbon)\b|custom-[0-9a-f]{6}/;
+const COLOUR_ASK_NOT=/\b(?:badges?|emblems?|wheels?|rims?|alloys?|calipers?|callipers?|seats?|stitching|interior|lights?|underglow|glow|tint|windows?|stripes?|roof|mirrors?|bonnet|belts?|grilles?|kidneys?|wrap|matte|satin|gloss|chrome|carbon)\b|custom-[0-9a-f]{6}/;
 function colourAskReply(low){
   if(!COLOUR_ASK.test(low)||COLOUR_ASK_NOT.test(low)||PRICE_Q.test(low)) return null;
   if(COLOURS.some(c=>new RegExp("\\b"+c[0]+"\\b").test(low))) return null;

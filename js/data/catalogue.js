@@ -148,7 +148,7 @@ const EXTRA_PARTS = [
  {re:/(?:cent(?:re|er)|wheel|hub) ?caps?\b/,name:"Centre cap swap",in3d:true,price:60,text:"black wheel centre caps"},
  {re:/low[- ]?pro(?:file)?\b|stretch(?:ed)? tyres?|thin(?:ner)? (?:side ?walls?|tyres)|\b(?:45|40|35|30)[- ]?(?:profile|series)\b/,name:"Low-profile tyres",in3d:true,price:600,text:"low-profile tyres with thin sidewalls"},
  {re:/honeycomb|mesh grilles?/,name:"Honeycomb mesh grille",in3d:true,price:180,text:"a black honeycomb mesh grille and bumper inserts"},
- {re:/body[- ]colou?r(?:ed)? grilles?|colou?r[- ]coded grilles?/,name:"Body-colour grille",in3d:true,price:250,text:"a grille painted to match the body"},
+ {re:/body[- ]colou?r(?:ed)? (?:kidney )?grilles?|colou?r[- ]coded (?:kidney )?grilles?/,name:"Body-colour grille",in3d:true,price:250,text:"a grille painted to match the body"},
  {re:/sports? grilles?|gti[- ]style grilles?|grilles? with (?:a )?red (?:stripe|line)|red (?:stripe|line) (?:on the |in the )?grilles?/,name:"Sport grille",in3d:true,price:220,text:"a honeycomb sport grille with a thin red line across the top"},
  {re:/carbon (?:fibre |fiber )?grilles?/,name:"Carbon grille",in3d:true,price:350,text:"a carbon-fibre grille and bumper inserts"},
  {re:/chrome (?:window )?(?:trim|line|surrounds?)\b|chrome (?:door )?handles?/,name:"Chrome window trim",in3d:true,price:150,text:"a chrome strip along the bottom of the side windows"},
