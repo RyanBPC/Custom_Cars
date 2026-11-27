@@ -95,7 +95,10 @@ $("priceTable").addEventListener("click",e=>{const b=e.target.closest("[data-try
 
 // Articles with a try phrase end with a button that fits that mod on the 3D car (same path as the price list).
 const postTry=p=>{if(!p.try)return"";try{if(!localPlan(p.try).apply.length)return"";}catch(e){return"";}return`<p><button class="btn sm try" type="button" data-try-phrase="${p.try}" aria-label="Try ${p.try} on the car">Try ${p.try} on the car</button></p>`;};
-$("posts").innerHTML=POSTS.map(p=>`<details class="post"${p.id?` id="guide-${p.id}"`:""}><summary><span class="meta">${p.m}</span><h2 class="sub">${p.t}</h2><p>${p.s}</p><span class="more">Read article →</span></summary><div class="content">${p.c}${postTry(p)}</div></details>`).join("");
+/* Each article: the title is a real heading (so screen readers can jump between articles), and only "Read article" is the
+   open/close button. Clicking the title or intro still opens it for mouse users. #journal/<id> links open the <details>. */
+$("posts").innerHTML=POSTS.map((p,i)=>`<article class="post" aria-labelledby="post-t${i}"><span class="meta">${p.m}</span><h2 class="sub" id="post-t${i}">${p.t}</h2><p class="intro">${p.s}</p><details${p.id?` id="guide-${p.id}"`:""}><summary class="more"><span class="more-open">Read article<span class="visually-hidden">: ${p.t}</span> →</span><span class="more-close">Close article<span class="visually-hidden">: ${p.t}</span></span></summary><div class="content">${p.c}${postTry(p)}</div></details></article>`).join("");
+$("posts").addEventListener("click",e=>{const h=e.target.closest(".post>h2, .post>.intro, .post>.meta");if(!h||getSelection().toString())return;const d=h.parentNode.querySelector("details");if(d)d.open=!d.open;});
 $("posts").addEventListener("click",e=>{const b=e.target.closest("[data-try-phrase]");if(!b)return;const ph=b.dataset.tryPhrase;
   if(typeof hideAi3d==="function") hideAi3d();
   goTab("build"); applyPlan(localPlan(ph),ph);});
