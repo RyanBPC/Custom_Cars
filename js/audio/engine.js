@@ -14,19 +14,22 @@ class Engine{
     this.p={cyl:c.cyl,turbo:c.turbo||(m.tune&&m.tune.stage===3),v8:c.cyl===8,ex:!!m.exhaust,red:c.redline,int:!!m.intake,stage:m.tune?m.tune.stage:0,pops:!!(m.tune&&m.tune.pops)};
     const out=x.createDynamicsCompressor(); out.connect(x.destination);
     const master=x.createGain(); master.gain.value=0; master.connect(out);
+    // A straight-six (BMW 440i) is smoother than a four: less square-wave buzz and drive, more of the 1.5x and 3x harmonics.
+    const six=this.p.cyl===6; this.p.six=six;
     const filt=x.createBiquadFilter(); filt.type="lowpass"; filt.Q.value=4; filt.connect(master);
-    const shaper=x.createWaveShaper(); const k=this.p.ex?28:14, n=1024, curve=new Float32Array(n);
+    const shaper=x.createWaveShaper(); const k=six?(this.p.ex?18:9):(this.p.ex?28:14), n=1024, curve=new Float32Array(n);
     for(let i=0;i<n;i++){const v=i*2/n-1;curve[i]=(1+k)*v/(1+k*Math.abs(v));} shaper.curve=curve; shaper.connect(filt);
     const body=x.createGain(); body.gain.value=.55; body.connect(shaper);
     const o1=x.createOscillator();o1.type="sawtooth";o1.connect(body);
-    const g2=x.createGain();g2.gain.value=.5;g2.connect(body);const o2=x.createOscillator();o2.type="square";o2.connect(g2);
-    const g3=x.createGain();g3.gain.value=.18;g3.connect(body);const o3=x.createOscillator();o3.type="triangle";o3.connect(g3);
+    const g2=x.createGain();g2.gain.value=six?.22:.5;g2.connect(body);const o2=x.createOscillator();o2.type="square";o2.connect(g2);
+    const g3=x.createGain();g3.gain.value=six?.32:.18;g3.connect(body);const o3=x.createOscillator();o3.type="triangle";o3.connect(g3);
+    let o4=null; if(six){const g4=x.createGain();g4.gain.value=.12;g4.connect(body);o4=x.createOscillator();o4.type="sine";o4.connect(g4);o4.start();}
     let lfo=null; if(this.p.v8||this.p.cyl===5||this.p.cyl===3){lfo=x.createOscillator();lfo.type="sine";const lg=x.createGain();lg.gain.value=this.p.v8?.35:.18;lfo.connect(lg);lg.connect(body.gain);lfo.start();}
     const buf=this.noise;
     const ns=x.createBufferSource();ns.buffer=buf;ns.loop=true;const bp=x.createBiquadFilter();bp.type="bandpass";bp.frequency.value=1400;bp.Q.value=.6;const ng=x.createGain();ng.gain.value=0;ns.connect(bp);bp.connect(ng);ng.connect(master);ns.start();
     let tg=null,to=null; if(this.p.turbo){to=x.createOscillator();to.type="sine";tg=x.createGain();tg.gain.value=0;to.connect(tg);tg.connect(out);to.start();}
     [o1,o2,o3].forEach(o=>o.start());
-    this.n={out,master,filt,o1,o2,o3,lfo,ng,tg,to,ns,buf};
+    this.n={out,master,filt,o1,o2,o3,o4,lfo,ng,tg,to,ns,buf};
     this.on=true; this.lastLoad=0; this.set(900,0);
     master.gain.setTargetAtTime(this.vol(0),x.currentTime,.1);
     return true;
@@ -35,9 +38,9 @@ class Engine{
   set(rpm,load){
     if(!this.on) return; const x=this.ctx,t=x.currentTime,n=this.n,p=this.p;
     const f=rpm/60*p.cyl/2;
-    n.o1.frequency.setTargetAtTime(f,t,.025); n.o2.frequency.setTargetAtTime(f/2,t,.025); n.o3.frequency.setTargetAtTime(f*1.5,t,.025);
+    n.o1.frequency.setTargetAtTime(f,t,.025); n.o2.frequency.setTargetAtTime(f/2,t,.025); n.o3.frequency.setTargetAtTime(f*1.5,t,.025); if(n.o4) n.o4.frequency.setTargetAtTime(f*3,t,.025);
     if(n.lfo) n.lfo.frequency.setTargetAtTime(f/(p.v8?4:2.5),t,.05);
-    n.filt.frequency.setTargetAtTime((220+rpm*.2+load*700)*(p.ex?1.5:1),t,.04);
+    n.filt.frequency.setTargetAtTime((220+rpm*.2+load*700)*(p.ex?1.5:1)*(p.six?1+.25*rpm/p.red:1),t,.04);
     n.master.gain.setTargetAtTime(this.vol(load),t,.05);
     n.ng.gain.setTargetAtTime(load*(p.int?.06:.03)*(rpm/p.red),t,.05);
     if(n.tg){n.to.frequency.setTargetAtTime(2400+rpm*.7,t,.2);n.tg.gain.setTargetAtTime(load*.012*(rpm/p.red)*(p.stage>=2?1.6:1),t,.25);}
@@ -52,7 +55,7 @@ class Engine{
   stop(now){
     if(!this.on) return; const n=this.n,x=this.ctx,t=x.currentTime;
     n.master.gain.setTargetAtTime(0,t,now?.01:.15); if(n.tg) n.tg.gain.setTargetAtTime(0,t,.05);
-    const all=[n.o1,n.o2,n.o3,n.lfo,n.to,n.ns].filter(Boolean);
+    const all=[n.o1,n.o2,n.o3,n.o4,n.lfo,n.to,n.ns].filter(Boolean);
     setTimeout(()=>{all.forEach(o=>{try{o.stop();}catch(e){}});try{n.out.disconnect();}catch(e){}},now?60:700);
     this.on=false;
   }
