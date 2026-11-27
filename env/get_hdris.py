@@ -10,7 +10,7 @@ import urllib.request
 
 here = pathlib.Path(__file__).resolve().parent
 envs = {k: v for k, v in json.loads((here / "environments.json").read_text(encoding="utf-8")).items() if not k.startswith("_")}
-headers = {"User-Agent": "customizacions-student-project"}
+headers = {"User-Agent": "custom-cars-student-project"}
 for env_id, e in envs.items():
     target = here / f"{e['polyhaven']}.hdr"
     if target.exists():

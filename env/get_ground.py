@@ -13,7 +13,7 @@ here = pathlib.Path(__file__).resolve().parent
 out = here / "ground"
 out.mkdir(exist_ok=True)
 envs = {k: v for k, v in json.loads((here / "environments.json").read_text(encoding="utf-8")).items() if not k.startswith("_")}
-headers = {"User-Agent": "customizacions-student-project"}
+headers = {"User-Agent": "custom-cars-student-project"}
 MAPS = {"diff": "Diffuse", "nor": "nor_gl", "rough": "Rough"}
 for asset in sorted({e["ground"]["texture"] for e in envs.values() if e.get("ground")}):
     with urllib.request.urlopen(urllib.request.Request(f"https://api.polyhaven.com/files/{asset}", headers=headers)) as r:

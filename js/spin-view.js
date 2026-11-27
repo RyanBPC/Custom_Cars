@@ -53,7 +53,7 @@ function spinMessage(text) { const m = $("spinMsg"); m.textContent = text || "";
 
 function showSpin() {
   $("viewer3d").hidden = false; $("callouts").innerHTML = "";
-  if (!ON_SERVER) return spinMessage("The 3D view needs the site opened with start.bat. Double-click start.bat in the customizacions folder.");
+  if (!ON_SERVER) return spinMessage("The 3D view needs the site opened with start.bat. Double-click start.bat in the Custom Cars site folder.");
   if (window.Viewer3D) {
     clearTimeout(spinTimer);
     const ok = window.Viewer3D.show($("viewer3d"), spinBuild(state.mods), spinBuild({}));

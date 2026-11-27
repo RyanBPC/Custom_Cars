@@ -18,7 +18,7 @@ here = pathlib.Path(__file__).resolve().parent
 out_dir, src_dir = here / "backplates", here / "backplates" / "source"
 src_dir.mkdir(parents=True, exist_ok=True)
 BLENDER = r"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe"
-headers = {"User-Agent": "customizacions-student-project"}
+headers = {"User-Agent": "custom-cars-student-project"}
 envs = {k: v for k, v in json.loads((here / "environments.json").read_text(encoding="utf-8")).items() if not k.startswith("_")}
 
 
