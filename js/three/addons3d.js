@@ -949,7 +949,7 @@ Object.assign(PARTS, {
   "Seat covers": (f, rig, s) => {
     const full = textOf(s, "Seat covers"), [t, st = ""] = full.split(" with "), c = cabinOf(f), cols = coloursIn(t);
     const kind = /alcantara|suede/.test(t) ? "alcantara" : /cloth/.test(t) ? "cloth" : /quilt|diamond/.test(t) ? "quilted" : "leather", alc = kind === "alcantara" || kind === "cloth";
-    const main = /\btan\b|saddle|cognac/.test(t) ? "#9a6236" : cols[0] || "#18191b", second = /two[- ]?tone/.test(t) ? (cols[1] || "#b5121b") : main;
+    const main = /\btan\b|saddle|cognac/.test(t) ? "#9a6236" : /\bcream\b/.test(t) ? "#ddd2b8" : /\bbeige\b/.test(t) ? "#c2ab86" : /\boxblood\b/.test(t) ? "#4a1219" : cols[0] || "#18191b", second = /two[- ]?tone/.test(t) ? (cols[1] || "#b5121b") : main;
     const stitch = /stitch/.test(st) ? colourIn(st, "#b5121b") : null;
     const cover = col => new THREE.MeshPhysicalMaterial({ color: 0xffffff, map: seatPicture(kind, col, stitch), roughness: alc ? 0.95 : 0.45, sheen: alc ? 0.6 : 0, sheenColor: new THREE.Color(col), clearcoat: alc ? 0 : 0.15, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
     const inSeat = p => {

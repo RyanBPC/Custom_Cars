@@ -86,7 +86,7 @@ const EXTRA_PARTS = [
  {re:/\b(?:red|blue|white|yellow|green|orange|pink|purple|grey|gray|silver|gold|bronze|teal|lime|navy|brown|custom-[0-9a-f]{6}|body[- ]colou?r(?:ed)?)\b[a-z -]{0,14}?(?:wing )?mirror caps?\b/,name:"Coloured mirror caps",in3d:true,price:150,text:"painted wing mirror caps"},
  {re:/\balloy wheel refurb\b/,name:"Alloy wheel refurb",in3d:false,price:400,text:"your own four alloys refurbished, kerb rash repaired"},
  {re:/(wheel )?spacers?/,name:"Wheel spacers",in3d:true,price:150,text:"wheel spacers so the wheels sit flush with the arches"},
- {re:/bucket seats?|racing seats?|sports? seats?/,name:"Bucket seats",in3d:true,price:1800,text:"carbon racing bucket seats visible through the windows"},
+ {re:/bucket seats?|racing seats?|sports? seats?|\b(?:recaros?|sparcos?)\b|\b(?:bride|cobra) (?:bucket |racing |sports? )?seats?/,name:"Bucket seats",in3d:true,price:1800,text:"carbon racing bucket seats visible through the windows"},
  {re:/roll ?cage/,name:"Roll cage",in3d:true,price:2500,text:"a roll cage visible through the windows"},
  {re:/steering wheel/,name:"Sport steering wheel",in3d:true,price:450,text:"a flat-bottomed Alcantara sport steering wheel with a red top marker"},
  {re:/(roof|bonnet|hood) scoop|air scoop/,name:"Air scoop",in3d:true,price:400,text:"an air scoop"},
@@ -154,7 +154,7 @@ const EXTRA_PARTS = [
  {re:/brushed (?:alumin(?:i)?um |metal )?(?:window )?(?:trim|line)\b|alumin(?:i)?um window (?:trim|line)/,name:"Brushed window trim",in3d:true,price:200,text:"a brushed aluminium strip along the bottom of the side windows"},
  {re:/carbon (?:fibre |fiber )?(?:window |exterior )?(?:trim|line)\b/,name:"Carbon window trim",in3d:true,price:250,text:"a carbon-fibre strip along the bottom of the side windows"},
  {re:/\b(?:colou?red|red|blue|green|yellow|orange|pink|purple|white|grey|gray|tan|brown|gold|lime) seat ?belts?|seat ?belts? in (?:red|blue|green|yellow|orange|pink|purple|white|grey|gray|tan|brown|gold|lime)\b/,name:"Coloured seat belts",in3d:true,price:150,text:"red seat belt webbing"},
- {re:/seat covers?|re-?upholster|(?:leather|alcantara|suede) (?:seats?|interior|upholstery)|two[- ]?tone seats?|\b(?:tan|red|black|white|grey|gray|blue|brown) (?:leather )?seats?\b(?!\s*belts?)/,name:"Seat covers",in3d:true,price:950,text:"black leather seat covers"},
+ {re:/seat covers?|re-?upholster|(?:leather|alcantara|suede) (?:seats?|interior|upholstery)|two[- ]?tone seats?|\b(?:tan|red|black|white|grey|gray|blue|brown) (?:leather )?seats?\b(?!\s*belts?)|\b(?:tan|cream|beige|red|black|white|grey|gray|brown|blue|oxblood) (?:leather )?interior\b(?!\s*(?:light|lighting|lights|trim))/,name:"Seat covers",in3d:true,price:950,text:"black leather seat covers"},
  {re:/dash(?:board)? (?:trim|inserts?)|(?:carbon|aluminium|aluminum|brushed|piano black) (?:fibre |fiber )?(?:dash(?:board)?|interior trim|trim inserts?)/,name:"Dashboard trim",in3d:true,price:300,text:"carbon-fibre dashboard trim"},
  {re:/(?:floor|car) mats?\b|\bmats\b/,name:"Floor mats",in3d:true,price:80,text:"black floor mats with red edging"},
  // Number plates off: the chat turns "no plates", "remove the front plate" and so on into these (js/advisor/local-parser.js). UK law needs both on the road, so they're for shows.
