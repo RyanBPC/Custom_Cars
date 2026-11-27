@@ -138,6 +138,8 @@
   if (nav) {
     nav.addEventListener("scroll", markMore, { passive: true });
     window.addEventListener("resize", markMore);
+    // First load: fonts and layout may not be ready when show() first runs, so check again.
+    window.addEventListener("load", keepNavLinkInView);
   }
 
   // Open a tab from code (cards, buttons). Adds a history step, like clicking a tab.

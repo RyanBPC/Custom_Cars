@@ -790,3 +790,5 @@ table.prices td.none{color:var(--muted);text-align:left}
 .lampmenu-list label:hover{background:rgba(255,255,255,.06)}
 .lampmenu-list input{accent-color:var(--accent);width:16px;height:16px;margin:0}
 @media (max-width:600px){.lampmenu{flex:1;display:flex}.lampmenu>summary{flex:1}.lampmenu-list{left:0;right:auto}}
+/* Small phones: the page links get their own full-width row under the logo, so the current page is never cut off (Website #209). */
+@media (max-width:560px){header.top .wrap{height:auto;flex-wrap:wrap;row-gap:2px;padding-top:6px;padding-bottom:6px}nav.main{order:3;flex:1 0 100%;margin-left:0}.navmore{margin-left:auto}.flow-steps{top:calc(env(safe-area-inset-top,0px) + 84px)}.chat{top:calc(env(safe-area-inset-top,0px) + 96px)}}
