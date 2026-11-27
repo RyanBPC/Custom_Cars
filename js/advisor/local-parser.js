@@ -232,7 +232,13 @@ function planParts(text){
     notes.push(plateBack.length>1?"Both number plates are back on.":plateBack[0].startsWith("Front")?"The front number plate is back on.":"The rear number plate is back on.");
   }
   // "Wrap the roof black" / "roof in gloss black" is the black roof part (~£450), not a full-body wrap.
-  t=t.replace(/\b(?:(?:wrap|paint|respray|do|colou?r|black out)\s+(?:the\s+|my\s+|its\s+)?roof|roof)\s+(?:in\s+)?(?:(?:gloss|glossy|piano|satin|matte?)\s+)?black\b(?!\s+(?:wheels?|rims?|alloys?|mirrors?|calipers?))/g," black roof ");
+  // "Roof wrap black" / "roof wrapped in black" too, and a bare "roof wrap" is the black roof as well (Car #173).
+  t=t.replace(/\b(?:(?:wrap|paint|respray|do|colou?r|black out)\s+(?:the\s+|my\s+|its\s+)?roof|roof(?:\s+wrap(?:ped)?)?)\s+(?:in\s+)?(?:(?:gloss|glossy|piano|satin|matte?)\s+)?black\b(?!\s+(?:wheels?|rims?|alloys?|mirrors?|calipers?))/g," black roof ");
+  const ROOF_WRAP_RE=/(?<!\b(?:carbon|black|gloss|satin|matte?)\s+)\broof wrap(?:ped)?\b(?!\s+(?:in\s+)?(?:carbon|gloss|glossy|piano|satin|matte?)\b)/g;
+  if(ROOF_WRAP_RE.test(t)){t=t.replace(ROOF_WRAP_RE," black roof ");notes.push(`I've gone for a gloss black roof, the usual colour for a roof wrap. Say "carbon roof" if you'd like carbon instead.`);}
+  // Sunroofs are a factory option (Car #173): fitting one later means cutting the roof, so nothing is fitted.
+  const SUNROOF_RE=/\b(?:(?:add|fit|get|install|want|put in|give it)\s+)?(?:an?\s+|the\s+|some\s+)?(?:sun ?roof|moon ?roof|panoramic (?:glass |sun ?)?roof|panoramic|glass roof|pano roof)s?\b/g;
+  if(SUNROOF_RE.test(t)){t=t.replace(SUNROOF_RE," ");notes.push(`A sunroof or panoramic roof is a factory option on the ${c.model}. Fitting one later means cutting the roof, costs a lot and often leaks, so it's rarely worth it. For the look of a dark glass roof, say "black roof" (about £450) or "carbon roof".`);}
   // Air suspension ("air ride", "bagged", "on air") is shown aired out at the lowest setting.
   // "Air Lift" is the air ride brand, so it reads as air ride, not a lift kit.
   t=t.replace(/\bair ?lift(?: performance)?\b/g," air ride ");
