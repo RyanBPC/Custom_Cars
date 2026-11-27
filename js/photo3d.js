@@ -36,8 +36,18 @@ function photo3dPrompt(c, envName, mode, seat) {
     "Keep exactly the same: the car's shape and proportions, camera angle, framing and position in the picture, wheel design and size, paint colour and finish, ride height, window tint and every visible part. Do not add, remove or redesign any part, badge or light.",
     `Improve only realism: paint reflections and clear-coat, glass, tyre rubber, panel gaps, natural lighting matching the scene, a real shadow under the car, and ${where}.`,
     ...(extra.length ? [`Also add these parts, which the render doesn't show yet: ${extra.join("; ")}.`] : []),
-    "Keep the number plates blank. Do not add any text, logos or watermarks."
+    plateLine(c) + " Do not add any other text, logos or watermarks."
   ].join("\n");
+}
+
+// The 3D car shows the user's plate (same order as js/spin-view.js), so the photo keeps it rather than blanking it.
+function plateLine(c) {
+  const items = (state.mods.custom && state.mods.custom.items || []).map(i => i.name);
+  const front = !items.includes("Front plate delete"), rear = !items.includes("Rear plate delete");
+  if (!front && !rear) return "The car has no number plates; do not add any.";
+  const reg = privateReg(state.mods) || state.plate || carReg(c);
+  const which = front && rear ? "number plates" : front ? "front number plate (there is no rear plate)" : "rear number plate (there is no front plate)";
+  return reg ? `Keep the ${which} exactly as shown, reading "${reg}" in the standard UK plate font.` : "Keep the number plates blank.";
 }
 
 const blobToDataUrl = b => new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(b); });
