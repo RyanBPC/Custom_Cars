@@ -171,7 +171,7 @@ function makeContactShadow() {
 function init(el) {
   container = el;
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap; // r186 removed PCFSoft; PCF + radius gives the soft edge
   renderer.setPixelRatio(MOVE_RATIO());
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping; // keeps paint colours rich (AgX washed red out to pink)
@@ -191,7 +191,7 @@ function init(el) {
   // A sun that casts a real shadow on the ground; the ground itself is invisible except for the shadow,
   // so in photo settings the shadow falls onto the photo's road.
   sun = new THREE.DirectionalLight(0xffffff, 0); sun.castShadow = true;
-  sun.shadow.mapSize.set(4096, 4096); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
+  sun.shadow.mapSize.set(4096, 4096); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02; sun.shadow.radius = 4;
   Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 30 });
   scene.add(sun, sun.target);
   shadowCatcher = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.ShadowMaterial({ opacity: 0.45 }));
