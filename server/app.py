@@ -150,7 +150,11 @@ def ebay_search(words, limit=3):
         price, img = it.get("price") or {}, (it.get("image") or it.get("thumbnailImages", [{}])[0] or {}).get("imageUrl", "")
         if not it.get("itemWebUrl") or not price.get("value"):
             continue
-        items.append({"title": it.get("title", ""), "price": float(price["value"]), "currency": price.get("currency", "GBP"),
+        try:
+            amount = float(price["value"])
+        except (TypeError, ValueError):
+            continue  # an odd price (e.g. a range) shouldn't sink the whole search
+        items.append({"title": it.get("title", ""), "price": amount, "currency": price.get("currency", "GBP"),
                       "image": img.replace("s-l225", "s-l500"), "url": it["itemWebUrl"], "condition": it.get("condition", "")})
     ebay_cache[key] = (time.time(), items)
     return items
@@ -445,6 +449,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                                         "ebay": bool(EBAY_ID and EBAY_SECRET)})
         if route == "/api/parts":
             # Real listings for a part: /api/parts?q=Volkswagen+Golf+Mk8.5+coilovers
+            # Only this site's own pages may use it, so other websites can't spend the free eBay searches.
+            site = self.headers.get("Sec-Fetch-Site")
+            if site and site not in ("same-origin", "none"):
+                return self.send_json(403, {"error": "forbidden", "message": "Requests from other websites are not allowed."})
             query = urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
             words = (query.get("q") or [""])[0].strip()[:120]
             if not words:
@@ -453,6 +461,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 return self.send_json(200, {"items": ebay_search(words)})
             except ApiError as e:
                 return self.send_json(e.status, {"error": e.code, "message": e.message})
+            except Exception:
+                traceback.print_exc()
+                return self.send_json(502, {"error": "ebay_failed", "message": "Couldn't read eBay's answer. Try again in a minute."})
         if self.blocked():
             return self.send_error(404)
         return super().do_GET()
