@@ -38,7 +38,7 @@ function colourNear(t,re){
 }
 // Words the chat understands. A close misspelling ("bonet", "spoilor", "exaust", "fiber") is read as the right word.
 // Cosmetic parts whose colour or finish the user chooses: the word each colour belongs to, and the part's wording.
-const COSMETIC_NEAR={"Sport steering wheel":/steering/,"Wheel spacers":/spacer/,"Low-profile tyres":/profile|tyre/,"Smoked headlights":/head/,"Smoked tail lights":/tail|rear/,"Coloured mirror caps":/mirror/,"Caliper paint":/calipers?/,"Centre cap swap":/caps?\b/,"Floor mats":/mats?\b|edging/,"Bonnet wrap":/bonnet|hood/,"Seat covers":/seats?|upholster|covers?|leather|alcantara|interior/,"Dashboard trim":/dash/,"Coloured seat belts":/belts?/};
+const COSMETIC_NEAR={"Sport steering wheel":/steering/,"Wheel spacers":/spacer/,"Low-profile tyres":/profile|tyre/,"Smoked headlights":/head/,"Smoked tail lights":/tail|rear/,"Coloured mirror caps":/mirror/,"Coloured badges":/badges?|emblems?/,"Caliper paint":/calipers?/,"Centre cap swap":/caps?\b/,"Floor mats":/mats?\b|edging/,"Bonnet wrap":/bonnet|hood/,"Seat covers":/seats?|upholster|covers?|leather|alcantara|interior/,"Dashboard trim":/dash/,"Coloured seat belts":/belts?/};
 const CALIPER_PAINT_RE=/calipers? paint|paint(?:ed)? (?:the |my )?(?:brake )?calipers?|painted (?:brake )?calipers?|calipers? (?:colou?r|painted)/;
 // "Yellow calipers" on its own is caliper paint; big brakes are asked for with big/kit/upgrade/BBK/Brembo/pistons or to stop better.
 const BIG_BRAKE_RE=/\bbig\b|\bkit\b|upgrade|\bbbk\b|brembo|\bpot\b|piston|stop better|stopping power|bigger brakes/;
@@ -63,6 +63,7 @@ function cosmeticText(name,t){
   if(name==="Caliper paint") return (c||"red")+" painted brake calipers";
   if(name==="Coloured seat belts") return (c&&c!=="black"?c:"red")+" seat belt webbing";
   if(name==="Centre cap swap") return /chrome|silver/.test(t)?"chrome wheel centre caps":(c||"black")+" wheel centre caps";
+  if(name==="Coloured badges") return (/body[- ]colou?r|colou?r[- ]?(?:coded|matched)/.test(t)?"body-coloured":c||"red")+" painted badges";
   if(name==="Coloured mirror caps") return (/body[- ]colou?r/.test(t)?"body-coloured":c||"red")+" wing mirror caps";
   if(name==="Floor mats") return /rubber/.test(t)?"black rubber floor mats"+(/embroider/.test(t)?" with an embroidered badge":""):"black carpet floor mats with "+(c&&c!=="black"?c:"red")+" edging"+(/embroider/.test(t)?" and an embroidered badge":"");
   if(name==="Bonnet wrap") return /carbon/.test(t)?"a carbon-look vinyl wrap on the bonnet":"a "+(/matte?\b/.test(t)?"matte":/satin/.test(t)?"satin":"gloss")+" "+(c||"black")+" vinyl wrap on the bonnet";
@@ -115,7 +116,9 @@ function planParts(text){
     rLook=/r[- ]line/.test(t)?"rline":"r";
     if(/\bblue\b/.test(t)&&!/\b(?:lapiz|estoril|portimao|snapper rocks|miami|baby|navy|sky|light|pale)\s+blue\b/.test(t)) t=t.replace(/\b(?:(?:dark|bright|deep)\s+)?blue\b/g," lapiz blue ");
     t=(toGolf?" golf ":"")+(rLook==="r"?" quad tips ":"")+" side skirts 19 inch silver wheels , "+t.replace(GOLF_R_RE," ").replace(/\b(?:bumpers?|body ?kit|kit|style|look|wheels?|rims?|alloys?|exhausts?)\b/g," ");}
-  for(const c of CARS){if(c.keys.some(k=>new RegExp("(^|[^a-z0-9])"+k.replace(/[-]/g,"\\-")+"([^a-z0-9]|$)").test(t))){switchCar=c.id;break;}}
+  // "red golf badges" is about the badges, not a car switch (Car #163).
+  const tSw=t.replace(/\b[a-z0-9-]+\s+(?=(?:badges?|emblems?)\b)/g," ");
+  for(const c of CARS){if(c.keys.some(k=>new RegExp("(^|[^a-z0-9])"+k.replace(/[-]/g,"\\-")+"([^a-z0-9]|$)").test(tSw))){switchCar=c.id;break;}}
   // Just the make ("bmw please", "show me the bmw", "switch to the vw") switches car too.
   // Only when that part of the sentence is nothing but the make, so "bmw wheels" on the Golf stays a wheel request.
   if(!switchCar){
@@ -599,7 +602,7 @@ function comfortReply(low){
 /* "change the colour", "new colour", "what colours can i have" with no colour named: list some choices, fit nothing (Car #143).
    Colour on another part ("colour of the wheels", "stitching colour") is left to the normal rules. */
 const COLOUR_ASK=/\bcolou?rs?\b|\brespray\b|\bpaint ?job\b/;
-const COLOUR_ASK_NOT=/\b(?:wheels?|rims?|alloys?|calipers?|callipers?|seats?|stitching|interior|lights?|underglow|glow|tint|windows?|stripes?|roof|mirrors?|bonnet|belts?|wrap|matte|satin|gloss|chrome|carbon)\b|custom-[0-9a-f]{6}/;
+const COLOUR_ASK_NOT=/\b(?:badges?|emblems?|wheels?|rims?|alloys?|calipers?|callipers?|seats?|stitching|interior|lights?|underglow|glow|tint|windows?|stripes?|roof|mirrors?|bonnet|belts?|wrap|matte|satin|gloss|chrome|carbon)\b|custom-[0-9a-f]{6}/;
 function colourAskReply(low){
   if(!COLOUR_ASK.test(low)||COLOUR_ASK_NOT.test(low)||PRICE_Q.test(low)) return null;
   if(COLOURS.some(c=>new RegExp("\\b"+c[0]+"\\b").test(low))) return null;
