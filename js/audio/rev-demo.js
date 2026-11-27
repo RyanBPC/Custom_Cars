@@ -9,7 +9,7 @@ function playRev(which,btn){
   const quiet=which==="build"&&!(m.exhaust||m.intake||m.tune);
   $("soundNote").hidden=!quiet;
   if(!engine.start(c,m)) return;
-  revBtn=btn; btn.textContent="■ Stop";
+  revBtn=btn; btn.innerHTML=revLabel(btn,true); btn.setAttribute("aria-pressed","true");
   const red=c.redline, seq=[[0,900,0],[900,900,0],[1100,4200,1],[1450,1500,0],[1900,900,0],[2300,1200,1],[3900,red*.98,1],[4000,red*.98,0],[4900,900,0],[5600,900,0]];
   const t0=performance.now(), carId=state.car;
   const tick=now=>{
@@ -22,7 +22,9 @@ function playRev(which,btn){
   };
   revRAF=requestAnimationFrame(tick);
 }
-function stopRev(){if(revRAF)cancelAnimationFrame(revRAF);revRAF=null;if(revBtn){revBtn.textContent=revBtn.id==="hearStock"?"▶ Hear stock":"▶ Hear your build";revBtn=null;engine.stop();}}
+function stopRev(){if(revRAF)cancelAnimationFrame(revRAF);revRAF=null;if(revBtn){revBtn.innerHTML=revLabel(revBtn,false);revBtn.setAttribute("aria-pressed","false");revBtn=null;engine.stop();}}
+// Button text: the ▶/■ symbol is hidden from screen readers; while playing it says "Stop" plus a hidden "stock sound"/"your build sound".
+function revLabel(btn,playing){const stock=btn.id==="hearStock";return playing?`<span aria-hidden="true">■</span> Stop<span class="visually-hidden"> ${stock?"stock":"your build"} sound</span>`:`<span aria-hidden="true">▶</span> ${stock?"Hear stock":"Hear your build"}`;}
 $("hearStock").addEventListener("click",e=>playRev("stock",e.currentTarget));
 $("hearBuild").addEventListener("click",e=>playRev("build",e.currentTarget));
 // Stop the demo when you switch browser tab or leave the page it's on, so it never drones on unseen at high revs
