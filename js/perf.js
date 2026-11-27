@@ -13,6 +13,7 @@ function perf(car,m){
   if(m.exhaust){hp+=car.turbo?.02:.03;nm+=.02;kg-=6;}
   if(m.wheels){const d=m.wheels.size-car.wheel;grip+=Math.min(d,1)*1.5;kg+=(m.wheels.style==="monoblock"?-8:0)+d*4;}
   if(m.drop){const mm=m.drop.mm;grip+=mm<=30?5+mm/10:Math.max(5,8-(mm-30)*.05);} // best around 30mm; lower runs out of travel
+  if(m.drop&&m.drop.air){kg+=22;grip-=2;} // air ride (Car #200): compressor, tank and lines ~22kg, a bit softer on track than coilovers
   if(m.widebody){grip+=4;kg+=12;}
   if(m.bodykit){grip+=2;kg+=6;down+=25;}
   if(m.spoiler){const s={lip:[10,1,0],ducktail:[25,2,1],"gt-wing":[90,5,4],"roof-ext":[5,1,0],pedestal:[40,3,2]}[m.spoiler.type];down+=s[0];kg+=s[1];grip+=s[2];}
