@@ -64,6 +64,14 @@ const EXTRA_GROUPS=[["Extra parts: inside the car",/seat|steering|harness|shifte
 const extraGroups=()=>{const rows=extraRows(),out=EXTRA_GROUPS.map(([g])=>[g,[]]),other=[];
   rows.forEach(r=>{const i=EXTRA_GROUPS.findIndex(([,re])=>re.test(r[0]));(i<0?other:out[i][1]).push(r);});
   if(other.length)out.push(["Other extras",other]);return out.filter(([,rs])=>rs.length);};
+// Price list search (Website #214): everyday words find the list's words ("rims" finds wheels, "lowering" finds coilovers),
+// and small typos are fixed by the chat's typo fixer ("exhust" finds exhaust). The typed text itself still matches as before.
+const PRICE_SYN={rims:["wheel"],rim:["wheel"],alloys:["wheel"],alloy:["wheel"],lowering:["coilover","spring","lower"],lowered:["coilover","spring","lower"],lower:["coilover","spring"],drop:["coilover","spring"],slammed:["coilover","spring","air ride"],slam:["coilover","spring"],
+  bodykit:["aero","skirt","widebody","splitter"],"body kit":["aero","skirt","widebody","splitter"],tune:["stage","remap"],tuning:["stage","remap"],remap:["stage"],chip:["stage","remap"],power:["stage","intake","turbo"],faster:["stage","intake"],
+  loud:["exhaust"],louder:["exhaust"],pops:["exhaust"],brakes:["brake"],tints:["tint"],tinted:["tint"],windows:["tint"],wing:["spoiler"],paint:["wrap","colour"],respray:["wrap","colour"],suspension:["coilover","spring"],tyres:["tyre"],tires:["tyre"]};
+const priceTerms=q=>{if(!q)return[];const out=new Set([q]);let f=q;try{if(typeof fixTypos==="function")f=fixTypos(q);}catch(e){}out.add(f);
+  [q,f].forEach(s=>{(PRICE_SYN[s]||[]).forEach(t=>out.add(t));s.split(/\s+/).forEach(w=>(PRICE_SYN[w]||[]).forEach(t=>out.add(t)));});
+  return [...out].filter(t=>t.length>1);};
 function renderPrices(){
   const c=car(),n=partCount(state.mods);
   $("priceBuild").innerHTML=n?`Your build so far on the ${c.make} ${c.model}: <b>${fmt(buildCost(c,state.mods))}</b> in parts and fitting (${n} ${n===1?"part":"parts"}). <a href="#build">See it in the Build tab →</a>`:`Nothing fitted yet. Press "Try it on the car" on any row to see it on the 3D car.`;
@@ -77,7 +85,8 @@ function renderPrices(){
   const selTab=$("priceCats").querySelector('[aria-selected="true"]');if(selTab)$("pricePanel").setAttribute("aria-labelledby",selTab.id);
   // While the search box has text, show matching rows from every group (name or "What you get"), ignoring the chosen tab.
   const q=($("priceSearch").value||"").trim().toLowerCase(),plain=t=>String(t).replace(/<[^>]*>/g,"").toLowerCase();
-  const shown=q?groups.map(([cat,rows])=>[cat,rows.filter(r=>plain(r[0]).includes(q)||plain(r[1]).includes(q))]).filter(([,rs])=>rs.length):groups.filter(([cat])=>priceCat==="All"||cat===priceCat);
+  const terms=priceTerms(q),hit=r=>terms.some(t=>plain(r[0]).includes(t)||plain(r[1]).includes(t));
+  const shown=q?groups.map(([cat,rows])=>[cat,rows.filter(hit)]).filter(([,rs])=>rs.length):groups.filter(([cat])=>priceCat==="All"||cat===priceCat);
   const hits=shown.reduce((n,[,rs])=>n+rs.length,0);
   $("priceTable").innerHTML=`<thead><tr><th>Upgrade</th><th>What you get</th><th>Fitted price</th></tr></thead><tbody>`+(q&&!hits?`<tr><td colspan="3" class="none">No parts match. Try a simpler word like wheels or tint.</td></tr>`:shown.map(([cat,rows])=>`<tr class="cat"><th colspan="3" scope="colgroup">${cat}</th></tr>`+rows.map(row).join("")).join(""))+`</tbody>`;
   $("priceCount").textContent=q?(hits?`${hits} ${hits===1?"part matches":"parts match"} "${q}"`:"No parts match"):"";
