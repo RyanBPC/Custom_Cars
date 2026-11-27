@@ -297,7 +297,11 @@ async function loadShots() {
     const url = await partShot(x.angle);
     if (key !== cardsKey) return;
     const box = el("partCards").querySelector(`.part-pic[data-i="${i}"]`); if (!box || box.dataset.product) continue;
-    box.innerHTML = url ? `<img src="${url}" alt="${esc(x.title)} on the 3D ${esc(car().model)}"><span class="part-chip">On your 3D car</span>` : `<span class="part-unseen">Open the site with start.bat to see it in 3D</span>`;
+    // Sitting inside the car (Interior view) the view isn't turned, so say how to get the pictures back;
+    // step 3 reloads them each time it opens (go(2) resets partsShown).
+    const inside = !url && window.Viewer3D?.view?.()?.inside;
+    box.innerHTML = url ? `<img src="${url}" alt="${esc(x.title)} on the 3D ${esc(car().model)}"><span class="part-chip">On your 3D car</span>`
+      : `<span class="part-unseen">${inside ? "Leave the Interior view in step 2 to see each part on the 3D car" : "Open the site with start.bat to see it in 3D"}</span>`;
   }
 }
 addEventListener("scroll", () => { if (!partsShown) loadShots(); }, { passive: true });
