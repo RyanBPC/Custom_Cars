@@ -291,6 +291,7 @@ function spinTo(a) {
   else $("ai3dResult").style.opacity = 0;
   $("ai3d").classList.toggle("empty", !u);
   aiBar(u ? "" : "No AI photo of this angle yet. Press Make it a photo, or drag to keep spinning.");
+  $("aiSpinSay").textContent = u ? `AI photo at ${a}°` : `${a}°: no AI photo yet`; // heard by screen readers only
   updateTurn();
 }
 // Drag the photo left or right to spin the car (about one step per 60 pixels).

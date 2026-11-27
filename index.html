@@ -190,15 +190,16 @@ if (location.protocol === "file:") {
                 <div class="spin-modehint" id="spinModeHint" hidden>Photoshoot: pick a shot or drag to turn the car. Switch to 360° view to walk around it.</div>
                 <div class="spin-modehint" id="spinInHint" hidden>Interior: drag (or use the arrow keys) to look around. Esc steps out. Showing your build.</div>
                 <div class="spin-modehint" id="ptNote" hidden></div>
-                <div class="spin-modehint ai-bar" id="aiBar" hidden><span id="aiBarText"></span> <button type="button" class="btn sm" id="aiBarShow" hidden>Show it</button></div>
+                <div class="spin-modehint ai-bar" id="aiBar" hidden><span id="aiBarText" role="status" aria-live="polite"></span> <button type="button" class="btn sm" id="aiBarShow" hidden>Show it</button></div>
               </div>
+              <p class="visually-hidden" id="aiSpinSay" role="status" aria-live="polite"></p>
               <span class="lbl spin-lbl l">BEFORE</span><span class="lbl spin-lbl r">AFTER</span>
               <!-- Drag the knob (or use arrow keys on it) to compare stock and your build; drag anywhere else to spin. -->
               <div class="spin-split" id="spinSplit">
                 <button type="button" class="spin-knob" id="spinKnob" role="slider" aria-label="Compare before (stock) and after (your build)" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">⟷</button>
               </div>
               <!-- 3D view vs AI photo of the same frame -->
-              <div class="ai3d" id="ai3d" hidden>
+              <div class="ai3d" id="ai3d" role="group" aria-label="AI photo. Use the left and right arrow keys to turn the car" hidden>
                 <img id="ai3dShot" alt="Your 3D view" draggable="false"><div class="ai3d-after"><img id="ai3dResult" alt="AI photo of your 3D view" draggable="false"></div>
                 <span class="lbl ai3d-l">3D VIEW</span><span class="lbl ai3d-r">AI PHOTO</span>
                 <span class="lbl ai3d-note">AI impression, not a real photo<span id="ai3dAdded" hidden> · parts not shown in 3D were added by the AI</span></span>
