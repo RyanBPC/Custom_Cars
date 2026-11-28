@@ -194,7 +194,7 @@ function planParts(text){
   if(notLoud&&!quiet) notes.push("For a sportier sound that isn't too loud, the valved cat-back is the one: louder than standard, but keep the valves shut for a quiet cruise, and it stays under the MOT noise limit.");
   if(carbonGrille) notes.push("The studio shows the gloss black grille; real carbon fibre grilles look similar and cost a bit more (about £250).");
   // Nitrous and anti-lag are rare on UK road cars, so neither is fitted; offer a stage 2 remap instead (Car #179).
-  const NITROUS_RE=/\b(?:nitrous(?: oxide)?|nos|n2o|nitro)(?: kit| system| bottle)?\b|\banti[- ]?lag(?: system)?\b|\bals\b/g;
+  const NITROUS_RE=/(?:\b(?:an?|some|the|an?other)\s+)?\b(?:nitrous(?: oxide)?|nos|n2o|nitro)(?: kit| system| bottle)?\b|(?:\b(?:an?|some|the)\s+)?\banti[- ]?lag(?: system)?\b|\bals\b/g;
   const nitro=t.match(NITROUS_RE);
   if(nitro){const al=nitro.some(m=>/lag/.test(m)); t=t.replace(NITROUS_RE," ");notes.push((al?"I haven't fitted anti-lag: it's a rally part that keeps the turbo spinning by burning fuel in the exhaust, which wrecks turbos and catalytic converters and is very loud.":"I haven't fitted nitrous: it's rare on UK road cars, most insurers refuse to cover it, and it can damage the engine.")+((CARS.find(x=>x.id===(switchCar||state.car))||{}).turbo?' For safe extra power, say "stage 2 remap".':' For more power, say "stage 1 remap".'));}
   // A decat fails the MOT, so it's never fitted; suggest a legal cat-back exhaust instead.
