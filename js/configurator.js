@@ -253,9 +253,29 @@
     plan.reply = item ? `Done: plates now with ${label.toLowerCase()}.` : "Back to standard plates.";
     addUser(`Number plates: ${label.toLowerCase()}`); applyPlan(plan, `plates ${label}`);
   }
+  // Website #191: on Windows a closed dropdown fires "change" on every Up/Down arrow press, so stepping through
+  // "More colours" fitted (and announced) every colour passed. A keyboard change now waits until Enter, leaving the
+  // dropdown, or 600ms with no other press, then applies once. Mouse/touch picks still apply straight away.
+  let keyAt = 0, pending = null;
+  const flush = () => { if (!pending) return; const p = pending; pending = null; clearTimeout(p.t); p.run(); };
+  box.addEventListener("keydown", e => {
+    if (e.target.tagName !== "SELECT") return;
+    if (e.key === "Enter") return flush();
+    if (e.key !== "Tab") keyAt = Date.now();
+  });
+  box.addEventListener("focusout", e => { if (e.target.tagName === "SELECT") flush(); });
   box.addEventListener("change", e => {
-    const sel = e.target.closest("select[data-ps]"); if (sel) return setPlateStyle(sel.dataset.ps, sel.value);
-    const f = e.target.closest("[data-row]"); if (f && f.value) rowChange(+f.dataset.row, f.dataset.key, f.value);
+    const sel = e.target.closest("select[data-ps]"), f = !sel && e.target.closest("[data-row]");
+    const run = sel ? () => setPlateStyle(sel.dataset.ps, sel.value) : f && f.value ? () => rowChange(+f.dataset.row, f.dataset.key, f.value) : null;
+    if (!run) return;
+    if (e.target.tagName === "SELECT" && Date.now() - keyAt < 1000) {
+      if (pending) clearTimeout(pending.t);
+      const v = e.target.value, el = e.target;
+      pending = { run: () => { if (el.isConnected) el.value = v; run(); }, t: setTimeout(flush, 600) };
+      return;
+    }
+    if (pending) flush();
+    run();
   });
   function setPlate(raw) {
     const reg = cleanReg(raw), rest = customs().filter(c => c.name !== "Private number plate");
