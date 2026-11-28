@@ -99,9 +99,43 @@ function surprisePlan(){
     reply:`Surprise! Your ${c.model} now has the "${b.name}" look: ${b.tags.join(", ")}.${cost>0?` That's about £${cost.toLocaleString("en-GB")} fitted.`:""} Press Surprise me again for another look, say "undo" to go back, or change any part you like.`};
 }
 
+/* ---------- the chat works the studio's own controls: Lights button and night/day settings (Website #258) ---------- */
+// Whole-message phrases only, so "led headlights", "smoked lights" or "halo lights" still fit parts.
+const LIGHTS_ON_RE=/^\s*(?:please\s+|can you\s+|could you\s+)?(?:(?:turn|switch|put|flick)\s+(?:the\s+|its\s+|my\s+|your\s+)?(?:head\s?)?lights\s+on|(?:turn|switch|put|flick)\s+on\s+(?:the\s+|its\s+|my\s+)?(?:head\s?)?lights|(?:head\s?)?lights\s+on|show (?:me )?(?:the |its )?(?:head\s?)?lights(?: on)?)\s*(?:please)?[.!?]*\s*$/i;
+const LIGHTS_OFF_RE=/^\s*(?:please\s+|can you\s+|could you\s+)?(?:(?:turn|switch|put|flick)\s+(?:the\s+|its\s+|my\s+|your\s+)?(?:head\s?)?lights\s+off|(?:turn|switch|flick)\s+off\s+(?:the\s+|its\s+|my\s+)?(?:head\s?)?lights|(?:head\s?)?lights\s+off)\s*(?:please)?[.!?]*\s*$/i;
+const NIGHT_RE=/^\s*(?:please\s+|can you\s+|could you\s+)?(?:(?:make|set|switch|change)\s+it\s+(?:to\s+)?(?:night|night\s?time|dark)|(?:at\s+)?night(?:\s?time)?(?: mode)?|(?:what does it|how does it|what would it|how would it)\s+look(?: like)?\s+at\s+night|(?:show|see)\s+(?:me\s+)?(?:it|the car|my car|what it looks like)\s+at\s+night|(?:put|take)\s+it\s+(?:out\s+)?(?:at|in the)\s+(?:night|dark))\s*(?:please)?[.!?]*\s*$/i;
+const DAY_RE=/^\s*(?:please\s+|can you\s+|could you\s+)?(?:(?:make|set|switch|change)\s+it\s+(?:to\s+)?(?:day|day\s?time|daylight|light again)|(?:in\s+)?(?:the\s+)?day(?:\s?time|light)(?: mode)?|(?:what does it|how does it)\s+look(?: like)?\s+in\s+(?:the\s+)?day(?:light|time)?)\s*(?:please)?[.!?]*\s*$/i;
+const studioReady=()=>typeof viewMode!=="undefined"&&typeof ON_SERVER!=="undefined";
+// Opens the 3D view if needed, then keeps trying for a few seconds until the viewer is ready.
+function withViewer(fn){
+  if(viewMode!=="spin") setView("spin");
+  let n=0;const go=()=>{const v=window.Viewer3D;if(v&&fn(v))return;if(++n<25)setTimeout(go,300);};go();
+}
+function studioCommand(text){
+  if(!studioReady()) return false;
+  const on=LIGHTS_ON_RE.test(text), off=!on&&LIGHTS_OFF_RE.test(text), night=NIGHT_RE.test(text), day=!night&&DAY_RE.test(text);
+  if(!on&&!off&&!night&&!day) return false;
+  if(!ON_SERVER){addAI(on||off?"The lights work in the 3D view, which needs the site opened with start.bat. Double-click start.bat in the Custom Cars site folder."
+    :"Night and day settings show in the 3D view and AI photos, which need the site opened with start.bat. Double-click start.bat in the Custom Cars site folder.");return true;}
+  if(on||off){
+    withViewer(v=>{v.setLights(on);return v.lightsOn()===on;});
+    addAI(on?"Lights on. Press the Lights button under the car to switch them off again.":"Lights off.");
+  }else{
+    const sel=$("envSelect"), want=ENVIRONMENTS.find(e=>night?/night/.test(e.id):/day/.test(e.id));
+    if(!want){addAI("There's no "+(night?"night":"day")+" setting yet.");return true;}
+    if(viewMode==="drawing") setView("spin");
+    if(sel.value!==want.id){sel.value=want.id;sel.dispatchEvent(new Event("change"));}
+    addAI(night?`Switched to a night setting (${want.name}); the lights come on by themselves. Pick another place from the Setting list above the car.`
+      :`Switched to a day setting (${want.name}). Pick another place from the Setting list above the car.`);
+  }
+  chatHistory.push({role:"user",content:text},{role:"assistant",content:"(changed the studio view)"});
+  return true;
+}
+
 async function ask(text){
   addUser(text);
   if(UNDO_RE.test(text)){undoLast();return;}
+  if(studioCommand(text)) return;
   if(SURPRISE_RE.test(text)){const sp=surprisePlan();if(sp){applyPlan(sp,text);return;}}
   const think=document.createElement("div");think.className="msg ai thinking";think.textContent="Working on it";msgs.appendChild(think);scrollMsgs();
   const btn=$("askBtn");btn.textContent="Stop";
