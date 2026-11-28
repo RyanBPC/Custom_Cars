@@ -10,6 +10,18 @@ const ENVIRONMENTS = [
   { id: "forest-night", name: "Forest avenue, night", text: "Move the car to a tree-lined avenue at night, lit by park lamps." }
 ];
 
+// Extras you can't see in an outside photo (inside, under the car or invisible), so the AI isn't asked to draw them.
+// Plates are left out too: the plate line (photoPlateLine) already covers them.
+const PHOTO_HIDDEN_EXTRAS = ["Sound system upgrade", "Short shifter", "Dash cam", "Ceramic coating", "Paint protection film",
+  "LED ambient interior lighting", "Strut brace", "Limited slip diff", "Uprated anti-roll bars", "Oil catch can", "Oil cooler",
+  "Lightweight flywheel", "Uprated clutch", "Space saver spare wheel", "LED number plate bulbs", "LED interior bulbs",
+  "Private number plate", "Styled number plates"];
+// Visible extras whose catalogue entry has no photo wording.
+const PHOTO_EXTRA_TEXT = {
+  "Windscreen sun strip": "a dark tinted sun strip across the top of the windscreen",
+  "Custom graphic wrap": "a custom printed graphic wrap"
+};
+
 // How each part should look in a photo. Parts with no visible change (remap, intake) return "".
 function photoPartText(id, p) {
   switch (id) {
@@ -24,7 +36,8 @@ function photoPartText(id, p) {
     case "tint": return `dark tint on the rear windows only, letting through ${p.vlt}% of light (front windows stay clear, as UK law requires)`;
     case "lights": return "lightly smoked headlight and tail-light lenses";
     case "exhaust": return "a sports exhaust with larger polished tailpipes";
-    case "custom": return p.items.map(i => i.text || i.name.toLowerCase()).join("; ");
+    case "custom": return p.items.filter(i => !PHOTO_HIDDEN_EXTRAS.includes(i.name))
+      .map(i => PHOTO_EXTRA_TEXT[i.name] || i.text || i.name.toLowerCase()).join("; ");
     default: return "";
   }
 }
