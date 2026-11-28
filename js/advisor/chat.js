@@ -22,8 +22,10 @@ function modCard(id,notes){
 }
 const SUGGESTIONS=["Lower it on coilovers with 19-inch bronze wheels","Make it faster and louder","Full track build","Satin black wrap with a GT wing and red calipers","Switch to the BMW 440i with a widebody kit"];
 $("suggest").innerHTML=`<button type="button" class="surprise" title="Fits one of the ready-made looks for this car">🎲 Surprise me</button>`+SUGGESTIONS.map(s=>`<button type="button">${s}</button>`).join("");
-$("suggest").addEventListener("click",e=>{const b=e.target.closest("button");if(b){$("askInput").value=b.textContent;$("askForm").requestSubmit();}});
-$("askForm").addEventListener("submit",e=>{e.preventDefault();if(busy){busy.abort();return;}const t=$("askInput").value.trim();if(!t)return;$("askInput").value="";ask(t);});
+$("suggest").addEventListener("click",e=>{const b=e.target.closest("button");if(b&&!busy){$("askInput").value=b.textContent;$("askForm").requestSubmit();}});
+// While a reply is coming, only the Stop button cancels it; Enter and the chips wait (Website #195).
+$("askInput").addEventListener("keydown",e=>{if(busy&&e.key==="Enter")e.preventDefault();});
+$("askForm").addEventListener("submit",e=>{e.preventDefault();if(busy){if(e.submitter===$("askBtn"))busy.abort();return;}const t=$("askInput").value.trim();if(!t)return;$("askInput").value="";ask(t);});
 
 function catalogueText(){
   return `CATALOGUE (id: params)
