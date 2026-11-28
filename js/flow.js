@@ -16,7 +16,7 @@ panels.forEach((nodes, i) => {
   const nav = document.createElement("div");
   nav.className = "flow-nav";
   nav.innerHTML = (i > 0 ? `<button type="button" class="btn" data-step-to="${i - 1}">← ${STEP_NAMES[i - 1]}</button>` : "<span></span>")
-    + (i < 3 ? `<button type="button" class="btn primary" data-step-to="${i + 1}">Next: ${STEP_NAMES[i + 1]} →</button>` : "");
+    + (i < 3 ? `<button type="button" class="btn primary" data-step-to="${i + 1}">Next: ${STEP_NAMES[i + 1]}</button>` : "");
   nodes[nodes.length - 1].after(nav); nodes.push(nav);
 });
 // The tab list sits inside the <nav>, so the nav keeps its "Build steps" landmark. Each tab points at its

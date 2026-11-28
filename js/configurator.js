@@ -70,7 +70,7 @@
     { name: "Underglow", row: true, part: "LED underglow", defaults: { colour: "#2459c2" }, fields: [{ key: "colour", label: "Colour", colour: true }],
       read: (t, v, c) => { if (c[0]) v.colour = c[0]; }, make: (v, n) => `${n(v.colour)} underglow`,
       note: "UK roads: no red showing forwards, no white backwards, no blue or flashing. Safest switched on only when parked." },
-    { name: "Interior", link: ["Sit inside →", "#interior"] },
+    { name: "Interior", link: ["Sit inside", "#interior"] },
     { name: "Steering wheel", row: true, part: "Sport steering wheel", offLabel: "Factory wheel", fitLabel: "Fit a sport wheel", defaults: { grip: "alcantara", shape: "flat", marker: "yes", markerColour: "#b5121b", stitch: "matching", stitchColour: "#b5121b" },
       fields: [{ key: "grip", label: "Grip", opts: [["alcantara", "Alcantara"], ["leather", "Leather"], ["carbon", "Carbon fibre"]] },
         { key: "shape", label: "Shape", opts: [["flat", "Flat-bottomed"], ["round", "Round"]] },

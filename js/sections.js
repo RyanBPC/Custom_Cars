@@ -76,7 +76,7 @@ const priceTerms=q=>{if(!q)return[];const out=new Set([q]);let f=q;try{if(typeof
   return [...out].filter(t=>t.length>1);};
 function renderPrices(){
   const c=car(),n=partCount(state.mods);
-  $("priceBuild").innerHTML=n?`Your build so far on the ${c.make} ${c.model}: <b>${fmt(buildCost(c,state.mods))}</b> in parts and fitting (${n} ${n===1?"part":"parts"}). <a href="#build">See it in the Build tab →</a>`:`Nothing fitted yet. Press "Try it on the car" on any row to see it on the 3D car.`;
+  $("priceBuild").innerHTML=n?`Your build so far on the ${c.make} ${c.model}: <b>${fmt(buildCost(c,state.mods))}</b> in parts and fitting (${n} ${n===1?"part":"parts"}). <a href="#build">See it in the Build tab</a>`:`Nothing fitted yet. Press "Try it on the car" on any row to see it on the 3D car.`;
   const row=r=>{const on=onCar(r[0]);return `<tr${on?' class="fitted"':""}><td>${r[0]}${on?'<span class="oncar">On your car</span>':tryBtn(r[0])}</td><td class="muted">${r[1]}</td><td class="p">${r[2]}</td></tr>`;};
   // Category tabs above the table, so it shows one group at a time ("All" shows the whole list).
   const groups=PRICE_ROWS.concat(extraGroups()),label=c=>({"Extra parts: inside the car":"Extras: interior","Extra parts: practical and legal":"Extras: practical","Extra parts: lights":"Extras: lights","Extra parts: engine, wheels and handling":"Extras: mechanical","Extra parts: outside":"Extras: outside","Trim & protection":"Trim & care"})[c]||c;
@@ -108,7 +108,7 @@ $("priceTable").addEventListener("click",e=>{const b=e.target.closest("[data-try
 const postTry=p=>{if(!p.try)return"";try{if(!localPlan(p.try).apply.length)return"";}catch(e){return"";}return`<p><button class="btn sm try" type="button" data-try-phrase="${p.try}" aria-label="Try ${p.try} on the car">Try ${p.try} on the car</button></p>`;};
 /* Each article: the title is a real heading (so screen readers can jump between articles), and only "Read article" is the
    open/close button. Clicking the title or intro still opens it for mouse users. #journal/<id> links open the <details>. */
-$("posts").innerHTML=POSTS.map((p,i)=>`<article class="post" aria-labelledby="post-t${i}"><span class="meta">${p.m}</span><h2 class="sub" id="post-t${i}">${p.t}</h2><p class="intro">${p.s}</p><details${p.id?` id="guide-${p.id}"`:""}><summary class="more"><span class="more-open">Read article<span class="visually-hidden">: ${p.t}</span> →</span><span class="more-close">Close article<span class="visually-hidden">: ${p.t}</span></span></summary><div class="content">${p.c}${postTry(p)}</div></details></article>`).join("");
+$("posts").innerHTML=POSTS.map((p,i)=>`<article class="post" aria-labelledby="post-t${i}"><span class="meta">${p.m}</span><h2 class="sub" id="post-t${i}">${p.t}</h2><p class="intro">${p.s}</p><details${p.id?` id="guide-${p.id}"`:""}><summary class="more"><span class="more-open">Read article<span class="visually-hidden">: ${p.t}</span></span><span class="more-close">Close article<span class="visually-hidden">: ${p.t}</span></span></summary><div class="content">${p.c}${postTry(p)}</div></details></article>`).join("");
 $("posts").addEventListener("click",e=>{const h=e.target.closest(".post>h2, .post>.intro, .post>.meta");if(!h||getSelection().toString())return;const d=h.parentNode.querySelector("details");if(d)d.open=!d.open;});
 $("posts").addEventListener("click",e=>{const b=e.target.closest("[data-try-phrase]");if(!b)return;const ph=b.dataset.tryPhrase;
   if(typeof hideAi3d==="function") hideAi3d();

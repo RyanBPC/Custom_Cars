@@ -8,9 +8,9 @@
   // Old links (#studio, #ai) still work.
   const ALIAS = { studio: "build", ai: "photo" };
   const HEADS = {
-    build: ["Build", "Configure <em>your car.</em>"],
-    photo: ["Photo Studio", "Turn your build into <em>a realistic photo.</em>"],
-    interior: ["Interior", "Sit inside <em>your build.</em>"]
+    build: ["Build", "Configure your car."],
+    photo: ["Photo Studio", "Turn your build into a realistic photo."],
+    interior: ["Interior", "Sit inside your build."]
   };
   const head = document.querySelector("#studio .studio-head");
   const defaultText = head.querySelector("p").innerHTML;
