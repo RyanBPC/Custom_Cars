@@ -5,10 +5,11 @@
   // A card's picture: the build's photo, or the drawn car if the photo hasn't been made.
   // Cards use a small 800 px copy (photos/builds/thumbs/) so the home page loads fast; the hero keeps the full photo.
   const thumb = b => `photos/builds/thumbs/${b.id}.jpg`;
+  // Website #202: hidden like the photo cards (alt=""), the card text names the build.
   // Website #201: draw the build's own parts (wheels, drop, spoiler...), not a plain stock car.
   const drawn = b => { const c = CARS.find(x => x.id === b.car);
     let mods = {}; try { mods = buildMods(b); } catch (e) { mods = {}; }
-    return `<div class="drawn">${carSVG(c, mods, { uid: "h" + Math.random().toString(36).slice(2, 7) })}</div>`; };
+    return `<div class="drawn">${carSVG(c, mods, { uid: "h" + Math.random().toString(36).slice(2, 7), hidden: true })}</div>`; };
   // photo: false in builds.js = no photo made yet, so draw the car straight away instead of two failed loads.
   const art = b => b.photo === false ? drawn(b)
     : `<img src="${thumb(b)}" alt="" loading="lazy" width="800" height="450" data-full="${photo(b)}" data-car="${b.car}">`;

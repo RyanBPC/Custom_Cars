@@ -16,8 +16,10 @@ function renderStage(prevMods,changed){
   if(spinActive()){refreshSpin(changed);return;}
   if(photoActive()){renderPhotoStage();return;}
   const c=car(); renderN++;
-  afterL.innerHTML=carSVG(c,state.mods,{uid:"a"+renderN,prev:reduce?null:prevMods});
-  beforeL.innerHTML=carSVG(c,{},{uid:"b"+renderN});
+  // Website #202: name the two drawings so "stock" and "your build" don't sound the same.
+  const nm=c.make+" "+c.model, pn=partCount(state.mods);
+  afterL.innerHTML=carSVG(c,state.mods,{uid:"a"+renderN,prev:reduce?null:prevMods,label:nm+", your build"+(pn?", with "+pn+(pn===1?" part":" parts"):", no parts yet")});
+  beforeL.innerHTML=carSVG(c,{},{uid:"b"+renderN,label:nm+", stock"});
   if(changed&&changed.length){
     const co=$("callouts"); co.innerHTML=""; clearTimeout(calloutTimer);
     // With reduced motion the labels don't animate, so show them still and clear them after a moment.

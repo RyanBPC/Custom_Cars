@@ -77,6 +77,7 @@ function wheel(cx,cy,E,opts){
   const spokes=rimSpokes(cx,cy,r*(E.style==="deep-dish"?.95:1),E.style,col);
   return {base:s, rim:lip+`<g class="spin" data-cx="${cx}" data-cy="${cy}">${spokes}</g>`};
 }
+// Website #202: o.label = screen-reader name (default make + model); o.hidden = decorative, not read out.
 function carSVG(car,mods,o){
   o=o||{}; const u=o.uid||"c"; const g=GEO[car.style]; const E=eff(car,mods);
   const prev=o.prev?eff(car,o.prev):null; const A=!!prev;
@@ -93,7 +94,7 @@ function carSVG(car,mods,o){
   const dropAnim=(from,to)=>A&&from!==to?`<animateTransform attributeName="transform" type="translate" from="0 ${from}" to="0 ${to}" dur="1.1s" begin="0.15s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines=".25 .8 .25 1"/>`:"";
   const dFrom=A?prev.drop:E.drop;
   const appear=(on,delay,dx,dy)=>A&&on?` opacity="0"><animate attributeName="opacity" from="0" to="1" dur=".5s" begin="${delay}s" fill="freeze"/><animateTransform attributeName="transform" type="translate" from="${dx||0} ${dy||0}" to="0 0" dur=".8s" begin="${delay}s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines=".2 .9 .3 1"/`:"";
-  let svg=`<svg viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${car.make} ${car.model}"><defs>${defs}</defs>`;
+  let svg=`<svg viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg" ${o.hidden?`aria-hidden="true" focusable="false"`:`role="img" aria-label="${(o.label||car.make+" "+car.model).replace(/"/g,"&quot;")}"`}><defs>${defs}</defs>`;
   svg+=`<ellipse cx="${(r+f)/2}" cy="${GROUND+2}" rx="${(f-r)/2+14}" ry="11" fill="#000" opacity=".7" filter="url(#${u}bl)"/>`;
   // arch liners (move with body)
   svg+=`<g transform="translate(0 ${dFrom})">${dropAnim(dFrom,E.drop)}<circle cx="${g.Rw}" cy="${WCY-4}" r="${ARCH}" fill="#07080a"/><circle cx="${g.Fw}" cy="${WCY-4}" r="${ARCH}" fill="#07080a"/></g>`;
