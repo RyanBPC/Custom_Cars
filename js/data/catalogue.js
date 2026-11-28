@@ -124,6 +124,8 @@ const EXTRA_PARTS = [
  {re:/\b(?:(?:led|white)\s+)?(?:number )?plate (?:lights?|bulbs?|lamps?)\b/,name:"LED number plate bulbs",in3d:false,price:15,text:"crisp white LED number plate bulbs (they must be white and not too blue or bright, or the car fails its MOT)"},
  // "Golf R badge", "r badges": the chat turns these into "r-badges" first so they don't fit the whole R look (Car #249).
  {re:/\br-badges\b/,name:"R badges",in3d:false,price:40,text:"Golf R badges on the grille and tailgate in place of the GTI ones"},
+ // "Loud horn", "air horn", "twin horns": the chat turns these into "hornset" first so "loud" doesn't fit an exhaust (Car #255).
+ {re:/\bhornset\b/,name:"Loud horn",in3d:false,price:40,text:"a louder twin-tone horn behind the front bumper, wired in with a relay (about £30-£50 fitted)"},
  {re:/\b(?:fire )?extinguishers?\b/,name:"Fire extinguisher",in3d:false,price:30,text:"a small 1kg fire extinguisher on a quick-release bracket (bolted down, not loose in the boot)"},
  {re:/\bled (?:interior |cabin |boot |footwell |puddle |courtesy )?bulbs?\b|\b(?:interior|cabin|boot|footwell) (?:led )?bulbs?\b/,name:"LED interior bulbs",in3d:false,price:40,text:"bright white LED bulbs for the interior, boot and footwell lights (LED bulbs in halogen headlights aren't road legal in the UK, so those stay standard)"},
  {re:/private plate|personal(ised)? plate|custom (number )?plate|show plate/,name:"Private number plate",in3d:true,price:250,text:""},
