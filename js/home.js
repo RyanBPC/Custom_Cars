@@ -5,16 +5,20 @@
   // A card's picture: the build's photo, or the drawn car if the photo hasn't been made.
   // Cards use a small 800 px copy (photos/builds/thumbs/) so the home page loads fast; the hero keeps the full photo.
   const thumb = b => `photos/builds/thumbs/${b.id}.jpg`;
-  const drawn = carId => `<div class="drawn">${carSVG(CARS.find(c => c.id === carId), {}, { uid: "h" + Math.random().toString(36).slice(2, 7) })}</div>`;
+  // Website #201: draw the build's own parts (wheels, drop, spoiler...), not a plain stock car.
+  const drawn = b => { const c = CARS.find(x => x.id === b.car);
+    let mods = {}; try { mods = buildMods(b); } catch (e) { mods = {}; }
+    return `<div class="drawn">${carSVG(c, mods, { uid: "h" + Math.random().toString(36).slice(2, 7) })}</div>`; };
   // photo: false in builds.js = no photo made yet, so draw the car straight away instead of two failed loads.
-  const art = b => b.photo === false ? drawn(b.car)
+  const art = b => b.photo === false ? drawn(b)
     : `<img src="${thumb(b)}" alt="" loading="lazy" width="800" height="450" data-full="${photo(b)}" data-car="${b.car}">`;
   window.addEventListener("error", e => {
     const img = e.target;
     if (!(img instanceof HTMLImageElement) || !img.closest("#buildGrid, #popGrid") || !img.dataset.car) return;
     // No small copy? Try the full photo once before falling back to the drawn car.
     if (img.dataset.full) { const full = img.dataset.full; delete img.dataset.full; img.src = full; return; }
-    img.outerHTML = drawn(img.dataset.car);
+    const cardEl = img.closest("[data-build]"), b = cardEl && BUILDS.find(x => x.id === cardEl.dataset.build);
+    img.outerHTML = drawn(b || { car: img.dataset.car, text: "" });
   }, true);
 
   // Short names for the Models filter and the "Build your own" card.
@@ -27,15 +31,18 @@
     <div class="body"><h3><b>Build your own</b></h3><span id="ownCarText">Start from a stock ${shortName("golf")} and choose every part.</span><button type="button" class="btn primary sm build-this">Start from stock</button></div></article>`;
   // Rough fitted price of a build, worked out from its own text the same way "Build this" fits it,
   // on a throwaway copy (the real car, parts and chat are put back untouched).
-  function buildPrice(b) {
+  // The parts a build's text fits, on a throwaway copy (shared by the price and the drawn fallback picture).
+  function buildMods(b) {
     const c = CARS.find(x => x.id === b.car), keep = { car: state.car, mods: state.mods };
     try {
       state.car = b.car; state.mods = {};
-      const plan = localPlan(b.text) || {}, mods = {};
+      const plan = (b.text && localPlan(b.text)) || {}, mods = {};
       (Array.isArray(plan.apply) ? plan.apply : []).forEach(a => { if (a && MODS[a.id]) mods[a.id] = sanitize(a.id, a.params, c); });
-      return buildCost(c, sanitizeAll(mods, c));
-    } catch (e) { return 0; }
-    finally { state.car = keep.car; state.mods = keep.mods; }
+      return sanitizeAll(mods, c);
+    } finally { state.car = keep.car; state.mods = keep.mods; }
+  }
+  function buildPrice(b) {
+    try { return buildCost(CARS.find(x => x.id === b.car), buildMods(b)); } catch (e) { return 0; }
   }
   const priceLine = b => { const v = buildPrice(b); return v > 0 ? `<span class="price">About £${(Math.round(v / 100) * 100).toLocaleString("en-GB")} fitted</span>` : ""; };
   const grid = document.getElementById("buildGrid");
