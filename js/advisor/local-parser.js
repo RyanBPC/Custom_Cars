@@ -236,7 +236,7 @@ function planParts(text){
   const PL=String.raw`(?:number\s+|reg(?:istration)?\s+|licen[cs]e\s+)?plate`, OFF=String.raw`(?:no|remove|delete|take off|take out|get rid of|lose|ditch|without)\s+(?:the\s+|both\s+|my\s+|its\s+)?`;
   // (The typo fixer has already turned "plates" into "plate", so "plate" with no front/rear means both.)
   const plateRe=end=>new RegExp(String.raw`\b${OFF}${end}${PL}\b|${end?String.raw`\b`:String.raw`(?<!(?:front|rear|back)\s+)\b`}${end}${PL}\s+(?:off|delete|deleted|removed)\b`,"g");
-  const PLATE_BACK_RE=new RegExp(String.raw`\b(?:put|add|fit|bring)\s+(?:back\s+)?(?:on\s+)?(?:the\s+|both\s+|my\s+|a\s+)?((?:front|rear|back)\s+)?${PL}\b(?:\s+back)?(?:\s+on)?|\b((?:front|rear|back)\s+)?${PL}\s+back(?:\s+on)?\b`,"g");
+  const PLATE_BACK_RE=new RegExp(String.raw`\b(?:put|add|fit|bring)\s+(?:back\s+)?(?:on\s+)?(?:the\s+|both\s+|my\s+|a\s+)?((?:front|rear|back)\s+)?${PL}\b(?!\s+(?:delete|deleted|removed|off)\b)(?:\s+back)?(?:\s+on)?|\b((?:front|rear|back)\s+)?${PL}\s+back(?:\s+on)?\b`,"g");
   const plateBack=[];
   t=t.replace(PLATE_BACK_RE,(m,e1,e2)=>{const e=(e1||e2||"").trim();if(e!=="rear"&&e!=="back")plateBack.push("Front plate delete");if(e!=="front")plateBack.push("Rear plate delete");return " ";});
   t=t.replace(plateRe(String.raw`front\s+`)," fplate_off ").replace(plateRe(String.raw`(?:rear|back)\s+`)," rplate_off ").replace(plateRe("")," fplate_off rplate_off ")
