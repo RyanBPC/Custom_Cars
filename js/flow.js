@@ -316,7 +316,7 @@ addEventListener("viewer3d-ready", () => { partsShown = false; loadShots(); });
 /* ---------- step 4: your photo with the build, through the free Gemini app ---------- */
 let results = load(RESULT_KEY, {}); // prompt key -> result picture
 function myPrompt(c) {
-  return photoPrompt(c, state.mods, "photo").replace(/^Edit this photo of a /, "Edit this photo of my own ") + "\nIt's a real photo, so keep my car's own details, the number plate area and the surroundings exactly as they are.";
+  return photoPrompt(c, state.mods, "photo", { ownPhoto: true }).replace(/^Edit this photo of a /, "Edit this photo of my own ") + "\nIt's a real photo, so keep my car's own details, the number plate area and the surroundings exactly as they are.";
 }
 function renderMyRender() {
   const box = el("myRender"), c = car();

@@ -36,15 +36,25 @@ function photoParts(mods) {
     .filter(Boolean);
 }
 
-function photoPrompt(c, mods, envId) {
+// Same plate as the 3D car (plateLine in js/photo3d.js, loaded on the same page), worded for editing a stock photo.
+// Your own photo (Build step 4) keeps its real plate, so it gets no plate line here.
+function photoPlateLine(c, opts) {
+  if (opts && opts.ownPhoto) return "";
+  if (typeof plateLine !== "function") return "Keep the number plates blank.";
+  return plateLine(c)
+    .replace(/^Keep the (.+?) exactly as shown, reading/, "Show the $1 reading")
+    .replace(/^The car has no number plates; do not add any\./, "Remove the number plates; the car has none.");
+}
+
+function photoPrompt(c, mods, envId, opts) {
   const env = ENVIRONMENTS.find(e => e.id === envId) || ENVIRONMENTS[0];
-  const parts = photoParts(mods);
+  const parts = photoParts(mods), plate = photoPlateLine(c, opts);
   return [
     `Edit this photo of a ${c.make} ${c.model} (${c.gen}), a UK right-hand-drive car.`,
     "Keep the car itself exactly the same: same body shape, proportions, badges, grille, lights, camera angle and right-hand drive.",
     "Apply only these modifications:",
     ...parts.map(t => "- " + t),
     env.text || "Keep the background, lighting and camera angle exactly as they are.",
-    "Photorealistic, like a professional car photograph. Keep the number plates blank. Do not add any text, logos or watermarks."
+    "Photorealistic, like a professional car photograph." + (plate ? " " + plate : "") + " Do not add any " + (plate && !/blank|none/.test(plate) ? "other " : "") + "text, logos or watermarks."
   ].join("\n");
 }
