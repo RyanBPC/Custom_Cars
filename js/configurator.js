@@ -364,7 +364,7 @@
   });
   function catTabs() {
     const fitted = name => GROUPS.filter(g => catOf(g.name) === name && !(g.link && !g.row && !g.opts && !g.extras) && groupStatus(g).on).length;
-    const tab = (id, n) => `<button type="button" role="tab" id="${catTabId(id)}" aria-controls="optCatPanel" data-cat="${id}" aria-selected="${optCat === id}" tabindex="${optCat === id ? 0 : -1}">${id}${n ? ` <small>${n}</small>` : ""}</button>`;
+    const tab = (id, n) => `<button type="button" role="tab" id="${catTabId(id)}" aria-controls="optCatPanel" data-cat="${id}" aria-selected="${optCat === id}" tabindex="${optCat === id ? 0 : -1}">${id}${n ? ` <small title="${n} fitted">${n}<span class="visually-hidden"> fitted</span></small>` : ""}</button>`;
     return `<div class="opt-cats" role="tablist" aria-label="Part categories">${CATS.map(c => tab(c[0], fitted(c[0]))).join("")}${tab("All", 0)}</div>`;
   }
   // Each category tab gets a safe id so the parts list (the tab panel) can name the chosen one.
