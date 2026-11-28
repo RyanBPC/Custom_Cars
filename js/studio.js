@@ -72,7 +72,11 @@ function renderInfo(){
   renderPicker(); // the brand and model rows follow the car on show
 }
 $("fitted").addEventListener("click",e=>{const b=e.target.closest("[data-remove]");if(!b)return;const prev={...state.mods};delete state.mods[b.dataset.remove];commit(prev,[b.dataset.remove]);});
-$("resetBtn").addEventListener("click",()=>{const prev={...state.mods};const ch=Object.keys(prev);state.mods={};commit(prev,ch);});
+$("resetBtn").addEventListener("click",()=>{const prev={...state.mods};const ch=Object.keys(prev);
+  // Keep a copy so a mis-tap can be undone with "Bring it back" (like switchCar); a stock car stays silent.
+  const kept=ch.length?{car:state.car,mods:JSON.parse(JSON.stringify(state.mods))}:null;
+  state.mods={};commit(prev,ch);
+  if(kept){addAI("Back to stock.");offerUndo(kept);}});
 
 // Copy a link that opens this exact build (falls back to showing the link if copying isn't allowed).
 $("shareBtn").addEventListener("click",async()=>{
