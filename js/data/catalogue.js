@@ -122,6 +122,8 @@ const EXTRA_PARTS = [
  {re:/sequential indicators?|dynamic indicators?/,name:"Sequential indicators",in3d:true,price:200,text:"sweeping sequential indicators"},
  {re:/(evil|angry) (eyes|look)|eyelids|eyebrows/,name:"Headlight eyelids",in3d:true,price:60,text:"gloss-black eyelid covers over the top of the headlights"},
  {re:/\b(?:(?:led|white)\s+)?(?:number )?plate (?:lights?|bulbs?|lamps?)\b/,name:"LED number plate bulbs",in3d:false,price:15,text:"crisp white LED number plate bulbs (they must be white and not too blue or bright, or the car fails its MOT)"},
+ // "Golf R badge", "r badges": the chat turns these into "r-badges" first so they don't fit the whole R look (Car #249).
+ {re:/\br-badges\b/,name:"R badges",in3d:false,price:40,text:"Golf R badges on the grille and tailgate in place of the GTI ones"},
  {re:/\b(?:fire )?extinguishers?\b/,name:"Fire extinguisher",in3d:false,price:30,text:"a small 1kg fire extinguisher on a quick-release bracket (bolted down, not loose in the boot)"},
  {re:/\bled (?:interior |cabin |boot |footwell |puddle |courtesy )?bulbs?\b|\b(?:interior|cabin|boot|footwell) (?:led )?bulbs?\b/,name:"LED interior bulbs",in3d:false,price:40,text:"bright white LED bulbs for the interior, boot and footwell lights (LED bulbs in halogen headlights aren't road legal in the UK, so those stay standard)"},
  {re:/private plate|personal(ised)? plate|custom (number )?plate|show plate/,name:"Private number plate",in3d:true,price:250,text:""},

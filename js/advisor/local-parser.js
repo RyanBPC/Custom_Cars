@@ -121,6 +121,10 @@ function planParts(text){
   // Only a bare "golf r" asked on another car still switches to the Golf (then fits the kit).
   const GOLF_R_RE=/\b(?:(?:vw |volkswagen )?golf\s+r(?![a-z0-9])(?:[- ]?line\b)?|r[- ]line\b|(?:look|looks|style)\s+like\s+an?\s+r(?![a-z0-9]))/g;
   let rLook=null;
+  // "Add a golf r badge", "r badges", "R emblems": just the badges (about £40), not the whole R look (Car #249).
+  const R_BADGE_RE=/\b(?:(?:vw |volkswagen )?golf\s+)?r\s+(?:badges?|emblems?|logos?)\b/g;
+  const rBadge=R_BADGE_RE.test(t)&&!/\bline\b/.test(t), rBadgeOff=rBadge&&/\b(?:remove|take|get rid|delete|ditch|lose|no)\b/.test(t);
+  if(rBadge) t=t.replace(R_BADGE_RE," r-badges ");
   if(GOLF_R_RE.test(t)){const toGolf=state.car!=="golf"&&/golf/.test(t)&&!/look|style|bumper|kit|skirt|\bline\b/.test(t);
     rLook=/r[- ]line/.test(t)?"rline":"r";
     if(/\bblue\b/.test(t)&&!/\b(?:lapiz|estoril|portimao|snapper rocks|miami|baby|navy|sky|light|pale)\s+blue\b/.test(t)) t=t.replace(/\b(?:(?:dark|bright|deep)\s+)?blue\b/g," lapiz blue ");
@@ -159,7 +163,7 @@ function planParts(text){
   // "Get rid of everything", "take it all off", "make it standard again" mean back to stock, not the "everything" track build (Car #235).
   t=t.replace(/\b(?:get rid of|ditch|lose|bin|scrap)\s+(?:everything|it all|the lot|all (?:of )?(?:the |my |its )?(?:mods|parts|upgrades|extras))\b|\btake\s+(?:it all|everything|the lot|all (?:the |my )?(?:mods|parts|upgrades))\s+off\b|\bmake\s+(?:it|the car)\s+(?:standard|stock|original|normal|factory)\s+again\b/g," reset ");
   // "Take the wheels off" / "take my spoiler off" means remove them, the same as "take off the wheels".
-  t=t.replace(/\btake\s+(?:the\s+|my\s+|that\s+|those\s+)?([a-z][a-z ]{1,30}?)\s+off\b/g,(m,w)=>/^(?:it|them|everything|all)$/.test(w)?m:" remove the "+w+" ");
+  t=t.replace(/\btake\s+(?:the\s+|my\s+|that\s+|those\s+)?([a-z][a-z -]{1,30}?)\s+off\b/g,(m,w)=>/^(?:it|them|everything|all)$/.test(w)?m:" remove the "+w+" ");
   // "Not too loud" / "nothing too noisy" is a limit, not a complaint: blank it so it can't read as "quieter" (Car #106).
   const NOT_LOUD_RE=/\b(?:not|nothing|isn'?t|aren'?t|won'?t be|don'?t want it)\s+(?:too|that|so|overly|crazy|stupidly)\s+(?:loud|noisy)\b/g;
   const notLoud=NOT_LOUD_RE.test(t); if(notLoud) t=t.replace(NOT_LOUD_RE," ");
@@ -177,6 +181,7 @@ function planParts(text){
   if(RESET_RE.test(t)){reset=true;t=t.replace(RESET_RE," ");}
   // UK slang is read before the removal rule, so the "delete"/"remove" in these doesn't take parts off.
   const notes=[...hiddenNote];
+  if(rBadge&&!rBadgeOff) notes.push("R badges on a car that isn't an R are legal, but tell your insurer (it's a modification) and some buyers are put off by fake badges. Say \"golf r look\" for the R's wheels, skirts and quad tips too.");
   if(rLook) notes.push(rLook==="r"?"That's the Golf R look: quad exhaust tips, side skirts and 19 inch silver wheels. It's the look only, not the R's 4Motion engine; say \"stage 2\" for more power, or \"make it lapiz blue\" for the R's best-known colour.":"That's the R-Line look (VW's sporty-looking trim): side skirts and 19 inch silver wheels. Say \"golf r look\" to add the R's quad exhaust tips too.");
   // A wheel refurb or kerb-rash repair keeps the car's own wheels (Car #132): the clause is taken out so it can't fit new wheels or a wrap.
   let refurb=null;
