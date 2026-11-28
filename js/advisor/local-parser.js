@@ -112,7 +112,9 @@ function stripeContrast(c){
 // Done before the typo fixer, which would turn "rotas" or "volk" into other words. "rays" alone ("rays of light") isn't caught.
 // A TE37 has six straight spokes, so it gets the closest style: 5-spoke.
 const WHEEL_BRAND_RE=/\b(te ?37s?|volk(?:s| rays?)?|rays (?=wheels?|rims?|alloys?)|oz(?:s| racing)|rotas?|vossens?|bbs(?:es)?|rotiforms?|japan racing|jr ?11s?|enkeis?|work emotions?|advan(?: rgs?)?)\b(?!\s+(?:wheels?|rims?|alloys?)\b)/g;
-function wheelBrands(t){return t.replace(WHEEL_BRAND_RE,m=>/^te ?37/.test(m)?" te37 5-spoke wheels ":` ${m} wheels `);}
+// "Steel wheels" / "steel rims" are steelies, the same extra as "add steelies", not alloys (Car #241). "Stainless steel" stays an exhaust word.
+const STEEL_WHEEL_RE=/\b(?<!stainless )steel (?:wheels?|rims?)\b/g;
+function wheelBrands(t){return t.replace(STEEL_WHEEL_RE,"steelies").replace(WHEEL_BRAND_RE,m=>/^te ?37/.test(m)?" te37 5-spoke wheels ":` ${m} wheels `);}
 function planParts(text){
   let t=" "+fixTypos(wheelBrands(text.toLowerCase()))+" "; const apply=[],remove=[]; let switchCar=null, reset=false;
   // "Golf R look", "golf r bumpers", "R-Line", "make it look like an R": the R look kit from existing parts (Car #150), not a car switch.

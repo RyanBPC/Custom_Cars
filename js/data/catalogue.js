@@ -95,6 +95,8 @@ const EXTRA_PARTS = [
  {re:/tow (hooks?|straps?|eyes?)/,name:"Tow strap",in3d:true,price:40,text:"a red tow strap on the front bumper"},
  // "Drilled discs", "grooved brake discs", "drilled and grooved discs": uprated discs and pads, not the big brake kit (Car #238).
  {re:/\b(?:(?:cross[- ]?)?drilled|grooved|slotted)(?:\s+(?:and|&|or)\s+(?:(?:cross[- ]?)?drilled|grooved|slotted))?\s+(?:brake\s+)?(?:discs?|rotors?)\b/,name:"Drilled and grooved discs",in3d:false,price:400,text:"uprated drilled and grooved front discs with fast-road pads (about £300-£500 fitted); they resist fade but wear pads a little faster"},
+ // "Steel wheels", "steel rims", "steelies": plain steel wheels, not alloys (Car #241). The chat turns "steel wheels/rims" into "steelies" first.
+ {re:/\bsteel(?:ies|y)\b/,name:"Steel wheels",in3d:false,price:300,text:"a set of plain steel wheels (steelies), about £200-£400 with tyres moved over; heavier than alloys, popular for a retro or winter look"},
  {re:/\btow ?bars?\b/,name:"Tow bar",in3d:true,price:550,text:"a detachable tow bar (fitted with wiring)"},
  {re:/mud ?flaps?/,name:"Rally mud flaps",in3d:true,price:120,text:"rally-style mud flaps behind the wheels"},
  {re:/window visors?|wind deflectors?/,name:"Window visors",in3d:true,price:90,text:"smoked window visors above the side windows"},
