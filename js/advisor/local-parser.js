@@ -162,6 +162,8 @@ function planParts(text){
   const QUIET_RE=/\b(?:quiet(?:er)?|silent|less (?:loud|noisy)|toned?[- ]down)\s+(?:the\s+)?exhausts?\b|\bexhausts?\s+(?:a (?:bit|little|lot)\s+)?(?:quieter|less (?:loud|noisy))\b|\b(?:tone|turn)\s+(?:the\s+)?exhausts?\s+down\b|\bmake\s+(?:it|the car|her|him)\s+(?:a (?:bit|little|lot)\s+)?(?:quieter|less (?:loud|noisy))\b|\bquieter\s+please\b|\b(?:it'?s|its|it is|exhaust is|way)?\s*too (?:loud|noisy)\b/g;
   // "Get rid of everything", "take it all off", "make it standard again" mean back to stock, not the "everything" track build (Car #235).
   t=t.replace(/\b(?:get rid of|ditch|lose|bin|scrap)\s+(?:everything|it all|the lot|all (?:of )?(?:the |my |its )?(?:mods|parts|upgrades|extras))\b|\btake\s+(?:it all|everything|the lot|all (?:the |my )?(?:mods|parts|upgrades))\s+off\b|\bmake\s+(?:it|the car)\s+(?:standard|stock|original|normal|factory)\s+again\b/g," reset ");
+  // "Spoiler delete" / "add a rear wing delete" means taking the spoiler off, not fitting one (Car #259).
+  t=t.replace(/\b(?:(?:add|fit|get|want|do|give it)\s+)?(?:an?\s+|the\s+|my\s+)?(?:rear\s+|boot\s+|back\s+)?(?:spoiler|wing)\s+delete\b/g," remove the spoiler ");
   // "Take the wheels off" / "take my spoiler off" means remove them, the same as "take off the wheels".
   t=t.replace(/\btake\s+(?:the\s+|my\s+|that\s+|those\s+)?([a-z][a-z -]{1,30}?)\s+off\b/g,(m,w)=>/^(?:it|them|everything|all)$/.test(w)?m:" remove the "+w+" ");
   // "Not too loud" / "nothing too noisy" is a limit, not a complaint: blank it so it can't read as "quieter" (Car #106).
