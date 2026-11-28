@@ -76,7 +76,11 @@ function undoLast(){
   else commit(prev,[...new Set([...Object.keys(prev),...Object.keys(state.mods)])]);
   addAI(`Undone. The car is back how it was${carBack?` (${car().make} ${car().model})`:""}.`);
 }
-function dropUndoBtn(label){if(!undoBtn)return;if(label){undoBtn.disabled=true;undoBtn.textContent=label;}else undoBtn.remove();undoBtn=null;}
+// If the Undo button had keyboard focus, disabling or removing it would drop focus to the top of the page,
+// so hand focus to the chat box instead (skipped on touch screens so the phone keyboard doesn't pop up).
+function dropUndoBtn(label){if(!undoBtn)return;const hadFocus=document.activeElement===undoBtn;
+  if(label){undoBtn.disabled=true;undoBtn.textContent=label;}else undoBtn.remove();undoBtn=null;
+  if(hadFocus&&!matchMedia("(pointer: coarse)").matches)$("askInput").focus({preventScroll:true});}
 
 /* ---------- "Surprise me": fit a ready-made look for a beginner who doesn't know what to ask ---------- */
 // Picks one of this car's builds from js/data/builds.js (never the same one twice in a row), starting from stock.
